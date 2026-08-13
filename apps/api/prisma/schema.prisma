@@ -1,0 +1,487 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ======================================================
+// ENUMS
+// ======================================================
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum OrganizationStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum OrganizationRole {
+  OWNER
+  ADMIN
+  MANAGER
+  STAFF
+}
+
+enum SubscriptionPlan {
+  STANDARD
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
+enum CustomerType {
+  INDIVIDUAL
+  COMPANY
+}
+
+enum CustomerStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  VIEWED
+  APPROVED
+  REJECTED
+  EXPIRED
+  CONVERTED
+  CANCELLED
+}
+
+enum DiscountType {
+  NONE
+  FIXED
+  PERCENTAGE
+}
+
+enum JobStatus {
+  PENDING
+  QUEUED
+  IN_PROGRESS
+  FOR_REVIEW
+  READY
+  DELIVERED
+  COMPLETED
+  CANCELLED
+}
+
+enum JobPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum PaymentMethod {
+  CASH
+  GCASH
+  MAYA
+  BANK_TRANSFER
+  CARD
+  CHECK
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  VOIDED
+}
+
+// ======================================================
+// USER
+// ======================================================
+
+model User {
+  id           String @id @default(cuid())
+  name         String
+  email        String @unique
+  passwordHash String
+
+  phone     String?
+  avatarUrl String?
+
+  status UserStatus @default(ACTIVE)
+
+  emailVerifiedAt DateTime?
+  lastLoginAt     DateTime?
+
+  memberships       OrganizationMember[]
+  createdCustomers  Customer[]           @relation("CustomerCreatedBy")
+  createdQuotations Quotation[]          @relation("QuotationCreatedBy")
+
+  createdJobs     Job[]       @relation("JobCreatedBy")
+  jobUpdates      JobUpdate[] @relation("JobUpdateCreatedBy")
+  createdPayments Payment[]   @relation("PaymentCreatedBy")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+}
+
+// ======================================================
+// ORGANIZATION / BUSINESS / TENANT
+// ======================================================
+
+model Organization {
+  id   String @id @default(cuid())
+  name String
+  slug String @unique
+
+  businessType String?
+
+  email   String?
+  phone   String?
+  address String?
+  logoUrl String?
+
+  status OrganizationStatus @default(ACTIVE)
+
+  memberships  OrganizationMember[]
+  subscription Subscription?
+  customers    Customer[]
+  quotations   Quotation[]
+  sequence     OrganizationSequence?
+  jobs         Job[]
+  payments     Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+  @@index([status])
+}
+
+// ======================================================
+// ORGANIZATION MEMBERSHIP
+// ======================================================
+
+model OrganizationMember {
+  id String @id @default(cuid())
+
+  organizationId String
+  userId         String
+
+  role OrganizationRole @default(STAFF)
+
+  isActive Boolean @default(true)
+
+  joinedAt DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+  @@index([role])
+}
+
+// ======================================================
+// SUBSCRIPTION
+// ======================================================
+
+model Subscription {
+  id String @id @default(cuid())
+
+  organizationId String @unique
+
+  plan   SubscriptionPlan   @default(STANDARD)
+  status SubscriptionStatus @default(TRIALING)
+
+  trialStartedAt DateTime
+  trialEndsAt    DateTime
+
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+
+  cancelAtPeriodEnd Boolean   @default(false)
+  cancelledAt       DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([trialEndsAt])
+  @@index([currentPeriodEnd])
+}
+
+model Customer {
+  id String @id @default(cuid())
+
+  organizationId String
+  createdById    String
+
+  type   CustomerType   @default(INDIVIDUAL)
+  status CustomerStatus @default(ACTIVE)
+
+  name        String
+  companyName String?
+
+  email String?
+  phone String?
+
+  address String?
+  notes   String?
+
+  quotations Quotation[]
+  jobs       Job[]
+  payments   Payment[]
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdBy User @relation("CustomerCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, name])
+  @@index([organizationId, email])
+  @@index([createdById])
+}
+
+model OrganizationSequence {
+  id String @id @default(cuid())
+
+  organizationId String @unique
+
+  quotation Int @default(0)
+  job       Int @default(0)
+  payment   Int @default(0)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Quotation {
+  id String @id @default(cuid())
+
+  organizationId String
+  customerId     String
+  createdById    String
+
+  quotationNumber String
+
+  status QuotationStatus @default(DRAFT)
+
+  publicTokenHash String? @unique
+
+  issueDate  DateTime  @default(now())
+  validUntil DateTime?
+
+  sentAt     DateTime?
+  viewedAt   DateTime?
+  approvedAt DateTime?
+  rejectedAt DateTime?
+
+  customerResponseNote String?
+
+  subtotal       Decimal      @default(0) @db.Decimal(14, 2)
+  discountType   DiscountType @default(NONE)
+  discountValue  Decimal      @default(0) @db.Decimal(14, 2)
+  discountAmount Decimal      @default(0) @db.Decimal(14, 2)
+  taxRate        Decimal      @default(0) @db.Decimal(5, 2)
+  taxAmount      Decimal      @default(0) @db.Decimal(14, 2)
+  total          Decimal      @default(0) @db.Decimal(14, 2)
+
+  notes String?
+  terms String?
+  job   Job?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer     Customer     @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  createdBy    User         @relation("QuotationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  items QuotationItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, quotationNumber])
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, customerId])
+  @@index([createdById])
+  @@index([issueDate])
+}
+
+model QuotationItem {
+  id String @id @default(cuid())
+
+  quotationId String
+
+  name        String
+  description String?
+
+  quantity  Decimal @db.Decimal(12, 3)
+  unit      String
+  unitPrice Decimal @db.Decimal(14, 2)
+  total     Decimal @db.Decimal(14, 2)
+
+  sortOrder Int @default(0)
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([quotationId])
+}
+
+model Job {
+  id String @id @default(cuid())
+
+  organizationId String
+  customerId     String
+  quotationId    String @unique
+  createdById    String
+
+  jobNumber String
+
+  title       String
+  description String?
+
+  status   JobStatus   @default(PENDING)
+  priority JobPriority @default(NORMAL)
+
+  dueDate     DateTime?
+  completedAt DateTime?
+
+  trackingTokenHash String?   @unique
+  trackingEnabled   Boolean   @default(false)
+  trackingCreatedAt DateTime?
+
+  subtotal       Decimal @default(0) @db.Decimal(14, 2)
+  discountAmount Decimal @default(0) @db.Decimal(14, 2)
+  taxAmount      Decimal @default(0) @db.Decimal(14, 2)
+  total          Decimal @default(0) @db.Decimal(14, 2)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer     Customer     @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  quotation    Quotation    @relation(fields: [quotationId], references: [id], onDelete: Restrict)
+  createdBy    User         @relation("JobCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  items    JobItem[]
+  updates  JobUpdate[]
+  payments Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, jobNumber])
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, customerId])
+  @@index([createdById])
+  @@index([dueDate])
+}
+
+model JobItem {
+  id String @id @default(cuid())
+
+  jobId String
+
+  name        String
+  description String?
+
+  quantity  Decimal @db.Decimal(12, 3)
+  unit      String
+  unitPrice Decimal @db.Decimal(14, 2)
+  total     Decimal @db.Decimal(14, 2)
+
+  sortOrder Int @default(0)
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([jobId])
+}
+
+model JobUpdate {
+  id String @id @default(cuid())
+
+  jobId       String
+  createdById String?
+
+  status        JobStatus
+  message       String?
+  publicMessage String?
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  createdBy User? @relation("JobUpdateCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([jobId])
+  @@index([createdById])
+  @@index([createdAt])
+}
+
+model Payment {
+  id String @id @default(cuid())
+
+  organizationId String
+  customerId     String
+  jobId          String
+  createdById    String
+
+  paymentNumber String
+
+  amount Decimal @db.Decimal(14, 2)
+
+  method PaymentMethod
+  status PaymentStatus @default(PAID)
+
+  referenceNumber String?
+  notes           String?
+
+  paidAt DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer     Customer     @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  job          Job          @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  createdBy    User         @relation("PaymentCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, paymentNumber])
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([jobId])
+  @@index([customerId])
+  @@index([createdById])
+  @@index([paidAt])
+}
