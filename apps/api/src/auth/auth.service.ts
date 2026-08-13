@@ -10,12 +10,48 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtPayload } from './types/jwt-payload.type';
 
+import { createHash, randomBytes } from 'node:crypto';
+
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
   ) {}
+
+  private readonly REFRESH_TOKEN_DAYS = 30;
+
+  private hashRefreshToken(token: string) {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  private generateRefreshToken() {
+    return randomBytes(48).toString('base64url');
+  }
+
+  private getRefreshExpiry() {
+    const expiresAt = new Date();
+
+    expiresAt.setDate(expiresAt.getDate() + this.REFRESH_TOKEN_DAYS);
+
+    return expiresAt;
+  }
+
+  private async createRefreshSession(userId: string) {
+    const refreshToken = this.generateRefreshToken();
+
+    const tokenHash = this.hashRefreshToken(refreshToken);
+
+    await this.prisma.refreshSession.create({
+      data: {
+        userId,
+        tokenHash,
+        expiresAt: this.getRefreshExpiry(),
+      },
+    });
+
+    return refreshToken;
+  }
 
   async register(dto: RegisterDto) {
     const email = dto.email.trim().toLowerCase();
@@ -183,6 +219,8 @@ export class AuthService {
 
     const accessToken = await this.jwtService.signAsync(payload);
 
+    const refreshToken = await this.createRefreshSession(user.id);
+
     await this.prisma.user.update({
       where: {
         id: user.id,
@@ -195,6 +233,7 @@ export class AuthService {
 
     return {
       accessToken,
+      refreshToken,
 
       user: {
         id: user.id,
@@ -251,5 +290,90 @@ export class AuthService {
     }
 
     return slug;
+  }
+
+  async refresh(refreshToken?: string) {
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh session is required.');
+    }
+
+    const tokenHash = this.hashRefreshToken(refreshToken);
+
+    const session = await this.prisma.refreshSession.findUnique({
+      where: {
+        tokenHash,
+      },
+
+      include: {
+        user: true,
+      },
+    });
+
+    if (!session || session.revokedAt || session.expiresAt <= new Date()) {
+      throw new UnauthorizedException('Refresh session is invalid or expired.');
+    }
+
+    if (session.user.status !== 'ACTIVE') {
+      throw new UnauthorizedException('User account is not active.');
+    }
+
+    /*
+     * Rotate refresh token.
+     */
+    const newRefreshToken = this.generateRefreshToken();
+
+    const newTokenHash = this.hashRefreshToken(newRefreshToken);
+
+    const rotated = await this.prisma.refreshSession.updateMany({
+      where: {
+        id: session.id,
+
+        tokenHash,
+
+        revokedAt: null,
+      },
+
+      data: {
+        tokenHash: newTokenHash,
+
+        lastUsedAt: new Date(),
+      },
+    });
+
+    if (rotated.count !== 1) {
+      throw new UnauthorizedException(
+        'Refresh session has already been rotated.',
+      );
+    }
+
+    const accessToken = await this.jwtService.signAsync({
+      sub: session.user.id,
+
+      email: session.user.email,
+    });
+
+    return {
+      accessToken,
+      refreshToken: newRefreshToken,
+    };
+  }
+
+  async logout(refreshToken?: string) {
+    if (!refreshToken) {
+      return;
+    }
+
+    const tokenHash = this.hashRefreshToken(refreshToken);
+
+    await this.prisma.refreshSession.updateMany({
+      where: {
+        tokenHash,
+        revokedAt: null,
+      },
+
+      data: {
+        revokedAt: new Date(),
+      },
+    });
   }
 }

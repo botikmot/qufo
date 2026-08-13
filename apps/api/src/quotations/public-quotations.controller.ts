@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 
 import { RespondQuotationDto } from './dto/respond-quotation.dto';
 import { QuotationsService } from './quotations.service';
+import { CustomerQuotationFeedbackDto } from './dto/customer-quotation-feedback.dto';
 
 @Controller('public/quotations')
 export class PublicQuotationsController {
@@ -32,8 +33,19 @@ export class PublicQuotationsController {
     token: string,
 
     @Body()
-    dto: RespondQuotationDto,
+    dto: CustomerQuotationFeedbackDto,
   ) {
     return this.quotationsService.rejectPublicQuotation(token, dto);
+  }
+
+  @Post(':token/request-changes')
+  requestChanges(
+    @Param('token')
+    token: string,
+
+    @Body()
+    dto: CustomerQuotationFeedbackDto,
+  ) {
+    return this.quotationsService.requestChangesPublicQuotation(token, dto);
   }
 }

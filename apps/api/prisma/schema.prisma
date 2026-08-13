@@ -61,6 +61,7 @@ enum QuotationStatus {
   DRAFT
   SENT
   VIEWED
+  CHANGES_REQUESTED
   APPROVED
   REJECTED
   EXPIRED
@@ -135,6 +136,8 @@ model User {
   createdJobs     Job[]       @relation("JobCreatedBy")
   jobUpdates      JobUpdate[] @relation("JobUpdateCreatedBy")
   createdPayments Payment[]   @relation("PaymentCreatedBy")
+
+  refreshSessions RefreshSession[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -326,6 +329,14 @@ model Quotation {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  revisionNumber Int @default(1)
+
+  sourceQuotationId String?
+  sourceQuotation   Quotation?  @relation("QuotationRevisions", fields: [sourceQuotationId], references: [id], onDelete: SetNull)
+  revisions         Quotation[] @relation("QuotationRevisions")
+
+  changesRequestedAt DateTime?
+
   @@unique([organizationId, quotationNumber])
   @@index([organizationId])
   @@index([organizationId, status])
@@ -484,4 +495,24 @@ model Payment {
   @@index([customerId])
   @@index([createdById])
   @@index([paidAt])
+}
+
+model RefreshSession {
+  id String @id @default(cuid())
+
+  userId String
+
+  tokenHash String @unique
+
+  expiresAt  DateTime
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([expiresAt])
 }

@@ -18,6 +18,7 @@ import { ConfigService } from '@nestjs/config';
 import { createHash, randomBytes } from 'node:crypto';
 import { RespondQuotationDto } from './dto/respond-quotation.dto';
 import { ConvertQuotationToJobDto } from './dto/convert-quotation-to-job.dto';
+import { CustomerQuotationFeedbackDto } from './dto/customer-quotation-feedback.dto';
 
 @Injectable()
 export class QuotationsService {
@@ -275,6 +276,11 @@ export class QuotationsService {
           discountAmount: true,
           taxAmount: true,
           total: true,
+          customerResponseNote: true,
+          changesRequestedAt: true,
+          rejectedAt: true,
+          revisionNumber: true,
+          sourceQuotationId: true,
 
           createdAt: true,
           updatedAt: true,
@@ -819,7 +825,10 @@ export class QuotationsService {
     };
   }
 
-  async rejectPublicQuotation(token: string, dto: RespondQuotationDto) {
+  async rejectPublicQuotation(
+    token: string,
+    dto: CustomerQuotationFeedbackDto,
+  ) {
     const quotation = await this.getRespondableQuotation(token);
 
     const rejectedAt = new Date();
@@ -834,18 +843,19 @@ export class QuotationsService {
 
         rejectedAt,
 
-        customerResponseNote: dto.note?.trim() || null,
+        customerResponseNote: dto.note.trim(),
       },
 
       select: {
         quotationNumber: true,
         status: true,
         rejectedAt: true,
+        customerResponseNote: true,
       },
     });
 
     return {
-      message: 'Quotation rejected.',
+      message: 'Quotation declined.',
 
       quotation: updated,
     };
@@ -1056,6 +1066,230 @@ export class QuotationsService {
         message: 'Quotation converted to job successfully.',
 
         job,
+      };
+    });
+  }
+
+  async requestChangesPublicQuotation(
+    token: string,
+    dto: CustomerQuotationFeedbackDto,
+  ) {
+    const quotation = await this.getRespondableQuotation(token);
+
+    const changesRequestedAt = new Date();
+
+    const updated = await this.prisma.quotation.update({
+      where: {
+        id: quotation.id,
+      },
+
+      data: {
+        status: 'CHANGES_REQUESTED',
+
+        changesRequestedAt,
+
+        customerResponseNote: dto.note.trim(),
+      },
+
+      select: {
+        quotationNumber: true,
+        status: true,
+        changesRequestedAt: true,
+        customerResponseNote: true,
+      },
+    });
+
+    return {
+      message: 'Change request submitted successfully.',
+
+      quotation: updated,
+    };
+  }
+
+  async createRevision(user: JwtPayload, tenant: TenantContext, id: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const quotation = await tx.quotation.findFirst({
+        where: {
+          id,
+
+          organizationId: tenant.organizationId,
+        },
+
+        include: {
+          items: {
+            orderBy: {
+              sortOrder: 'asc',
+            },
+          },
+        },
+      });
+
+      if (!quotation) {
+        throw new NotFoundException('Quotation not found.');
+      }
+
+      if (quotation.status !== 'CHANGES_REQUESTED') {
+        throw new BadRequestException(
+          'Only quotations with requested changes can be revised.',
+        );
+      }
+
+      const rootQuotationId = quotation.sourceQuotationId ?? quotation.id;
+
+      /*
+       * Prevent multiple open draft
+       * revisions for the same quote.
+       */
+      const existingDraft = await tx.quotation.findFirst({
+        where: {
+          organizationId: tenant.organizationId,
+
+          sourceQuotationId: rootQuotationId,
+
+          status: 'DRAFT',
+        },
+
+        select: {
+          id: true,
+          quotationNumber: true,
+        },
+      });
+
+      if (existingDraft) {
+        throw new BadRequestException(
+          `A draft revision already exists: ${existingDraft.quotationNumber}.`,
+        );
+      }
+
+      /*
+       * Get original quotation number.
+       */
+      const rootQuotation = quotation.sourceQuotationId
+        ? await tx.quotation.findUnique({
+            where: {
+              id: quotation.sourceQuotationId,
+            },
+
+            select: {
+              quotationNumber: true,
+            },
+          })
+        : {
+            quotationNumber: quotation.quotationNumber,
+          };
+
+      if (!rootQuotation) {
+        throw new NotFoundException('Original quotation not found.');
+      }
+
+      /*
+       * Find latest revision number.
+       */
+      const revisions = await tx.quotation.aggregate({
+        where: {
+          organizationId: tenant.organizationId,
+
+          OR: [
+            {
+              id: rootQuotationId,
+            },
+
+            {
+              sourceQuotationId: rootQuotationId,
+            },
+          ],
+        },
+
+        _max: {
+          revisionNumber: true,
+        },
+      });
+
+      const nextRevision = (revisions._max.revisionNumber ?? 1) + 1;
+
+      const quotationNumber = `${rootQuotation.quotationNumber}-R${nextRevision}`;
+
+      const revisedQuotation = await tx.quotation.create({
+        data: {
+          organizationId: tenant.organizationId,
+
+          customerId: quotation.customerId,
+
+          createdById: user.sub,
+
+          quotationNumber,
+
+          revisionNumber: nextRevision,
+
+          sourceQuotationId: rootQuotationId,
+
+          status: 'DRAFT',
+
+          /*
+           * New revision starts now.
+           */
+          issueDate: new Date(),
+
+          validUntil: quotation.validUntil,
+
+          subtotal: quotation.subtotal,
+
+          discountType: quotation.discountType,
+
+          discountValue: quotation.discountValue,
+
+          discountAmount: quotation.discountAmount,
+
+          taxRate: quotation.taxRate,
+
+          taxAmount: quotation.taxAmount,
+
+          total: quotation.total,
+
+          notes: quotation.notes,
+
+          terms: quotation.terms,
+
+          items: {
+            create: quotation.items.map((item) => ({
+              name: item.name,
+
+              description: item.description,
+
+              quantity: item.quantity,
+
+              unit: item.unit,
+
+              unitPrice: item.unitPrice,
+
+              total: item.total,
+
+              sortOrder: item.sortOrder,
+            })),
+          },
+        },
+
+        include: {
+          customer: true,
+
+          items: {
+            orderBy: {
+              sortOrder: 'asc',
+            },
+          },
+        },
+      });
+
+      return {
+        message: 'Quotation revision created successfully.',
+
+        quotation: revisedQuotation,
+
+        requestedChanges: {
+          fromQuotation: quotation.quotationNumber,
+
+          note: quotation.customerResponseNote,
+        },
       };
     });
   }

@@ -1,26 +1,128 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* QUFO Core */
+  --qufo-bg: #07111f;
+  --qufo-bg-deep: #050d18;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --qufo-sidebar: rgba(8, 20, 35, 0.88);
+  --qufo-topbar: rgba(7, 17, 31, 0.78);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --qufo-surface: rgba(13, 28, 46, 0.72);
+  --qufo-surface-hover: rgba(17, 38, 61, 0.82);
+  --qufo-surface-soft: rgba(10, 24, 40, 0.65);
+
+  --qufo-border: rgba(96, 165, 250, 0.12);
+  --qufo-border-strong: rgba(96, 165, 250, 0.22);
+
+  --qufo-text: #f1f5f9;
+  --qufo-text-secondary: #94a3b8;
+  --qufo-text-muted: #64748b;
+
+  /* Signal colors */
+  --qufo-green: #34d399;
+  --qufo-cyan: #22d3ee;
+  --qufo-blue: #3b82f6;
+  --qufo-violet: #8b5cf6;
+
+  /* Glows */
+  --qufo-glow-green: rgba(16, 185, 129, 0.12);
+  --qufo-glow-cyan: rgba(34, 211, 238, 0.10);
+  --qufo-glow-blue: rgba(59, 130, 246, 0.08);
+  --qufo-glow-violet: rgba(139, 92, 246, 0.07);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--qufo-bg);
+  color: var(--qufo-text);
+}
+
+.qufo-background {
+  position: relative;
+  min-height: 100vh;
+
+  background:
+    radial-gradient(
+      circle at 8% 5%,
+      var(--qufo-glow-cyan) 0%,
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 85% 10%,
+      var(--qufo-glow-violet) 0%,
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 60% 80%,
+      var(--qufo-glow-green) 0%,
+      transparent 30%
+    ),
+    linear-gradient(
+      145deg,
+      var(--qufo-bg-deep) 0%,
+      var(--qufo-bg) 45%,
+      #09182a 100%
+    );
+
+  background-attachment: fixed;
+}
+
+.qufo-surface {
+  background: var(--qufo-surface);
+  border: 1px solid var(--qufo-border);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.qufo-surface-soft {
+  background: var(--qufo-surface-soft);
+  border: 1px solid var(--qufo-border);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.qufo-surface-hover {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease;
+}
+
+.qufo-surface-hover:hover {
+  background: var(--qufo-surface-hover);
+  border-color: var(--qufo-border-strong);
+}
+
+.qufo-input {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid var(--qufo-border);
+  background: rgba(5, 15, 27, 0.55);
+  padding: 0.7rem 0.9rem;
+
+  color: var(--qufo-text);
+
+  outline: none;
+
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.qufo-input::placeholder {
+  color: #475569;
+}
+
+.qufo-input:hover {
+  border-color: var(--qufo-border-strong);
+}
+
+.qufo-input:focus {
+  border-color: rgba(52, 211, 153, 0.45);
+
+  box-shadow:
+    0 0 0 3px rgba(52, 211, 153, 0.06);
+
+  background: rgba(7, 19, 33, 0.75);
 }

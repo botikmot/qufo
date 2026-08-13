@@ -112,4 +112,19 @@ export class QuotationsController {
   ) {
     return this.quotationsService.convertToJob(user, tenant, id, dto);
   }
+
+  @Roles('OWNER', 'ADMIN', 'MANAGER')
+  @Post(':id/revise')
+  createRevision(
+    @CurrentUser()
+    user: JwtPayload,
+
+    @CurrentTenant()
+    tenant: TenantContext,
+
+    @Param('id')
+    id: string,
+  ) {
+    return this.quotationsService.createRevision(user, tenant, id);
+  }
 }
