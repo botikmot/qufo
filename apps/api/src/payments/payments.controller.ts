@@ -15,6 +15,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { TenantGuard } from '../auth/guards/tenant.guard';
+import { SubscriptionGuard } from '../auth/guards/subscription.guard';
 
 import type { JwtPayload } from '../auth/types/jwt-payload.type';
 import type { TenantContext } from '../auth/types/tenant-context.type';
@@ -23,7 +24,6 @@ import { CreatePaymentDto } from './dto/create-payment.dto';
 import { PaymentQueryDto } from './dto/payment-query.dto';
 
 import { PaymentsService } from './payments.service';
-import { SubscriptionGuard } from '../auth/guards/subscription.guard';
 
 @Controller('payments')
 @UseGuards(AuthGuard, TenantGuard, SubscriptionGuard, RolesGuard)
@@ -54,6 +54,14 @@ export class PaymentsController {
     query: PaymentQueryDto,
   ) {
     return this.paymentsService.findAll(tenant, query);
+  }
+
+  @Get('summary')
+  getSummary(
+    @CurrentTenant()
+    tenant: TenantContext,
+  ) {
+    return this.paymentsService.getSummary(tenant);
   }
 
   @Get('job/:jobId')

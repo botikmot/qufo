@@ -1,16 +1,125 @@
-import { PageHeader } from "@/components/app/page-header";
+"use client";
+
+import {
+  Plus,
+} from "lucide-react";
+
+import {
+  PageHeader,
+} from "@/components/app/page-header";
+
+import {
+  PaymentFormModal,
+} from "@/components/payments/payment-form-modal";
+
+import {
+  PaymentOverview,
+} from "@/components/payments/payment-overview";
+
+import {
+  PaymentSummaryCards,
+} from "@/components/payments/payment-summary-cards";
+
+import {
+  PaymentTransactions,
+} from "@/components/payments/payment-transactions";
+
+import {
+  useAuthSession,
+} from "@/lib/auth-storage";
+
+import {
+  usePayments,
+} from "@/hooks/use-payments";
 
 export default function PaymentsPage() {
+  const session =
+    useAuthSession();
+
+  const payments =
+    usePayments();
+
+  const canVoid =
+    session?.organization.role ===
+      "OWNER" ||
+    session?.organization.role ===
+      "ADMIN";
+
   return (
     <>
       <PageHeader
         title="Payments"
-        description="Monitor collections, balances, and payment history."
+        description="Track customer payments, balances, and payment transactions."
+        action={
+          <button
+            type="button"
+            onClick={
+              payments.openPaymentForm
+            }
+            className="flex items-center gap-2 rounded-xl bg-emerald-400 px-4 py-2.5 text-sm font-medium text-slate-950 transition hover:bg-emerald-300"
+          >
+            <Plus size={17} />
+
+            Record payment
+          </button>
+        }
       />
 
-      <div className="rounded-2xl border border-dashed border-zinc-800 p-12 text-center text-sm text-zinc-500">
-        Payment management coming next.
-      </div>
+      <PaymentSummaryCards
+        summary={
+          payments.summary
+        }
+      />
+
+      {payments.error && (
+        <div className="mb-5 rounded-2xl border border-red-400/15 bg-red-400/[0.05] px-5 py-4 text-sm text-red-300">
+          {payments.error}
+        </div>
+      )}
+
+      <PaymentOverview
+        summary={
+          payments.summary
+        }
+        loading={
+          payments.loading
+        }
+      />
+
+      <PaymentTransactions
+        payments={
+          payments.payments
+        }
+        loading={
+          payments.loading
+        }
+        canVoid={
+          canVoid
+        }
+        voidingId={
+          payments.voidingId
+        }
+        onVoid={
+          payments.voidPayment
+        }
+      />
+
+      {payments.showPaymentForm && (
+        <PaymentFormModal
+          jobs={
+            payments.jobs
+          }
+          loading={
+            payments.saving
+          }
+          onClose={
+            payments.closePaymentForm
+          }
+          onSubmit={
+            payments.recordPayment
+          }
+        />
+      )}
     </>
   );
 }

@@ -513,4 +513,109 @@ export class PaymentsService {
 
     return 'PARTIALLY_PAID';
   }
+
+  async getSummary(tenant: TenantContext) {
+    const jobs = await this.prisma.job.findMany({
+      where: {
+        organizationId: tenant.organizationId,
+
+        status: {
+          not: 'CANCELLED',
+        },
+      },
+
+      select: {
+        id: true,
+        jobNumber: true,
+        title: true,
+        total: true,
+        status: true,
+
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            companyName: true,
+          },
+        },
+
+        payments: {
+          where: {
+            status: 'PAID',
+          },
+
+          select: {
+            amount: true,
+          },
+        },
+      },
+
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    const items = jobs.map((job) => {
+      const total = Number(job.total);
+
+      const paidAmount = job.payments.reduce(
+        (sum, payment) => sum + Number(payment.amount),
+        0,
+      );
+
+      const balance = Math.max(total - paidAmount, 0);
+
+      let paymentStatus: 'UNPAID' | 'PARTIALLY_PAID' | 'PAID';
+
+      if (paidAmount <= 0) {
+        paymentStatus = 'UNPAID';
+      } else if (paidAmount >= total) {
+        paymentStatus = 'PAID';
+      } else {
+        paymentStatus = 'PARTIALLY_PAID';
+      }
+
+      return {
+        id: job.id,
+
+        jobNumber: job.jobNumber,
+
+        title: job.title,
+
+        jobStatus: job.status,
+
+        customer: job.customer,
+
+        total: total.toFixed(2),
+
+        paidAmount: paidAmount.toFixed(2),
+
+        balance: balance.toFixed(2),
+
+        paymentStatus,
+      };
+    });
+
+    const totalJobValue = items.reduce(
+      (sum, item) => sum + Number(item.total),
+      0,
+    );
+
+    const totalPaid = items.reduce(
+      (sum, item) => sum + Number(item.paidAmount),
+      0,
+    );
+
+    return {
+      summary: {
+        totalJobValue: totalJobValue.toFixed(2),
+
+        totalPaid: totalPaid.toFixed(2),
+
+        totalBalance: Math.max(totalJobValue - totalPaid, 0).toFixed(2),
+      },
+
+      items,
+    };
+  }
 }
