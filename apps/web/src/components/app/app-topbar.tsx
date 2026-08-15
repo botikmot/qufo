@@ -1,116 +1,42 @@
 "use client";
 
-import {
-  Bell,
-  ChevronDown,
-  LogOut,
-} from "lucide-react";
-
-import {
-  useRouter,
-} from "next/navigation";
-
-import {
-  clearAuthSession,
-} from "@/lib/auth-storage";
+import { Menu } from "lucide-react";
 
 import type {
-  AuthSession,
-} from "@/types/auth";
-import { apiFetch } from "@/lib/api";
+  AppShellOrganization,
+} from "@/types/app-shell";
+
+type AppTopbarProps = {
+  organization: AppShellOrganization;
+  onOpenMenu: () => void;
+};
 
 export function AppTopbar({
-  session,
-}: {
-  session: AuthSession;
-}) {
-  const router = useRouter();
-
-  async function logout() {
-    try {
-      await apiFetch(
-        "/auth/logout",
-        {
-          method: "POST",
-          requireAuth: false,
-        },
-      );
-    } finally {
-      clearAuthSession();
-
-      router.replace(
-        "/login",
-      );
-    }
-  }
-
-  const initial =
-    session.user.name
-      .charAt(0)
-      .toUpperCase();
-
+  organization,
+  onOpenMenu,
+}: AppTopbarProps) {
   return (
-    <header className="sticky top-0 z-30 border-b border-[var(--qufo-border)] bg-[var(--qufo-topbar)] backdrop-blur-2xl">
-      <div className="flex h-16 items-center justify-between px-5 sm:px-6 lg:px-8">
-        <div className="lg:hidden">
-          <span className="font-semibold tracking-tight">
-            QUFO
-          </span>
-        </div>
+    <header className="sticky top-0 z-40 border-b border-[var(--qufo-border)] bg-[rgba(5,15,27,0.92)] backdrop-blur-xl lg:hidden">
+      <div className="flex h-16 items-center gap-3 px-4">
+        <button
+          type="button"
+          onClick={onOpenMenu}
+          aria-label="Open navigation"
+          className="flex size-9 shrink-0 items-center justify-center rounded-xl text-slate-500 transition hover:bg-white/[0.04] hover:text-white"
+        >
+          <Menu size={18} />
+        </button>
 
-        <div className="hidden lg:block">
-          <p className="text-xs text-zinc-600">
-            Quick Flow Workspace
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-slate-300">
+            {organization.name}
           </p>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="relative flex size-9 items-center justify-center rounded-xl text-zinc-500 transition hover:bg-zinc-900 hover:text-zinc-200"
-          >
-            <Bell
-              size={18}
-              strokeWidth={1.8}
-            />
-
-            <span className="absolute right-2 top-2 size-1.5 rounded-full bg-emerald-400" />
-          </button>
-
-          <div className="mx-2 h-6 w-px bg-zinc-900" />
-
-          <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-xl border border-[#1D3048] bg-[#0C192B] text-sm font-medium text-emerald-400">
-              {initial}
-            </div>
-
-            <div className="hidden text-left sm:block">
-              <p className="max-w-40 truncate text-sm font-medium text-zinc-200">
-                {session.user.name}
-              </p>
-
-              <p className="max-w-40 truncate text-xs text-zinc-600">
-                {session.user.email}
-              </p>
-            </div>
-
-            <ChevronDown
-              size={14}
-              className="hidden text-zinc-600 sm:block"
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={logout}
-            title="Sign out"
-            className="ml-1 flex size-9 items-center justify-center rounded-xl text-zinc-600 transition hover:bg-red-950/40 hover:text-red-400"
-          >
-            <LogOut
-              size={17}
-              strokeWidth={1.8}
-            />
-          </button>
+          {organization.role && (
+            <p className="mt-0.5 text-[10px] uppercase tracking-wider text-slate-600">
+              {organization.role}
+            </p>
+          )}
         </div>
       </div>
     </header>

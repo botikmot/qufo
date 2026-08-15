@@ -17,6 +17,14 @@ import {
 } from "@/components/jobs/job-items-list";
 
 import {
+  JobLifecycleActions,
+} from "@/components/jobs/job-lifecycle-actions";
+
+import {
+  JobPaymentCard,
+} from "@/components/jobs/job-payment-card";
+
+import {
   JobProductionProgress,
 } from "@/components/jobs/job-production-progress";
 
@@ -46,6 +54,9 @@ type JobDetailModalProps = {
 
   actionLoading: boolean;
 
+  canCancel: boolean;
+  canReopen: boolean;
+
   onClose: () => void;
 
   onChangeStatus: (
@@ -54,6 +65,13 @@ type JobDetailModalProps = {
     publicMessage: string,
   ) => Promise<void>;
 
+  onCancel: (
+    reason: string,
+  ) => Promise<void>;
+
+  onReopen:
+    () => Promise<void>;
+
   onGenerateTrackingLink:
     () => Promise<string>;
 };
@@ -61,8 +79,12 @@ type JobDetailModalProps = {
 export function JobDetailModal({
   job,
   actionLoading,
+  canCancel,
+  canReopen,
   onClose,
   onChangeStatus,
+  onCancel,
+  onReopen,
   onGenerateTrackingLink,
 }: JobDetailModalProps) {
   const detail =
@@ -80,7 +102,9 @@ export function JobDetailModal({
           loading={
             actionLoading
           }
-          onClose={onClose}
+          onClose={
+            onClose
+          }
         />
 
         <div className="space-y-7 p-6">
@@ -101,6 +125,10 @@ export function JobDetailModal({
           />
 
           <JobValueCard
+            job={job}
+          />
+
+          <JobPaymentCard
             job={job}
           />
 
@@ -155,6 +183,33 @@ export function JobDetailModal({
             }
             onSubmit={() =>
               void detail.updateStatus()
+            }
+          />
+
+          <JobLifecycleActions
+            job={job}
+            cancellationReason={
+              detail.cancellationReason
+            }
+            canCancel={
+              canCancel
+            }
+            canReopen={
+              canReopen
+            }
+            loading={
+              actionLoading
+            }
+            onCancellationReasonChange={
+              detail.setCancellationReason
+            }
+            onCancel={() =>
+              void onCancel(
+                detail.cancellationReason,
+              )
+            }
+            onReopen={() =>
+              void onReopen()
             }
           />
 

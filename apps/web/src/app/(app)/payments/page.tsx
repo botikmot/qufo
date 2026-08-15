@@ -32,6 +32,10 @@ import {
   usePayments,
 } from "@/hooks/use-payments";
 
+import {
+  canVoidPayment,
+} from "@/utils/payment-permission";
+
 export default function PaymentsPage() {
   const session =
     useAuthSession();
@@ -40,10 +44,9 @@ export default function PaymentsPage() {
     usePayments();
 
   const canVoid =
-    session?.organization.role ===
-      "OWNER" ||
-    session?.organization.role ===
-      "ADMIN";
+    canVoidPayment(
+      session?.organization.role,
+    );
 
   return (
     <>

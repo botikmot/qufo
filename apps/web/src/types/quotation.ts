@@ -71,6 +71,8 @@ export type Quotation = {
     items: number;
   };
 
+  revisionInfo?: QuotationRevisionInfo;
+
   createdAt?: string;
   updatedAt?: string;
 };
@@ -171,4 +173,11 @@ export type PublicQuotationResponse = {
     approvedAt?: string;
     rejectedAt?: string;
   };
+};
+
+export type QuotationRevisionInfo = {
+  isLatest: boolean;
+  latestQuotationId: string;
+  latestQuotationNumber: string;
+  latestRevisionNumber: number;
 };

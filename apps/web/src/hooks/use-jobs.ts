@@ -82,7 +82,9 @@ export function useJobs() {
           return;
         }
 
-        setJobs(data.items);
+        setJobs(
+          data.items,
+        );
 
         setPage(
           data.pagination.page,
@@ -111,7 +113,9 @@ export function useJobs() {
       )
       .finally(() => {
         if (!cancelled) {
-          setLoading(false);
+          setLoading(
+            false,
+          );
         }
       });
 
@@ -123,9 +127,7 @@ export function useJobs() {
   async function loadJobs(
     options?: {
       page?: number;
-
       search?: string;
-
       status?:
         JobStatusFilter;
     },
@@ -149,14 +151,18 @@ export function useJobs() {
         await jobsService.getAll({
           page: targetPage,
           limit: 20,
+
           search:
             targetSearch ||
             undefined,
+
           status:
             targetStatus,
         });
 
-      setJobs(data.items);
+      setJobs(
+        data.items,
+      );
 
       setPage(
         data.pagination.page,
@@ -188,7 +194,9 @@ export function useJobs() {
     const value =
       search.trim();
 
-    setActiveSearch(value);
+    setActiveSearch(
+      value,
+    );
 
     await loadJobs({
       page: 1,
@@ -199,7 +207,9 @@ export function useJobs() {
   async function changeStatus(
     value: JobStatusFilter,
   ) {
-    setStatus(value);
+    setStatus(
+      value,
+    );
 
     await loadJobs({
       page: 1,
@@ -231,7 +241,26 @@ export function useJobs() {
   }
 
   function closeJob() {
-    setSelectedJob(null);
+    setSelectedJob(
+      null,
+    );
+  }
+
+  async function refreshSelectedJob(
+    jobId: string,
+  ) {
+    const refreshed =
+      await jobsService.getOne(
+        jobId,
+      );
+
+    setSelectedJob(
+      refreshed,
+    );
+
+    await loadJobs({
+      page,
+    });
   }
 
   async function updateJobStatus(
@@ -243,7 +272,10 @@ export function useJobs() {
       return;
     }
 
-    setActionLoading(true);
+    setActionLoading(
+      true,
+    );
+
     setError(null);
 
     try {
@@ -262,18 +294,9 @@ export function useJobs() {
         },
       );
 
-      const refreshed =
-        await jobsService.getOne(
-          selectedJob.id,
-        );
-
-      setSelectedJob(
-        refreshed,
+      await refreshSelectedJob(
+        selectedJob.id,
       );
-
-      await loadJobs({
-        page,
-      });
     } catch (error) {
       setError(
         error instanceof Error
@@ -283,7 +306,113 @@ export function useJobs() {
 
       throw error;
     } finally {
-      setActionLoading(false);
+      setActionLoading(
+        false,
+      );
+    }
+  }
+
+  async function cancelJob(
+    reason: string,
+  ) {
+    if (!selectedJob) {
+      return;
+    }
+
+    const cancellationReason =
+      reason.trim();
+
+    if (!cancellationReason) {
+      throw new Error(
+        "A cancellation reason is required.",
+      );
+    }
+
+    const confirmed =
+      window.confirm(
+        `Cancel ${selectedJob.jobNumber}? This will stop the current production workflow.`,
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setActionLoading(
+      true,
+    );
+
+    setError(null);
+
+    try {
+      await jobsService.updateStatus(
+        selectedJob.id,
+        {
+          status:
+            "CANCELLED",
+
+          message:
+            cancellationReason,
+        },
+      );
+
+      await refreshSelectedJob(
+        selectedJob.id,
+      );
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to cancel job.",
+      );
+
+      throw error;
+    } finally {
+      setActionLoading(
+        false,
+      );
+    }
+  }
+
+  async function reopenJob() {
+    if (!selectedJob) {
+      return;
+    }
+
+    const confirmed =
+      window.confirm(
+        `Reopen ${selectedJob.jobNumber}? The job will return to its previous production status.`,
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setActionLoading(
+      true,
+    );
+
+    setError(null);
+
+    try {
+      await jobsService.reopen(
+        selectedJob.id,
+      );
+
+      await refreshSelectedJob(
+        selectedJob.id,
+      );
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to reopen job.",
+      );
+
+      throw error;
+    } finally {
+      setActionLoading(
+        false,
+      );
     }
   }
 
@@ -294,7 +423,10 @@ export function useJobs() {
       );
     }
 
-    setActionLoading(true);
+    setActionLoading(
+      true,
+    );
+
     setError(null);
 
     try {
@@ -315,7 +447,9 @@ export function useJobs() {
 
       return response.trackingUrl;
     } finally {
-      setActionLoading(false);
+      setActionLoading(
+        false,
+      );
     }
   }
 
@@ -343,16 +477,21 @@ export function useJobs() {
     closeJob,
 
     updateJobStatus,
+    cancelJob,
+    reopenJob,
+
     generateTrackingLink,
 
     previousPage: () =>
       loadJobs({
-        page: page - 1,
+        page:
+          page - 1,
       }),
 
     nextPage: () =>
       loadJobs({
-        page: page + 1,
+        page:
+          page + 1,
       }),
   };
 }

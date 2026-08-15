@@ -111,4 +111,19 @@ export class JobsController {
   ) {
     return this.jobsService.disableTracking(tenant, id);
   }
+
+  @Roles('OWNER', 'ADMIN', 'MANAGER')
+  @Post(':id/reopen')
+  reopen(
+    @CurrentUser()
+    user: JwtPayload,
+
+    @CurrentTenant()
+    tenant: TenantContext,
+
+    @Param('id')
+    id: string,
+  ) {
+    return this.jobsService.reopen(user, tenant, id);
+  }
 }

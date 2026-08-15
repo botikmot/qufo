@@ -29,3 +29,15 @@ export function isJobOverdue(
     Date.now()
   );
 }
+
+export function isJobCancellable(
+  status: JobStatus,
+) {
+  return [
+    "PENDING",
+    "QUEUED",
+    "IN_PROGRESS",
+    "FOR_REVIEW",
+    "READY",
+  ].includes(status);
+}

@@ -75,6 +75,11 @@ export function useJobDetail({
     setCopied,
   ] = useState(false);
 
+  const [
+    cancellationReason,
+    setCancellationReason,
+  ] = useState("");
+
   async function updateStatus() {
     if (!selectedStatus) {
       return;
@@ -133,6 +138,8 @@ export function useJobDetail({
     trackingLink,
     trackingError,
     copied,
+    cancellationReason,
+    setCancellationReason,
 
     setSelectedStatus,
     setInternalMessage,

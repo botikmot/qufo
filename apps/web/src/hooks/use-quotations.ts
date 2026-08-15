@@ -516,18 +516,22 @@ export function useQuotations() {
     setError(null);
 
     try {
-      const revision =
+      const result =
         await quotationsService.createRevision(
           selectedQuotation.id,
         );
 
-      setSelectedQuotation(null);
-
-      setEditingQuotation(
-        revision,
+      setSelectedQuotation(
+        null,
       );
 
-      setShowForm(true);
+      setEditingQuotation(
+        result.quotation,
+      );
+
+      setShowForm(
+        true,
+      );
 
       await loadQuotations({
         page,

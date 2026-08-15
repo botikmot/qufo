@@ -54,6 +54,9 @@ export function QuotationActions({
   const canRevise =
     canCreateRevision(
       quotation.status,
+      quotation.revisionInfo
+        ?.isLatest ??
+        false,
     );
 
   const canConvert =

@@ -2,6 +2,7 @@
 
 import {
   type FormEvent,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -29,6 +30,8 @@ import type {
 type UsePaymentFormProps = {
   jobs: Job[];
 
+  initialJobId?: string;
+
   onSubmit: (
     data: PaymentFormData,
   ) => Promise<void>;
@@ -36,12 +39,15 @@ type UsePaymentFormProps = {
 
 export function usePaymentForm({
   jobs,
+  initialJobId,
   onSubmit,
 }: UsePaymentFormProps) {
   const [
     jobId,
     setJobId,
-  ] = useState("");
+  ] = useState(
+    initialJobId ?? "",
+  );
 
   const [
     amount,
@@ -74,7 +80,9 @@ export function usePaymentForm({
   const [
     loadingBalance,
     setLoadingBalance,
-  ] = useState(false);
+  ] = useState(
+    Boolean(initialJobId),
+  );
 
   const [
     error,
@@ -83,6 +91,58 @@ export function usePaymentForm({
     null,
   );
 
+  useEffect(() => {
+    if (!initialJobId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const load =
+      async () => {
+        try {
+          const payments =
+            await paymentsService.getByJob(
+              initialJobId,
+            );
+
+          if (cancelled) {
+            return;
+          }
+
+          setJobPayments(
+            payments,
+          );
+
+          setError(null);
+        } catch (error) {
+          if (cancelled) {
+            return;
+          }
+
+          setError(
+            error instanceof Error
+              ? error.message
+              : "Unable to load job payments.",
+          );
+        } finally {
+          if (!cancelled) {
+            setLoadingBalance(
+              false,
+            );
+          }
+        }
+      };
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    initialJobId,
+  ]);
+
   const selectedJob =
     useMemo(
       () =>
@@ -90,7 +150,10 @@ export function usePaymentForm({
           (job) =>
             job.id === jobId,
         ) ?? null,
-      [jobs, jobId],
+      [
+        jobs,
+        jobId,
+      ],
     );
 
   const total =
@@ -104,7 +167,9 @@ export function usePaymentForm({
         getPaidAmount(
           jobPayments,
         ),
-      [jobPayments],
+      [
+        jobPayments,
+      ],
     );
 
   const balance =

@@ -1,3 +1,72 @@
+import type {
+  JobPriority,
+  JobStatus,
+} from "@/types/job";
+
+import type {
+  QuotationStatus,
+} from "@/types/quotation";
+
+import type {
+  PaymentMethod,
+  PaymentStatus,
+} from "@/types/payment";
+
+export type DashboardCustomerSummary = {
+  id: string;
+  name: string;
+  companyName: string | null;
+};
+
+export type DashboardRecentJob = {
+  id: string;
+  jobNumber: string;
+  title: string;
+
+  status: JobStatus;
+  priority: JobPriority;
+
+  dueDate: string | null;
+
+  total: string;
+
+  customer: DashboardCustomerSummary;
+};
+
+export type DashboardRecentQuotation = {
+  id: string;
+
+  quotationNumber: string;
+
+  status: QuotationStatus;
+
+  total: string;
+
+  validUntil: string | null;
+
+  customer: DashboardCustomerSummary;
+};
+
+export type DashboardRecentPayment = {
+  id: string;
+
+  paymentNumber: string;
+
+  amount: string;
+
+  method: PaymentMethod;
+  status: PaymentStatus;
+
+  paidAt: string;
+
+  customer: DashboardCustomerSummary;
+
+  job: {
+    id: string;
+    jobNumber: string;
+  };
+};
+
 export type DashboardResponse = {
   organization: {
     id: string;
@@ -7,10 +76,10 @@ export type DashboardResponse = {
   };
 
   subscription: {
-    plan: string | null;
-    status: string | null;
+    plan: string;
+    status: string;
     trialEndsAt: string | null;
-    trialDaysRemaining: number | null;
+    trialDaysRemaining: number;
   };
 
   stats: {
@@ -36,8 +105,8 @@ export type DashboardResponse = {
   };
 
   recent: {
-    jobs: unknown[];
-    quotations: unknown[];
-    payments: unknown[];
+    jobs: DashboardRecentJob[];
+    quotations: DashboardRecentQuotation[];
+    payments: DashboardRecentPayment[];
   };
 };

@@ -77,7 +77,7 @@ export const jobsService = {
     jobId: string,
     payload: UpdateJobStatusPayload,
   ) {
-    return apiFetch(
+    return apiFetch<Job>(
       `/jobs/${jobId}/status`,
       {
         method: "POST",
@@ -94,6 +94,17 @@ export const jobsService = {
             payload.publicMessage ||
             undefined,
         }),
+      },
+    );
+  },
+
+  reopen(
+    jobId: string,
+  ) {
+    return apiFetch<Job>(
+      `/jobs/${jobId}/reopen`,
+      {
+        method: "POST",
       },
     );
   },

@@ -30,6 +30,10 @@ import type {
 type PaymentFormModalProps = {
   jobs: Job[];
 
+  initialJobId?: string;
+
+  lockJobSelection?: boolean;
+
   loading?: boolean;
 
   onClose: () => void;
@@ -41,6 +45,8 @@ type PaymentFormModalProps = {
 
 export function PaymentFormModal({
   jobs,
+  initialJobId,
+  lockJobSelection = false,
   loading = false,
   onClose,
   onSubmit,
@@ -48,6 +54,7 @@ export function PaymentFormModal({
   const form =
     usePaymentForm({
       jobs,
+      initialJobId,
       onSubmit,
     });
 
@@ -79,7 +86,7 @@ export function PaymentFormModal({
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="flex size-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-white/[0.05] hover:text-white"
+            className="flex size-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-white/[0.05] hover:text-white disabled:opacity-50"
           >
             <X size={18} />
           </button>
@@ -98,24 +105,35 @@ export function PaymentFormModal({
 
             <select
               required
-              value={form.jobId}
+              disabled={
+                lockJobSelection
+              }
+              value={
+                form.jobId
+              }
               onChange={(event) =>
                 void form.handleJobChange(
                   event.target
                     .value,
                 )
               }
-              className="qufo-input"
+              className="qufo-input disabled:cursor-not-allowed disabled:opacity-70"
             >
-              <option value="">
-                Select job
-              </option>
+              {!lockJobSelection && (
+                <option value="">
+                  Select job
+                </option>
+              )}
 
               {jobs.map(
                 (job) => (
                   <option
-                    key={job.id}
-                    value={job.id}
+                    key={
+                      job.id
+                    }
+                    value={
+                      job.id
+                    }
                   >
                     {
                       job.jobNumber
@@ -309,7 +327,7 @@ export function PaymentFormModal({
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="rounded-xl px-4 py-2.5 text-sm text-slate-400 transition hover:bg-white/[0.04] hover:text-white"
+              className="rounded-xl px-4 py-2.5 text-sm text-slate-400 transition hover:bg-white/[0.04] hover:text-white disabled:opacity-50"
             >
               Cancel
             </button>

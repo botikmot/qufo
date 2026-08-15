@@ -388,6 +388,10 @@ export class JobsService {
         );
       }
 
+      if (nextStatus === 'CANCELLED' && !dto.message?.trim()) {
+        throw new BadRequestException('A cancellation reason is required.');
+      }
+
       const completedAt = nextStatus === 'COMPLETED' ? new Date() : null;
 
       /*
@@ -716,5 +720,141 @@ export class JobsService {
         createdAt: update.createdAt,
       })),
     };
+  }
+
+  async reopen(user: JwtPayload, tenant: TenantContext, id: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const job = await tx.job.findFirst({
+        where: {
+          id,
+
+          organizationId: tenant.organizationId,
+        },
+
+        select: {
+          id: true,
+          jobNumber: true,
+          status: true,
+        },
+      });
+
+      if (!job) {
+        throw new NotFoundException('Job not found.');
+      }
+
+      if (job.status !== 'CANCELLED') {
+        throw new BadRequestException('Only cancelled jobs can be reopened.');
+      }
+
+      /*
+       * Find the most recent
+       * non-cancelled status.
+       *
+       * This represents the job
+       * state immediately before
+       * the cancellation.
+       */
+      const previousUpdate = await tx.jobUpdate.findFirst({
+        where: {
+          jobId: job.id,
+
+          status: {
+            not: 'CANCELLED',
+          },
+        },
+
+        orderBy: {
+          createdAt: 'desc',
+        },
+
+        select: {
+          status: true,
+        },
+      });
+
+      /*
+       * A newly-created job may
+       * have been cancelled while
+       * still PENDING before any
+       * previous status update was
+       * recorded.
+       */
+      const restoredStatus: JobStatus = previousUpdate?.status ?? 'PENDING';
+
+      /*
+       * Protect against concurrent
+       * reopen/status requests.
+       */
+      const updateResult = await tx.job.updateMany({
+        where: {
+          id: job.id,
+
+          organizationId: tenant.organizationId,
+
+          status: 'CANCELLED',
+        },
+
+        data: {
+          status: restoredStatus,
+
+          completedAt: null,
+        },
+      });
+
+      if (updateResult.count !== 1) {
+        throw new BadRequestException(
+          'Job status changed while this request was being processed. Please try again.',
+        );
+      }
+
+      /*
+       * Keep the cancellation and
+       * reopen in the audit trail.
+       */
+      await tx.jobUpdate.create({
+        data: {
+          jobId: job.id,
+
+          createdById: user.sub,
+
+          status: restoredStatus,
+
+          message: `Job reopened and restored to ${restoredStatus}.`,
+
+          publicMessage: 'Your order is active again.',
+        },
+      });
+
+      return tx.job.findUnique({
+        where: {
+          id: job.id,
+        },
+
+        include: {
+          customer: {
+            select: {
+              id: true,
+              name: true,
+              companyName: true,
+            },
+          },
+
+          updates: {
+            orderBy: {
+              createdAt: 'asc',
+            },
+
+            include: {
+              createdBy: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      });
+    });
   }
 }

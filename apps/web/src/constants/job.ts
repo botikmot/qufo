@@ -88,30 +88,25 @@ export const JOB_STATUS_TRANSITIONS: Record<
 > = {
   PENDING: [
     "QUEUED",
-    "CANCELLED",
   ],
 
   QUEUED: [
     "IN_PROGRESS",
-    "CANCELLED",
   ],
 
   IN_PROGRESS: [
     "FOR_REVIEW",
     "READY",
-    "CANCELLED",
   ],
 
   FOR_REVIEW: [
     "IN_PROGRESS",
     "READY",
-    "CANCELLED",
   ],
 
   READY: [
     "DELIVERED",
     "COMPLETED",
-    "CANCELLED",
   ],
 
   DELIVERED: [

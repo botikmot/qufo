@@ -20,9 +20,50 @@ import {
   useJobs,
 } from "@/hooks/use-jobs";
 
+import {
+  useAuthSession,
+} from "@/lib/auth-storage";
+
+import {
+  isJobCancellable,
+} from "@/utils/job";
+
+import {
+  canCancelJob,
+  canReopenJob,
+} from "@/utils/job-permission";
+
 export default function JobsPage() {
+  const session =
+    useAuthSession();
+
   const jobs =
     useJobs();
+
+  const selectedJob =
+    jobs.selectedJob;
+
+  const role =
+    session?.organization.role;
+
+  const canCancel =
+    selectedJob
+      ? canCancelJob(
+          role,
+        ) &&
+        isJobCancellable(
+          selectedJob.status,
+        )
+      : false;
+
+  const canReopen =
+    selectedJob
+      ? selectedJob.status ===
+          "CANCELLED" &&
+        canReopenJob(
+          role,
+        )
+      : false;
 
   return (
     <>
@@ -76,7 +117,9 @@ export default function JobsPage() {
           jobs.total
         }
         onOpen={(job) =>
-          void jobs.openJob(job)
+          void jobs.openJob(
+            job,
+          )
         }
         onPrevious={() =>
           void jobs.previousPage()
@@ -86,20 +129,32 @@ export default function JobsPage() {
         }
       />
 
-      {jobs.selectedJob && (
+      {selectedJob && (
         <JobDetailModal
-          key={`${jobs.selectedJob.id}-${jobs.selectedJob.status}`}
+          key={`${selectedJob.id}-${selectedJob.status}`}
           job={
-            jobs.selectedJob
+            selectedJob
           }
           actionLoading={
             jobs.actionLoading
+          }
+          canCancel={
+            canCancel
+          }
+          canReopen={
+            canReopen
           }
           onClose={
             jobs.closeJob
           }
           onChangeStatus={
             jobs.updateJobStatus
+          }
+          onCancel={
+            jobs.cancelJob
+          }
+          onReopen={
+            jobs.reopenJob
           }
           onGenerateTrackingLink={
             jobs.generateTrackingLink

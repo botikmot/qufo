@@ -1,12 +1,18 @@
-import type { ReactNode } from "react";
+import type {
+  ReactNode,
+} from "react";
 
-import { AppShell } from "@/components/app/app-shell"; 
+import {
+  AppShell,
+} from "@/components/app/app-shell";
 
-export default function ProtectedLayout({
-  children,
-}: {
+type AppLayoutProps = {
   children: ReactNode;
-}) {
+};
+
+export default function AppLayout({
+  children,
+}: AppLayoutProps) {
   return (
     <AppShell>
       {children}

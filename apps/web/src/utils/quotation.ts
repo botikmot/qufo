@@ -16,10 +16,16 @@ export function canSendQuotation(
 
 export function canCreateRevision(
   status: QuotationStatus,
+  isLatestRevision: boolean,
 ) {
   return (
-    status ===
-    "CHANGES_REQUESTED"
+    isLatestRevision &&
+    (
+      status ===
+        "CHANGES_REQUESTED" ||
+      status ===
+        "REJECTED"
+    )
   );
 }
 

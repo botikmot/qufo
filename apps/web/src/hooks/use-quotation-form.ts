@@ -136,7 +136,7 @@ export function useQuotationForm({
                 ),
 
               unit:
-                item.unit,
+                item.unit || "pc",
 
               unitPrice:
                 String(

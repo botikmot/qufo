@@ -348,7 +348,59 @@ export class QuotationsService {
       throw new NotFoundException('Quotation not found.');
     }
 
-    return quotation;
+    const rootQuotationId = quotation.sourceQuotationId ?? quotation.id;
+
+    const latestQuotation = await this.prisma.quotation.findFirst({
+      where: {
+        organizationId: tenant.organizationId,
+
+        OR: [
+          {
+            id: rootQuotationId,
+          },
+
+          {
+            sourceQuotationId: rootQuotationId,
+          },
+        ],
+      },
+
+      orderBy: [
+        {
+          revisionNumber: 'desc',
+        },
+
+        {
+          createdAt: 'desc',
+        },
+      ],
+
+      select: {
+        id: true,
+
+        quotationNumber: true,
+
+        revisionNumber: true,
+
+        status: true,
+      },
+    });
+
+    return {
+      ...quotation,
+
+      revisionInfo: {
+        isLatest: latestQuotation?.id === quotation.id,
+
+        latestQuotationId: latestQuotation?.id ?? quotation.id,
+
+        latestQuotationNumber:
+          latestQuotation?.quotationNumber ?? quotation.quotationNumber,
+
+        latestRevisionNumber:
+          latestQuotation?.revisionNumber ?? quotation.revisionNumber ?? 1,
+      },
+    };
   }
 
   async update(tenant: TenantContext, id: string, dto: UpdateQuotationDto) {
@@ -1128,13 +1180,52 @@ export class QuotationsService {
         throw new NotFoundException('Quotation not found.');
       }
 
-      if (quotation.status !== 'CHANGES_REQUESTED') {
+      if (
+        quotation.status !== 'CHANGES_REQUESTED' &&
+        quotation.status !== 'REJECTED'
+      ) {
         throw new BadRequestException(
-          'Only quotations with requested changes can be revised.',
+          'Only quotations with requested changes or rejected quotations can be revised.',
         );
       }
 
       const rootQuotationId = quotation.sourceQuotationId ?? quotation.id;
+
+      const latestQuotation = await tx.quotation.findFirst({
+        where: {
+          organizationId: tenant.organizationId,
+
+          OR: [
+            {
+              id: rootQuotationId,
+            },
+            {
+              sourceQuotationId: rootQuotationId,
+            },
+          ],
+        },
+
+        orderBy: {
+          revisionNumber: 'desc',
+        },
+
+        select: {
+          id: true,
+          quotationNumber: true,
+          revisionNumber: true,
+          status: true,
+        },
+      });
+
+      if (!latestQuotation) {
+        throw new NotFoundException('Quotation revision history not found.');
+      }
+
+      if (latestQuotation.id !== quotation.id) {
+        throw new BadRequestException(
+          `This quotation is no longer the latest revision. The current revision is ${latestQuotation.quotationNumber}.`,
+        );
+      }
 
       /*
        * Prevent multiple open draft

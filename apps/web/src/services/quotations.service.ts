@@ -29,6 +29,17 @@ export type SendQuotationResponse = {
   url?: string;
 };
 
+export type CreateRevisionResponse = {
+  message: string;
+
+  quotation: Quotation;
+
+  requestedChanges: {
+    fromQuotation: string;
+    note: string | null;
+  };
+};
+
 export const quotationsService = {
   getAll(
     query: QuotationsQuery = {},
@@ -130,7 +141,7 @@ export const quotationsService = {
   createRevision(
     quotationId: string,
   ) {
-    return apiFetch<Quotation>(
+    return apiFetch<CreateRevisionResponse>(
       `/quotations/${quotationId}/revise`,
       {
         method: "POST",

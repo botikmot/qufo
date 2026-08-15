@@ -1,17 +1,31 @@
 export function formatDate(
-  value: string | Date,
-  locale = "en-PH",
+  value?: string | Date | null,
 ) {
+  if (!value) {
+    return "—";
+  }
+
+  const date =
+    value instanceof Date
+      ? value
+      : new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
+    return "—";
+  }
+
   return new Intl.DateTimeFormat(
-    locale,
+    "en-PH",
     {
       year: "numeric",
       month: "short",
       day: "numeric",
     },
-  ).format(
-    new Date(value),
-  );
+  ).format(date);
 }
 
 export function formatDateTime(

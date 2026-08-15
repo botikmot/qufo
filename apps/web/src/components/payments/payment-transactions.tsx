@@ -41,30 +41,40 @@ import type {
   PaymentStatus,
 } from "@/types/payment";
 
+type PaymentTransactionsVariant =
+  | "default"
+  | "job";
+
 type Props = {
   payments: Payment[];
+
   loading: boolean;
 
-  canVoid: boolean;
+  canVoid?: boolean;
 
-  voidingId:
+  voidingId?:
     | string
     | null;
 
-  onVoid: (
+  onVoid?: (
     payment: Payment,
   ) => Promise<void>;
+
+  variant?: PaymentTransactionsVariant;
 };
 
 export function PaymentTransactions({
   payments,
   loading,
-  canVoid,
-  voidingId,
+  canVoid = false,
+  voidingId = null,
   onVoid,
+  variant = "default",
 }: Props) {
-  const [search, setSearch] =
-    useState("");
+  const [
+    search,
+    setSearch,
+  ] = useState("");
 
   const [
     statusFilter,
@@ -73,6 +83,16 @@ export function PaymentTransactions({
     useState<
       "ALL" | PaymentStatus
     >("ALL");
+
+  const jobVariant =
+    variant === "job";
+
+  const showActions =
+    !jobVariant ||
+    (
+      canVoid &&
+      Boolean(onVoid)
+    );
 
   const filteredPayments =
     useMemo(() => {
@@ -121,82 +141,110 @@ export function PaymentTransactions({
     ]);
 
   return (
-    <div className="qufo-surface overflow-hidden rounded-2xl">
-      <div className="flex flex-col gap-4 border-b border-[var(--qufo-border)] p-4 lg:flex-row lg:items-end lg:justify-between">
+    <div
+      className={
+        jobVariant
+          ? "overflow-hidden rounded-xl border border-[var(--qufo-border)] bg-black/10"
+          : "qufo-surface overflow-hidden rounded-2xl"
+      }
+    >
+      <div
+        className={[
+          "flex flex-col gap-4 border-b border-[var(--qufo-border)] p-4",
+          !jobVariant
+            ? "lg:flex-row lg:items-end lg:justify-between"
+            : "",
+        ].join(" ")}
+      >
         <div>
           <h2 className="text-sm font-medium text-slate-300">
-            Payment Transactions
+            {jobVariant
+              ? "Payment History"
+              : "Payment Transactions"}
           </h2>
 
           <p className="mt-1 text-xs text-slate-600">
-            History of payments
-            recorded in QUFO.
+            {jobVariant
+              ? "Payments recorded for this job."
+              : "History of payments recorded in QUFO."}
           </p>
         </div>
 
-        <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
-          <div className="relative w-full sm:w-80">
-            <Search
-              size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600"
-            />
+        {!jobVariant && (
+          <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
+            <div className="relative w-full sm:w-80">
+              <Search
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600"
+              />
 
-            <input
-              value={search}
+              <input
+                value={search}
+                onChange={(event) =>
+                  setSearch(
+                    event.target
+                      .value,
+                  )
+                }
+                className="qufo-input pl-9"
+                placeholder="Search payment, job, customer..."
+              />
+            </div>
+
+            <select
+              value={
+                statusFilter
+              }
               onChange={(event) =>
-                setSearch(
-                  event.target.value,
+                setStatusFilter(
+                  event.target
+                    .value as
+                    | "ALL"
+                    | PaymentStatus,
                 )
               }
-              className="qufo-input pl-9"
-              placeholder="Search payment, job, customer..."
-            />
+              className="qufo-input w-full text-sm sm:w-44"
+            >
+              <option value="ALL">
+                All statuses
+              </option>
+
+              <option value="PAID">
+                Paid
+              </option>
+
+              <option value="PENDING">
+                Pending
+              </option>
+
+              <option value="VOIDED">
+                Voided
+              </option>
+
+              <option value="FAILED">
+                Failed
+              </option>
+
+              <option value="REFUNDED">
+                Refunded
+              </option>
+            </select>
           </div>
-
-          <select
-            value={statusFilter}
-            onChange={(event) =>
-              setStatusFilter(
-                event.target
-                  .value as
-                  | "ALL"
-                  | PaymentStatus,
-              )
-            }
-            className="qufo-input w-full text-sm sm:w-44"
-          >
-            <option value="ALL">
-              All statuses
-            </option>
-
-            <option value="PAID">
-              Paid
-            </option>
-
-            <option value="PENDING">
-              Pending
-            </option>
-
-            <option value="VOIDED">
-              Voided
-            </option>
-
-            <option value="FAILED">
-              Failed
-            </option>
-
-            <option value="REFUNDED">
-              Refunded
-            </option>
-          </select>
-        </div>
+        )}
       </div>
 
       {loading ? (
         <LoadingState label="Loading payment transactions..." />
       ) : filteredPayments.length ===
         0 ? (
-        <div className="flex min-h-64 flex-col items-center justify-center px-6 text-center">
+        <div
+          className={[
+            "flex flex-col items-center justify-center px-6 text-center",
+            jobVariant
+              ? "min-h-40"
+              : "min-h-64",
+          ].join(" ")}
+        >
           <div className="mb-4 flex size-12 items-center justify-center rounded-2xl border border-[var(--qufo-border)] bg-emerald-400/[0.04] text-emerald-300">
             <Banknote
               size={20}
@@ -215,20 +263,31 @@ export function PaymentTransactions({
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1100px]">
+          <table
+            className={[
+              "w-full",
+              jobVariant
+                ? "min-w-[760px]"
+                : "min-w-[1100px]",
+            ].join(" ")}
+          >
             <thead>
               <tr className="border-b border-[var(--qufo-border)]">
                 <TableHead>
                   Payment
                 </TableHead>
 
-                <TableHead>
-                  Job
-                </TableHead>
+                {!jobVariant && (
+                  <>
+                    <TableHead>
+                      Job
+                    </TableHead>
 
-                <TableHead>
-                  Customer
-                </TableHead>
+                    <TableHead>
+                      Customer
+                    </TableHead>
+                  </>
+                )}
 
                 <TableHead>
                   Method
@@ -250,11 +309,13 @@ export function PaymentTransactions({
                   Date
                 </TableHead>
 
-                <TableHead>
-                  <span className="sr-only">
-                    Actions
-                  </span>
-                </TableHead>
+                {showActions && (
+                  <TableHead>
+                    <span className="sr-only">
+                      Actions
+                    </span>
+                  </TableHead>
+                )}
               </tr>
             </thead>
 
@@ -262,7 +323,9 @@ export function PaymentTransactions({
               {filteredPayments.map(
                 (payment) => (
                   <tr
-                    key={payment.id}
+                    key={
+                      payment.id
+                    }
                     className="border-b border-[var(--qufo-border)] transition last:border-0 hover:bg-white/[0.018]"
                   >
                     <td className="px-5 py-4">
@@ -281,33 +344,37 @@ export function PaymentTransactions({
                       )}
                     </td>
 
-                    <td className="px-5 py-4">
-                      <p className="text-sm text-slate-300">
-                        {payment.job
-                          ?.jobNumber ??
-                          "—"}
-                      </p>
+                    {!jobVariant && (
+                      <>
+                        <td className="px-5 py-4">
+                          <p className="text-sm text-slate-300">
+                            {payment.job
+                              ?.jobNumber ??
+                              "—"}
+                          </p>
 
-                      {payment.job
-                        ?.title && (
-                        <p className="mt-1 max-w-[200px] truncate text-xs text-slate-600">
-                          {
-                            payment.job
-                              .title
-                          }
-                        </p>
-                      )}
-                    </td>
+                          {payment.job
+                            ?.title && (
+                            <p className="mt-1 max-w-[200px] truncate text-xs text-slate-600">
+                              {
+                                payment.job
+                                  .title
+                              }
+                            </p>
+                          )}
+                        </td>
 
-                    <td className="px-5 py-4 text-sm text-slate-400">
-                      {payment
-                        .customer
-                        ?.companyName ??
-                        payment
-                          .customer
-                          ?.name ??
-                        "—"}
-                    </td>
+                        <td className="px-5 py-4 text-sm text-slate-400">
+                          {payment
+                            .customer
+                            ?.companyName ??
+                            payment
+                              .customer
+                              ?.name ??
+                            "—"}
+                        </td>
+                      </>
+                    )}
 
                     <td className="px-5 py-4 text-sm text-slate-400">
                       {
@@ -353,41 +420,44 @@ export function PaymentTransactions({
                       )}
                     </td>
 
-                    <td className="px-5 py-4">
-                      {canVoid &&
-                        payment.status ===
-                          "PAID" && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              void onVoid(
-                                payment,
-                              )
-                            }
-                            disabled={
-                              voidingId ===
-                              payment.id
-                            }
-                            className="flex size-9 items-center justify-center rounded-lg text-slate-600 transition hover:bg-red-400/[0.07] hover:text-red-300 disabled:opacity-50"
-                          >
-                            {voidingId ===
-                            payment.id ? (
-                              <LoaderCircle
-                                size={
-                                  15
-                                }
-                                className="animate-spin"
-                              />
-                            ) : (
-                              <XCircle
-                                size={
-                                  15
-                                }
-                              />
-                            )}
-                          </button>
-                        )}
-                    </td>
+                    {showActions && (
+                      <td className="px-5 py-4">
+                        {canVoid &&
+                          onVoid &&
+                          payment.status ===
+                            "PAID" && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void onVoid(
+                                  payment,
+                                )
+                              }
+                              disabled={
+                                voidingId ===
+                                payment.id
+                              }
+                              className="flex size-9 items-center justify-center rounded-lg text-slate-600 transition hover:bg-red-400/[0.07] hover:text-red-300 disabled:opacity-50"
+                            >
+                              {voidingId ===
+                              payment.id ? (
+                                <LoaderCircle
+                                  size={
+                                    15
+                                  }
+                                  className="animate-spin"
+                                />
+                              ) : (
+                                <XCircle
+                                  size={
+                                    15
+                                  }
+                                />
+                              )}
+                            </button>
+                          )}
+                      </td>
+                    )}
                   </tr>
                 ),
               )}
