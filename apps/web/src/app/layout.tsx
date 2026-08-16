@@ -18,6 +18,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "QUFO",
   description: "Quick Flow for quotations, jobs, payments, and customer tracking.",
+  icons: {
+    icon: "logo.png", // or /favicon.png
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
