@@ -631,13 +631,10 @@ export class JobsService {
 
       select: {
         jobNumber: true,
-
         title: true,
         status: true,
-
         dueDate: true,
         completedAt: true,
-
         createdAt: true,
 
         organization: {
@@ -646,6 +643,7 @@ export class JobsService {
             logoUrl: true,
             phone: true,
             email: true,
+            address: true,
           },
         },
 

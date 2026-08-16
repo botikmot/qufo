@@ -117,3 +117,62 @@ export const JOB_STATUS_TRANSITIONS: Record<
 
   CANCELLED: [],
 };
+
+export type PublicJobStep = {
+  status: JobStatus;
+  label: string;
+  description: string;
+};
+
+export const PUBLIC_JOB_STEPS:
+  PublicJobStep[] = [
+  {
+    status: "PENDING",
+    label: "Order received",
+    description:
+      "Your order has been received.",
+  },
+
+  {
+    status: "QUEUED",
+    label:
+      "Queued for production",
+    description:
+      "Your order has been added to the production queue.",
+  },
+
+  {
+    status: "IN_PROGRESS",
+    label: "In production",
+    description:
+      "Production work is currently in progress.",
+  },
+
+  {
+    status: "FOR_REVIEW",
+    label: "Quality review",
+    description:
+      "Your order is being reviewed before release.",
+  },
+
+  {
+    status: "READY",
+    label: "Ready",
+    description:
+      "Your order is ready for pickup or delivery.",
+  },
+
+  {
+    status: "DELIVERED",
+    label: "Delivered",
+    description:
+      "Your order has been delivered.",
+  },
+
+  {
+    status: "COMPLETED",
+    label: "Completed",
+    description:
+      "The job has been completed.",
+  },
+];

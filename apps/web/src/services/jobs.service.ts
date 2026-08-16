@@ -2,10 +2,11 @@ import {
   apiFetch,
 } from "@/lib/api";
 
-import type {
-  Job,
-  JobsResponse,
-  JobStatus,
+import {
+  type Job,
+  type JobsResponse,
+  type JobStatus,
+  type PublicJob,
 } from "@/types/job";
 
 export type JobsQuery = {
@@ -62,6 +63,17 @@ export const jobsService = {
 
     return apiFetch<JobsResponse>(
       `/jobs?${params.toString()}`,
+    );
+  },
+
+  getPublicByToken(
+    token: string,
+  ) {
+    return apiFetch<PublicJob>(
+      `/public/jobs/${token}`,
+      {
+        requireAuth: false,
+      },
     );
   },
 

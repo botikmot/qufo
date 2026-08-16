@@ -21,8 +21,8 @@ import {
 } from "@/components/public-quotation/public-quotation-details";
 
 import {
-  PublicQuotationFooter,
-} from "@/components/public-quotation/public-quotation-footer";
+  PublicPageFooter,
+} from "@/components/shared/public-page-footer";
 
 import {
   PublicQuotationHeader,
@@ -171,7 +171,9 @@ export default function PublicQuotationPage() {
           />
         </section>
 
-        <PublicQuotationFooter />
+        <PublicPageFooter
+          label="Secure quotation powered by QUFO"
+        />
       </div>
 
       {quote.showChangesForm && (

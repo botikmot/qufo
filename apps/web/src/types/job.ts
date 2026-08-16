@@ -99,45 +99,41 @@ export type UpdateJobStatusData = {
   publicMessage?: string;
 };
 
-export type PublicJobUpdate = {
-  id: string;
+export type PublicJobTimelineEntry = {
   status: JobStatus;
-  publicMessage: string | null;
+  message: string;
   createdAt: string;
 };
 
 export type PublicJob = {
   jobNumber: string;
   title: string;
-  description?: string | null;
 
   status: JobStatus;
   progress: number;
 
-  priority?: JobPriority;
+  dueDate: string | null;
+  completedAt: string | null;
+  createdAt: string;
 
-  dueDate?: string | null;
-  completedAt?: string | null;
-
-  customer?: {
+  organization: {
     name: string;
-    companyName?: string | null;
+    logoUrl: string | null;
+    phone: string | null;
+    email: string | null;
+    address: string | null;
   };
 
-  organization?: {
+  customer: {
     name: string;
-    phone?: string | null;
-    email?: string | null;
-    address?: string | null;
   };
 
-  items?: {
+  items: {
     name: string;
-    description?: string | null;
+    description: string | null;
     quantity: string;
     unit: string;
-    sortOrder?: number;
   }[];
 
-  updates: PublicJobUpdate[];
+  timeline: PublicJobTimelineEntry[];
 };
