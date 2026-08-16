@@ -199,10 +199,6 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password.');
     }
 
-    if (user.status !== 'ACTIVE') {
-      throw new UnauthorizedException('Your account is currently unavailable.');
-    }
-
     const passwordMatches = await bcrypt.compare(
       dto.password,
       user.passwordHash,
@@ -210,6 +206,10 @@ export class AuthService {
 
     if (!passwordMatches) {
       throw new UnauthorizedException('Invalid email or password.');
+    }
+
+    if (user.status !== 'ACTIVE') {
+      throw new UnauthorizedException('Your account is currently unavailable.');
     }
 
     const payload: JwtPayload = {
@@ -256,6 +256,9 @@ export class AuthService {
               status: membership.organization.subscription.status,
 
               trialEndsAt: membership.organization.subscription.trialEndsAt,
+
+              currentPeriodEnd:
+                membership.organization.subscription.currentPeriodEnd,
             }
           : null,
       })),

@@ -915,9 +915,13 @@ export class QuotationsService {
 
     const approvedAt = new Date();
 
-    const updated = await this.prisma.quotation.update({
+    const result = await this.prisma.quotation.updateMany({
       where: {
         id: quotation.id,
+
+        status: {
+          in: ['SENT', 'VIEWED'],
+        },
       },
 
       data: {
@@ -926,6 +930,18 @@ export class QuotationsService {
         approvedAt,
 
         customerResponseNote: dto.note?.trim() || null,
+      },
+    });
+
+    if (result.count !== 1) {
+      throw new BadRequestException(
+        'This quotation has already received a response.',
+      );
+    }
+
+    const updated = await this.prisma.quotation.findUnique({
+      where: {
+        id: quotation.id,
       },
 
       select: {

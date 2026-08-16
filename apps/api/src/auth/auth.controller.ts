@@ -22,6 +22,7 @@ import { Roles } from './decorators/roles.decorator';
 import { RolesGuard } from './guards/roles.guard';
 import { TenantGuard } from './guards/tenant.guard';
 import type { TenantContext } from './types/tenant-context.type';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 
 type AuthenticatedRequest = Request & {
   user: JwtPayload;
@@ -89,12 +90,26 @@ export class AuthController {
     };
   }
 
+  @UseGuards(ThrottlerGuard)
+  @Throttle({
+    default: {
+      limit: 3,
+      ttl: 10 * 60 * 1000,
+    },
+  })
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
 
+  @UseGuards(ThrottlerGuard)
+  @Throttle({
+    default: {
+      limit: 10,
+      ttl: 60 * 1000,
+    },
+  })
   @Post('login')
   async login(
     @Body()
@@ -118,6 +133,13 @@ export class AuthController {
     };
   }
 
+  @UseGuards(ThrottlerGuard)
+  @Throttle({
+    default: {
+      limit: 30,
+      ttl: 60 * 1000,
+    },
+  })
   @Post('refresh')
   async refresh(
     @Req()
