@@ -9,6 +9,8 @@ import {
 
 import { PrismaService } from '../../prisma/prisma.service';
 
+import { resolveSubscriptionState } from '../../subscriptions/utils/subscription-state.util';
+
 import type { AuthenticatedRequest } from '../types/authenticated-request.type';
 
 @Injectable()
@@ -19,7 +21,8 @@ export class SubscriptionGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
 
     /*
-     * Expired workspaces remain readable.
+     * Expired workspaces remain
+     * readable.
      */
     if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
       return true;
@@ -39,63 +42,59 @@ export class SubscriptionGuard implements CanActivate {
       );
     }
 
-    const now = new Date();
+    const effective = resolveSubscriptionState(subscription);
 
     /*
-     * Free trial
+     * Persist state transitions
+     * only when a protected write
+     * request discovers that the
+     * stored status is stale.
      */
-    if (subscription.status === 'TRIALING') {
-      if (subscription.trialEndsAt > now) {
-        return true;
-      }
-
+    if (effective.status !== subscription.status) {
       await this.prisma.subscription.updateMany({
         where: {
           organizationId: tenant.organizationId,
 
-          status: 'TRIALING',
+          status: subscription.status,
         },
 
         data: {
-          status: 'EXPIRED',
+          status: effective.status,
         },
       });
 
-      subscription.status = 'EXPIRED';
+      subscription.status = effective.status;
+    }
 
+    /*
+     * Usable subscriptions.
+     */
+    if (effective.status === 'TRIALING' || effective.status === 'ACTIVE') {
+      return true;
+    }
+
+    /*
+     * Trial ended.
+     */
+    if (effective.status === 'EXPIRED') {
       this.throwSubscriptionRequired(
         'Your QUFO free trial has ended. Subscribe to continue making changes.',
       );
     }
 
     /*
-     * Paid subscription
+     * Paid subscription requires
+     * renewal.
      */
-    if (subscription.status === 'ACTIVE') {
-      if (
-        subscription.currentPeriodEnd &&
-        subscription.currentPeriodEnd < now
-      ) {
-        await this.prisma.subscription.updateMany({
-          where: {
-            organizationId: tenant.organizationId,
-
-            status: 'ACTIVE',
-          },
-
-          data: {
-            status: 'PAST_DUE',
-          },
-        });
-
-        subscription.status = 'PAST_DUE';
-
-        this.throwSubscriptionRequired('Your subscription requires renewal.');
-      }
-
-      return true;
+    if (effective.status === 'PAST_DUE') {
+      this.throwSubscriptionRequired('Your subscription requires renewal.');
     }
 
+    /*
+     * CANCELLED or any other
+     * non-usable subscription
+     * state.
+     */
     this.throwSubscriptionRequired(
       'This workspace is currently read-only. An active subscription is required to make changes.',
     );

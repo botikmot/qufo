@@ -15,6 +15,80 @@ type ApiOptions =
 
 let refreshPromise: Promise<string | null> | null = null;
 
+export class ApiError
+  extends Error {
+  readonly status: number;
+  readonly code:
+    | string
+    | undefined;
+
+  constructor(
+    message: string,
+    status: number,
+    code?: string,
+  ) {
+    super(message);
+
+    this.name =
+      "ApiError";
+
+    this.status =
+      status;
+
+    this.code =
+      code;
+  }
+}
+
+function getErrorMessage(
+    data: unknown,
+    fallback =
+      "Something went wrong.",
+  ) {
+    if (
+      typeof data !==
+        "object" ||
+      data === null ||
+      !("message" in data)
+    ) {
+      return fallback;
+    }
+
+    const message =
+      data.message;
+
+    if (
+      Array.isArray(message)
+    ) {
+      return message
+        .map(String)
+        .join(", ");
+    }
+
+    return typeof message ===
+      "string"
+      ? message
+      : fallback;
+  }
+
+  function getErrorCode(
+    data: unknown,
+  ) {
+    if (
+      typeof data !==
+        "object" ||
+      data === null ||
+      !("code" in data)
+    ) {
+      return undefined;
+    }
+
+    return typeof data.code ===
+      "string"
+      ? data.code
+      : undefined;
+  }
+
 export async function apiFetch<T>(
   path: string,
   options: ApiOptions = {},
@@ -108,14 +182,14 @@ export async function apiFetch<T>(
               .catch(() => null);
 
           if (!retryResponse.ok) {
-            const message =
-              retryData?.message ??
-              "Something went wrong.";
-
-            throw new Error(
-              Array.isArray(message)
-                ? message.join(", ")
-                : message,
+            throw new ApiError(
+              getErrorMessage(
+                retryData,
+              ),
+              retryResponse.status,
+              getErrorCode(
+                retryData,
+              ),
             );
           }
 
@@ -129,14 +203,14 @@ export async function apiFetch<T>(
         );
       }
 
-    const message =
-      data?.message ??
-      "Something went wrong.";
-
-    throw new Error(
-      Array.isArray(message)
-        ? message.join(", ")
-        : message,
+    throw new ApiError(
+      getErrorMessage(
+        data,
+      ),
+      response.status,
+      getErrorCode(
+        data,
+      ),
     );
   }
 

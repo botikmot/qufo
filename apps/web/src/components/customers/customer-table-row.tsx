@@ -12,6 +12,7 @@ type CustomerTableRowProps = {
   customer: Customer;
 
   archiving: boolean;
+  readOnly: boolean;
 
   onOpen: (
     customer: Customer,
@@ -25,6 +26,7 @@ type CustomerTableRowProps = {
 export function CustomerTableRow({
   customer,
   archiving,
+  readOnly,
   onOpen,
   onArchive,
 }: CustomerTableRowProps) {
@@ -66,12 +68,19 @@ export function CustomerTableRow({
 
           <button
             type="button"
-            title="Archive customer"
+            title={
+              readOnly
+                ? "Workspace is read-only"
+                : "Archive customer"
+            }
             onClick={() =>
               onArchive(customer)
             }
-            disabled={archiving}
-            className="flex size-9 items-center justify-center rounded-lg text-slate-600 transition hover:bg-red-400/[0.07] hover:text-red-300 disabled:opacity-40"
+            disabled={
+              archiving ||
+              readOnly
+            }
+            className="flex size-9 items-center justify-center rounded-lg text-slate-600 transition hover:bg-red-400/[0.07] hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-600"
           >
             {archiving ? (
               <LoaderCircle

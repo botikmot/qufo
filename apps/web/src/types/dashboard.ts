@@ -12,6 +12,11 @@ import type {
   PaymentStatus,
 } from "@/types/payment";
 
+import type {
+  SubscriptionPlan,
+  SubscriptionStatus,
+} from "@/types/subscription";
+
 export type DashboardCustomerSummary = {
   id: string;
   name: string;
@@ -76,10 +81,21 @@ export type DashboardResponse = {
   };
 
   subscription: {
-    plan: string;
-    status: string;
-    trialEndsAt: string | null;
-    trialDaysRemaining: number;
+    plan:
+      | SubscriptionPlan
+      | null;
+
+    status:
+      | SubscriptionStatus
+      | null;
+
+    trialEndsAt:
+      | string
+      | null;
+
+    trialDaysRemaining:
+      | number
+      | null;
   };
 
   stats: {

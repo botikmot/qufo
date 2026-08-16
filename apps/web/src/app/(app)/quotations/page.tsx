@@ -28,9 +28,17 @@ import {
   useQuotations,
 } from "@/hooks/use-quotations";
 
+import {
+  useWorkspaceAccess,
+} from "@/hooks/use-workspace-access";
+
 export default function QuotationsPage() {
   const quotations =
     useQuotations();
+
+  const {
+    readOnly,
+  } = useWorkspaceAccess();
 
   return (
     <>
@@ -43,6 +51,7 @@ export default function QuotationsPage() {
             onClick={
               quotations.openCreateForm
             }
+            disabled={readOnly}
             className="flex items-center gap-2 rounded-xl bg-emerald-400 px-4 py-2.5 text-sm font-medium text-slate-950 transition hover:bg-emerald-300"
           >
             <Plus size={17} />
@@ -123,17 +132,33 @@ export default function QuotationsPage() {
           onClose={
             quotations.closeQuotation
           }
-          onEdit={() =>
-            void quotations.openEditForm()
+          onEdit={() => {
+              if (readOnly) {
+                  return;
+                }
+              void quotations.openEditForm()
+            }
           }
-          onSend={() =>
-            void quotations.sendQuotation()
+          onSend={() => {
+              if (readOnly) {
+                    return;
+                  }
+              void quotations.sendQuotation()
+            }
           }
-          onCreateRevision={() =>
-            void quotations.createRevision()
+          onCreateRevision={() => {
+              if (readOnly) {
+                    return;
+                  }
+              void quotations.createRevision()
+            }
           }
-          onConvertToJob={() =>
-            void quotations.convertToJob()
+          onConvertToJob={() => {
+              if (readOnly) {
+                    return;
+                  }
+              void quotations.convertToJob()
+            }
           }
         />
       )}

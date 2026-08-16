@@ -1,15 +1,16 @@
+import type {
+  SubscriptionSnapshot,
+} from "@/types/subscription";
+
 export type OrganizationRole =
   | "OWNER"
   | "ADMIN"
   | "MANAGER"
   | "STAFF";
 
-export type Subscription = {
-  plan: string;
-  status: string;
-  trialEndsAt: string;
-  currentPeriodEnd: string | null;
-} | null;
+export type Subscription =
+  | SubscriptionSnapshot
+  | null;
 
 export type LoginOrganization = {
   id: string;
@@ -28,7 +29,8 @@ export type LoginResponse = {
     email: string;
   };
 
-  organizations: LoginOrganization[];
+  organizations:
+    LoginOrganization[];
 };
 
 export type AuthSession = {
@@ -40,5 +42,6 @@ export type AuthSession = {
     email: string;
   };
 
-  organization: LoginOrganization;
+  organization:
+    LoginOrganization;
 };

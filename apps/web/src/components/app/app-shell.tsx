@@ -27,10 +27,17 @@ import {
 } from "@/components/shared/loading-state";
 
 import {
+  WorkspaceReadOnlyBanner,
+} from "@/components/shared/workspace-read-only-banner";
+
+import {
   clearAuthSession,
-  useAuthSession,
   useHydrated,
 } from "@/lib/auth-storage";
+
+import {
+  useWorkspaceAccess,
+} from "@/hooks/use-workspace-access";
 
 type AppShellProps = {
   children: ReactNode;
@@ -45,8 +52,12 @@ export function AppShell({
   const hydrated =
     useHydrated();
 
-  const session =
-    useAuthSession();
+  const {
+    session,
+    subscriptionStatus,
+    readOnly,
+  } =
+    useWorkspaceAccess();
 
   const [
     mobileOpen,
@@ -59,7 +70,9 @@ export function AppShell({
     }
 
     if (!session) {
-      router.replace("/login");
+      router.replace(
+        "/login",
+      );
     }
   }, [
     hydrated,
@@ -70,7 +83,9 @@ export function AppShell({
   if (!hydrated) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--qufo-background)]">
-        <LoadingState label="Loading QUFO..." />
+        <LoadingState
+          label="Loading QUFO..."
+        />
       </div>
     );
   }
@@ -78,14 +93,20 @@ export function AppShell({
   if (!session) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--qufo-background)]">
-        <LoadingState label="Redirecting..." />
+        <LoadingState
+          label="Redirecting..."
+        />
       </div>
     );
   }
 
   const shellUser = {
-    name: session.user.email,
-    email: session.user.email,
+    name:
+      session.user.name ||
+      session.user.email,
+
+    email:
+      session.user.email,
   };
 
   const shellOrganization = {
@@ -99,15 +120,17 @@ export function AppShell({
   function handleLogout() {
     clearAuthSession();
 
-    setMobileOpen(false);
+    setMobileOpen(
+      false,
+    );
 
-    router.replace("/login");
+    router.replace(
+      "/login",
+    );
   }
 
   return (
     <div className="min-h-screen bg-[var(--qufo-background)] text-slate-200">
-
-      {/* DESKTOP SIDEBAR */}
       <div className="fixed inset-y-0 left-0 z-50 hidden w-64 border-r border-[var(--qufo-border)] lg:block">
         <AppSidebar
           organization={
@@ -122,7 +145,6 @@ export function AppShell({
         />
       </div>
 
-      {/* MOBILE SIDEBAR */}
       <AppMobileSidebar
         open={mobileOpen}
         organization={
@@ -132,27 +154,36 @@ export function AppShell({
           shellUser
         }
         onClose={() =>
-          setMobileOpen(false)
+          setMobileOpen(
+            false,
+          )
         }
         onLogout={
           handleLogout
         }
       />
 
-      {/* MAIN */}
       <div className="min-h-screen lg:pl-64">
-
-        {/* MOBILE ONLY HEADER */}
         <AppTopbar
           organization={
             shellOrganization
           }
           onOpenMenu={() =>
-            setMobileOpen(true)
+            setMobileOpen(
+              true,
+            )
           }
         />
 
         <main className="px-4 py-6 sm:px-6 lg:px-8">
+          {readOnly && (
+            <WorkspaceReadOnlyBanner
+              status={
+                subscriptionStatus
+              }
+            />
+          )}
+
           {children}
         </main>
       </div>

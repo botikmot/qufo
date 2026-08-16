@@ -28,9 +28,17 @@ import {
   useCustomers,
 } from "@/hooks/use-customers";
 
+import {
+  useWorkspaceAccess,
+} from "@/hooks/use-workspace-access";
+
 export default function CustomersPage() {
   const customers =
     useCustomers();
+
+  const {
+    readOnly,
+  } = useWorkspaceAccess();
 
   return (
     <>
@@ -43,6 +51,7 @@ export default function CustomersPage() {
             onClick={
               customers.openCreateForm
             }
+            disabled={readOnly}
             className="flex items-center gap-2 rounded-xl bg-emerald-400 px-4 py-2.5 text-sm font-medium text-slate-950 transition hover:bg-emerald-300"
           >
             <Plus size={17} />
@@ -94,11 +103,15 @@ export default function CustomersPage() {
             customer,
           )
         }
-        onArchive={(customer) =>
+        onArchive={(customer) => {
+          if (readOnly) {
+            return;
+          }
+
           void customers.archiveCustomer(
             customer,
-          )
-        }
+          );
+        }}
         onPrevious={() =>
           void customers.previousPage()
         }
@@ -119,14 +132,22 @@ export default function CustomersPage() {
           onClose={
             customers.closeCustomer
           }
-          onEdit={() =>
-            void customers.openEditForm()
-          }
-          onArchive={() =>
+          onEdit={() => {
+            if (readOnly) {
+              return;
+            }
+
+            void customers.openEditForm();
+          }}
+          onArchive={() => {
+            if (readOnly) {
+              return;
+            }
+
             void customers.archiveCustomer(
               customers.selectedCustomer!,
-            )
-          }
+            );
+          }}
         />
       )}
 

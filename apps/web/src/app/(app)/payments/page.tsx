@@ -36,6 +36,10 @@ import {
   canVoidPayment,
 } from "@/utils/payment-permission";
 
+import {
+  useWorkspaceAccess,
+} from "@/hooks/use-workspace-access";
+
 export default function PaymentsPage() {
   const session =
     useAuthSession();
@@ -48,6 +52,10 @@ export default function PaymentsPage() {
       session?.organization.role,
     );
 
+   const {
+      readOnly,
+    } = useWorkspaceAccess();
+
   return (
     <>
       <PageHeader
@@ -56,6 +64,7 @@ export default function PaymentsPage() {
         action={
           <button
             type="button"
+            disabled={readOnly}
             onClick={
               payments.openPaymentForm
             }

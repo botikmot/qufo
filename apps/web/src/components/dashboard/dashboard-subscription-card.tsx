@@ -22,6 +22,15 @@ export function DashboardSubscriptionCard({
     subscription.status ===
     "TRIALING";
 
+  const readOnly =
+    subscription.status ===
+      "EXPIRED" ||
+    subscription.status ===
+      "PAST_DUE" ||
+    subscription.status ===
+      "CANCELLED" ||
+    !subscription.status;
+
   return (
     <div className="qufo-surface rounded-2xl p-5">
       <div className="flex items-start justify-between gap-5">
@@ -31,15 +40,19 @@ export function DashboardSubscriptionCard({
           </p>
 
           <p className="mt-2 text-lg font-semibold text-slate-200">
-            {formatEnumLabel(
-              subscription.plan,
-            )}
+            {subscription.plan
+              ? formatEnumLabel(
+                  subscription.plan,
+                )
+              : "No plan"}
           </p>
 
           <p className="mt-1 text-xs text-slate-500">
-            {formatEnumLabel(
-              subscription.status,
-            )}
+            {subscription.status
+              ? formatEnumLabel(
+                  subscription.status,
+                )
+              : "Subscription required"}
           </p>
         </div>
 
@@ -50,16 +63,31 @@ export function DashboardSubscriptionCard({
         </div>
       </div>
 
-      {trialing && (
-        <div className="mt-5 rounded-xl border border-violet-400/10 bg-violet-400/[0.035] px-4 py-3">
-          <p className="text-xs text-violet-200/70">
-            {subscription.trialDaysRemaining}{" "}
-            day
-            {subscription.trialDaysRemaining ===
-            1
-              ? ""
-              : "s"}{" "}
-            remaining in your trial
+      {trialing &&
+        subscription.trialDaysRemaining !==
+          null && (
+          <div className="mt-5 rounded-xl border border-violet-400/10 bg-violet-400/[0.035] px-4 py-3">
+            <p className="text-xs text-violet-200/70">
+              {
+                subscription
+                  .trialDaysRemaining
+              }{" "}
+              day
+              {subscription
+                .trialDaysRemaining ===
+              1
+                ? ""
+                : "s"}{" "}
+              remaining in your trial
+            </p>
+          </div>
+        )}
+
+      {readOnly && (
+        <div className="mt-5 rounded-xl border border-amber-400/10 bg-amber-400/[0.035] px-4 py-3">
+          <p className="text-xs leading-5 text-amber-200/70">
+            Workspace is currently
+            read-only.
           </p>
         </div>
       )}

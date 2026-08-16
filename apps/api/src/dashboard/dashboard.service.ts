@@ -5,6 +5,7 @@ import { Prisma } from '../generated/prisma/client';
 import type { TenantContext } from '../auth/types/tenant-context.type';
 
 import { PrismaService } from '../prisma/prisma.service';
+import { resolveSubscriptionState } from '../subscriptions/utils/subscription-state.util';
 
 @Injectable()
 export class DashboardService {
@@ -309,7 +310,9 @@ export class DashboardService {
       outstandingBalance = new Prisma.Decimal(0);
     }
 
-    const trial = this.getTrialSummary(tenant, now);
+    const subscriptionState = tenant.subscription
+      ? resolveSubscriptionState(tenant.subscription, now)
+      : null;
 
     return {
       organization: {
@@ -325,9 +328,11 @@ export class DashboardService {
       subscription: {
         plan: tenant.subscription?.plan ?? null,
 
-        status: tenant.subscription?.status ?? null,
+        status: subscriptionState?.status ?? null,
 
-        ...trial,
+        trialEndsAt: tenant.subscription?.trialEndsAt ?? null,
+
+        trialDaysRemaining: subscriptionState?.trialDaysRemaining ?? null,
       },
 
       stats: {
@@ -365,31 +370,6 @@ export class DashboardService {
 
         payments: recentPayments,
       },
-    };
-  }
-
-  private getTrialSummary(tenant: TenantContext, now: Date) {
-    const subscription = tenant.subscription;
-
-    if (!subscription || subscription.status !== 'TRIALING') {
-      return {
-        trialEndsAt: subscription?.trialEndsAt ?? null,
-
-        trialDaysRemaining: null,
-      };
-    }
-
-    const difference = subscription.trialEndsAt.getTime() - now.getTime();
-
-    const trialDaysRemaining = Math.max(
-      0,
-      Math.ceil(difference / (1000 * 60 * 60 * 24)),
-    );
-
-    return {
-      trialEndsAt: subscription.trialEndsAt,
-
-      trialDaysRemaining,
     };
   }
 }
