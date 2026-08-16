@@ -41,6 +41,9 @@ export class QuotationsService {
 
       select: {
         id: true,
+        organizationId: true,
+        quotationNumber: true,
+        sourceQuotationId: true,
         status: true,
         validUntil: true,
       },
@@ -48,6 +51,14 @@ export class QuotationsService {
 
     if (!quotation) {
       throw new NotFoundException('Quotation not found.');
+    }
+
+    const latestQuotation = await this.findLatestQuotationRevision(quotation);
+
+    if (latestQuotation && latestQuotation.id !== quotation.id) {
+      throw new BadRequestException(
+        'This quotation has been replaced by a newer revision and can no longer be responded to.',
+      );
     }
 
     if (quotation.validUntil && quotation.validUntil < new Date()) {
@@ -73,6 +84,45 @@ export class QuotationsService {
     }
 
     return quotation;
+  }
+
+  private async findLatestQuotationRevision(quotation: {
+    id: string;
+    organizationId: string;
+    sourceQuotationId: string | null;
+  }) {
+    const rootQuotationId = quotation.sourceQuotationId ?? quotation.id;
+
+    return this.prisma.quotation.findFirst({
+      where: {
+        organizationId: quotation.organizationId,
+
+        OR: [
+          {
+            id: rootQuotationId,
+          },
+          {
+            sourceQuotationId: rootQuotationId,
+          },
+        ],
+      },
+
+      orderBy: [
+        {
+          revisionNumber: 'desc',
+        },
+        {
+          createdAt: 'desc',
+        },
+      ],
+
+      select: {
+        id: true,
+        quotationNumber: true,
+        revisionNumber: true,
+        status: true,
+      },
+    });
   }
 
   async create(
@@ -729,7 +779,13 @@ export class QuotationsService {
       throw new NotFoundException('Quotation not found.');
     }
 
+    const latestQuotation = await this.findLatestQuotationRevision(quotation);
+
+    const isLatestRevision =
+      !latestQuotation || latestQuotation.id === quotation.id;
+
     if (
+      isLatestRevision &&
       quotation.validUntil &&
       quotation.validUntil < new Date() &&
       (quotation.status === 'SENT' || quotation.status === 'VIEWED')
@@ -770,7 +826,7 @@ export class QuotationsService {
       });
     }
 
-    if (quotation.status === 'SENT') {
+    if (isLatestRevision && quotation.status === 'SENT') {
       quotation = await this.prisma.quotation.update({
         where: {
           id: quotation.id,
@@ -842,6 +898,15 @@ export class QuotationsService {
       terms: quotation.terms,
 
       customerResponseNote: quotation.customerResponseNote,
+      revisionInfo: {
+        isLatest: isLatestRevision,
+
+        latestQuotationNumber:
+          latestQuotation?.quotationNumber ?? quotation.quotationNumber,
+
+        latestRevisionNumber:
+          latestQuotation?.revisionNumber ?? quotation.revisionNumber ?? 1,
+      },
     };
   }
 

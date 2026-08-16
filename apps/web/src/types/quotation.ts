@@ -115,6 +115,8 @@ export type PublicQuotation = {
   quotationNumber: string;
   status: QuotationStatus;
 
+  revisionInfo: PublicQuotationRevisionInfo;
+
   issueDate: string;
   validUntil: string | null;
 
@@ -166,18 +168,31 @@ export type PublicQuotationResponse = {
 
   quotation: {
     quotationNumber: string;
+
     status:
       | "APPROVED"
-      | "REJECTED";
+      | "REJECTED"
+      | "CHANGES_REQUESTED";
 
     approvedAt?: string;
     rejectedAt?: string;
+    changesRequestedAt?: string;
+
+    customerResponseNote?:
+      | string
+      | null;
   };
 };
 
 export type QuotationRevisionInfo = {
   isLatest: boolean;
   latestQuotationId: string;
+  latestQuotationNumber: string;
+  latestRevisionNumber: number;
+};
+
+export type PublicQuotationRevisionInfo = {
+  isLatest: boolean;
   latestQuotationNumber: string;
   latestRevisionNumber: number;
 };
