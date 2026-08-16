@@ -35,6 +35,8 @@ type CustomersTableProps = {
     | string
     | null;
 
+  readOnly: boolean;
+
   onOpen: (
     customer: Customer,
   ) => void;
@@ -54,6 +56,7 @@ export function CustomersTable({
   pages,
   total,
   archivingId,
+  readOnly,
   onOpen,
   onArchive,
   onPrevious,
@@ -131,6 +134,7 @@ export function CustomersTable({
                   onArchive={
                     onArchive
                   }
+                  readOnly={readOnly}
                 />
               ),
             )}

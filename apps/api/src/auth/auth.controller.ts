@@ -40,7 +40,7 @@ export class AuthController {
 
       secure: isProduction,
 
-      sameSite: 'lax',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
 
       path: '/api/auth',
 

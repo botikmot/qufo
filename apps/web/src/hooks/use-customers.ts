@@ -91,10 +91,10 @@ export function useCustomers() {
     let cancelled = false;
 
     customersService
-      .getAll({
-        page: 1,
-        limit: 20,
-      })
+      .getAll(
+        1,
+        20,
+      )
       .then((data) => {
         if (cancelled) {
           return;
@@ -159,14 +159,13 @@ export function useCustomers() {
     try {
       const data =
         await customersService.getAll(
-          {
-            page: targetPage,
-            limit: 20,
-
-            search:
-              targetSearch ||
-              undefined,
-          },
+          targetPage,
+          20,
+          targetSearch
+            ? {
+                search: targetSearch,
+              }
+            : undefined,
         );
 
       setCustomers(

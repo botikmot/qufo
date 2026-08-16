@@ -112,6 +112,7 @@ export default function CustomersPage() {
             customer,
           );
         }}
+        readOnly={readOnly}
         onPrevious={() =>
           void customers.previousPage()
         }
