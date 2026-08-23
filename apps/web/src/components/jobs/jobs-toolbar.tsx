@@ -13,6 +13,14 @@ import {
   JOB_STATUS_OPTIONS,
 } from "@/constants/job";
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 import type {
   JobStatus,
 } from "@/types/job";
@@ -65,12 +73,46 @@ export function JobsToolbar({
               event.target.value,
             )
           }
-          className="qufo-input pl-9"
+          className="qufo-input !pl-10"
           placeholder="Search job or customer..."
         />
       </form>
 
-      <select
+      <Select
+        value={status}
+        onValueChange={(value) =>
+          onStatusChange(
+            value as JobStatusFilter,
+          )
+        }
+      >
+        <SelectTrigger className="qufo-input h-auto! w-full lg:w-52">
+          <SelectValue placeholder="Select status" />
+        </SelectTrigger>
+
+        <SelectContent>
+          <SelectItem value="ALL">
+            All statuses
+          </SelectItem>
+
+          {JOB_STATUS_OPTIONS.map(
+            (jobStatus) => (
+              <SelectItem
+                key={jobStatus}
+                value={jobStatus}
+              >
+                {
+                  JOB_STATUS_LABELS[
+                    jobStatus
+                  ]
+                }
+              </SelectItem>
+            ),
+          )}
+        </SelectContent>
+      </Select>
+
+      {/* <select
         value={status}
         onChange={(event) =>
           onStatusChange(
@@ -98,7 +140,7 @@ export function JobsToolbar({
             </option>
           ),
         )}
-      </select>
+      </select> */}
     </div>
   );
 }

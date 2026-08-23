@@ -33,6 +33,8 @@ import type {
   PaymentFormData,
 } from "@/types/payment";
 
+import { useConfirm } from "@/components/providers/confirm-dialog-provider";
+
 type UseJobPaymentsProps = {
   job: Job;
 };
@@ -42,6 +44,8 @@ export function useJobPayments({
 }: UseJobPaymentsProps) {
   const session =
     useAuthSession();
+
+  const confirm = useConfirm();
 
   const [
     payments,
@@ -218,10 +222,16 @@ export function useJobPayments({
   async function voidPayment(
     payment: Payment,
   ) {
-    const confirmed =
-      window.confirm(
-        `Void ${payment.paymentNumber}? This payment will no longer count toward the customer's paid balance.`,
-      );
+     const confirmed =
+      await confirm({
+        title:
+          "Void payment?",
+        description: `${payment.paymentNumber} will no longer count toward the customer's paid balance. This action should only be used for incorrect or invalid payments.`,
+        confirmText:
+          "Void payment",
+        variant:
+          "destructive",
+      });
 
     if (!confirmed) {
       return;

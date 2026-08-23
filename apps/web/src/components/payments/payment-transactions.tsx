@@ -41,6 +41,14 @@ import type {
   PaymentStatus,
 } from "@/types/payment";
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 type PaymentTransactionsVariant =
   | "default"
   | "job";
@@ -175,60 +183,75 @@ export function PaymentTransactions({
             <div className="relative w-full sm:w-80">
               <Search
                 size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600"
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
               />
 
               <input
                 value={search}
                 onChange={(event) =>
                   setSearch(
-                    event.target
-                      .value,
+                    event.target.value,
                   )
                 }
-                className="qufo-input pl-9"
+                className="qufo-input qufo-input-with-icon"
                 placeholder="Search payment, job, customer..."
               />
             </div>
 
-            <select
-              value={
-                statusFilter
-              }
-              onChange={(event) =>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => {
+                if (!value) return;
+
                 setStatusFilter(
-                  event.target
-                    .value as
+                  value as
                     | "ALL"
                     | PaymentStatus,
-                )
-              }
-              className="qufo-input w-full text-sm sm:w-44"
+                );
+              }}
             >
-              <option value="ALL">
-                All statuses
-              </option>
+              <SelectTrigger className="qufo-input h-auto! w-full text-sm sm:w-44">
+                <SelectValue>
+                  {statusFilter === "ALL"
+                    ? "All statuses"
+                    : statusFilter === "PAID"
+                      ? "Paid"
+                      : statusFilter === "PENDING"
+                        ? "Pending"
+                        : statusFilter === "VOIDED"
+                          ? "Voided"
+                          : statusFilter === "FAILED"
+                            ? "Failed"
+                            : "Refunded"}
+                </SelectValue>
+              </SelectTrigger>
 
-              <option value="PAID">
-                Paid
-              </option>
+              <SelectContent align="start">
+                <SelectItem value="ALL">
+                  All statuses
+                </SelectItem>
 
-              <option value="PENDING">
-                Pending
-              </option>
+                <SelectItem value="PAID">
+                  Paid
+                </SelectItem>
 
-              <option value="VOIDED">
-                Voided
-              </option>
+                <SelectItem value="PENDING">
+                  Pending
+                </SelectItem>
 
-              <option value="FAILED">
-                Failed
-              </option>
+                <SelectItem value="VOIDED">
+                  Voided
+                </SelectItem>
 
-              <option value="REFUNDED">
-                Refunded
-              </option>
-            </select>
+                <SelectItem value="FAILED">
+                  Failed
+                </SelectItem>
+
+                <SelectItem value="REFUNDED">
+                  Refunded
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         )}
       </div>

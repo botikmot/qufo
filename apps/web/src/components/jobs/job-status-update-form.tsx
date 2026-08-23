@@ -13,6 +13,14 @@ import type {
   JobStatus,
 } from "@/types/job";
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 type JobStatusUpdateFormProps = {
   nextStatuses:
     JobStatus[];
@@ -80,33 +88,43 @@ export function JobStatusUpdateForm({
             Next status
           </label>
 
-          <select
-            value={
-              selectedStatus
-            }
-            onChange={(event) =>
+          <Select
+            value={selectedStatus || null}
+            onValueChange={(value) => {
+              if (!value) return;
+
               onStatusChange(
-                event.target
-                  .value as JobStatus,
-              )
-            }
-            className="qufo-input"
+                value as JobStatus,
+              );
+            }}
           >
-            {nextStatuses.map(
-              (status) => (
-                <option
-                  key={status}
-                  value={status}
-                >
-                  {
-                    JOB_STATUS_LABELS[
-                      status
+            <SelectTrigger className="qufo-input h-auto! w-full">
+              <SelectValue>
+                {selectedStatus
+                  ? JOB_STATUS_LABELS[
+                      selectedStatus
                     ]
-                  }
-                </option>
-              ),
-            )}
-          </select>
+                  : "Select status"}
+              </SelectValue>
+            </SelectTrigger>
+
+            <SelectContent align="start">
+              {nextStatuses.map(
+                (status) => (
+                  <SelectItem
+                    key={status}
+                    value={status}
+                  >
+                    {
+                      JOB_STATUS_LABELS[
+                        status
+                      ]
+                    }
+                  </SelectItem>
+                ),
+              )}
+            </SelectContent>
+          </Select>
         </div>
 
         <div>

@@ -43,7 +43,7 @@ export function CustomersToolbar({
               event.target.value,
             )
           }
-          className="qufo-input pl-9"
+          className="qufo-input !pl-10"
           placeholder="Search customer..."
         />
       </form>

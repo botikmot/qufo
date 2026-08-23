@@ -2,6 +2,14 @@ import type {
   Customer,
 } from "@/types/customer";
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 type QuotationFormCustomerProps = {
   customers: Customer[];
 
@@ -23,37 +31,51 @@ export function QuotationFormCustomer({
         Customer
       </label>
 
-      <select
-        required
-        value={value}
-        onChange={(event) =>
-          onChange(
-            event.target.value,
-          )
-        }
-        className="qufo-input"
-      >
-        <option value="">
-          Select customer
-        </option>
+      <Select
+        value={value || null}
+        onValueChange={(selectedValue) => {
+          if (!selectedValue) return;
 
-        {customers.map(
-          (customer) => (
-            <option
-              key={
-                customer.id
-              }
-              value={
-                customer.id
-              }
-            >
-              {customer.companyName
-                ? `${customer.companyName} — ${customer.name}`
-                : customer.name}
-            </option>
-          ),
-        )}
-      </select>
+          onChange(selectedValue);
+        }}
+      >
+        <SelectTrigger className="qufo-input h-auto! w-full">
+          <SelectValue>
+            {value
+              ? (() => {
+                  const selectedCustomer =
+                    customers.find(
+                      (customer) =>
+                        customer.id === value,
+                    );
+
+                  if (!selectedCustomer) {
+                    return "Select customer";
+                  }
+
+                  return selectedCustomer.companyName
+                    ? `${selectedCustomer.companyName} — ${selectedCustomer.name}`
+                    : selectedCustomer.name;
+                })()
+              : "Select customer"}
+          </SelectValue>
+        </SelectTrigger>
+
+        <SelectContent align="start">
+          {customers.map(
+            (customer) => (
+              <SelectItem
+                key={customer.id}
+                value={customer.id}
+              >
+                {customer.companyName
+                  ? `${customer.companyName} — ${customer.name}`
+                  : customer.name}
+              </SelectItem>
+            ),
+          )}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

@@ -19,9 +19,13 @@ import type {
   JobStatusFilter,
 } from "@/components/jobs/jobs-toolbar";
 
+import { useConfirm } from "@/components/providers/confirm-dialog-provider";
+
 export function useJobs() {
   const [jobs, setJobs] =
     useState<Job[]>([]);
+
+  const confirm = useConfirm();
 
   const [
     selectedJob,
@@ -329,9 +333,15 @@ export function useJobs() {
     }
 
     const confirmed =
-      window.confirm(
-        `Cancel ${selectedJob.jobNumber}? This will stop the current production workflow.`,
-      );
+      await confirm({
+        title:
+          "Cancel job?",
+        description: `${selectedJob.jobNumber} will be cancelled and its current production workflow will stop.`,
+        confirmText:
+          "Cancel job",
+        variant:
+          "destructive",
+      });
 
     if (!confirmed) {
       return;
@@ -379,9 +389,13 @@ export function useJobs() {
     }
 
     const confirmed =
-      window.confirm(
-        `Reopen ${selectedJob.jobNumber}? The job will return to its previous production status.`,
-      );
+      await confirm({
+        title:
+          "Reopen job?",
+        description: `${selectedJob.jobNumber} will return to its previous production status and the workflow can continue.`,
+        confirmText:
+          "Reopen job",
+      });
 
     if (!confirmed) {
       return;

@@ -1120,7 +1120,7 @@ export class QuotationsService {
 
           priority: dto.priority ?? 'NORMAL',
 
-          dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
+          dueDate: dto.dueDate ? new Date(dto.dueDate) : quotation.validUntil,
 
           subtotal: quotation.subtotal,
 

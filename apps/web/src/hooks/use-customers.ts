@@ -18,12 +18,16 @@ import type {
   CustomerFormData,
 } from "@/types/customer-form";
 
+import { useConfirm } from "@/components/providers/confirm-dialog-provider";
+
 export function useCustomers() {
   const [
     customers,
     setCustomers,
   ] =
     useState<Customer[]>([]);
+
+  const confirm = useConfirm();
 
   const [
     selectedCustomer,
@@ -244,9 +248,15 @@ export function useCustomers() {
     customer: Customer,
   ) {
     const confirmed =
-      window.confirm(
-        `Archive ${customer.name}?`,
-      );
+      await confirm({
+        title:
+          "Archive customer?",
+        description: `Archive ${customer.name}? You can no longer use this customer for new transactions while archived.`,
+        confirmText:
+          "Archive customer",
+        variant:
+          "destructive",
+      });
 
     if (!confirmed) {
       return;

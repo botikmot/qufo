@@ -20,6 +20,7 @@ export class QuotationQueryDto {
     'DRAFT',
     'SENT',
     'VIEWED',
+    'CHANGES_REQUESTED',
     'APPROVED',
     'REJECTED',
     'EXPIRED',

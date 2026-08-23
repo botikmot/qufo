@@ -13,6 +13,8 @@ import type {
   PublicQuotation,
 } from "@/types/quotation";
 
+import { useConfirm } from "@/components/providers/confirm-dialog-provider";
+
 type PublicQuotationAction =
   | "approve"
   | "requestChanges"
@@ -28,6 +30,8 @@ export function usePublicQuotation(
     useState<PublicQuotation | null>(
       null,
     );
+
+  const confirm = useConfirm();
 
   const [
     loading,
@@ -146,9 +150,13 @@ export function usePublicQuotation(
     }
 
     const confirmed =
-      window.confirm(
-        `Approve ${quotation.quotationNumber}?`,
-      );
+      await confirm({
+        title:
+          "Approve quotation?",
+        description: `You are about to approve ${quotation.quotationNumber}.`,
+        confirmText:
+          "Approve quotation",
+      });
 
     if (!confirmed) {
       return;

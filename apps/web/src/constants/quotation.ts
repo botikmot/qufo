@@ -9,8 +9,7 @@ export const QUOTATION_STATUS_LABELS: Record<
   DRAFT: "Draft",
   SENT: "Sent",
   VIEWED: "Viewed",
-  CHANGES_REQUESTED:
-    "Changes Requested",
+  CHANGES_REQUESTED: "Changes Requested",
   APPROVED: "Approved",
   REJECTED: "Rejected",
   EXPIRED: "Expired",

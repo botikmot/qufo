@@ -30,12 +30,16 @@ import type {
   Customer,
 } from "@/types/customer";
 
+import { useConfirm } from "@/components/providers/confirm-dialog-provider";
+
 export function useQuotations() {
   const [
     quotations,
     setQuotations,
   ] =
     useState<Quotation[]>([]);
+
+  const confirm = useConfirm();
 
   const [
     selectedQuotation,
@@ -197,9 +201,13 @@ export function useQuotations() {
     }
 
     const confirmed =
-      window.confirm(
-        `Send ${selectedQuotation.quotationNumber} to the customer?`,
-      );
+      await confirm({
+        title:
+          "Send quotation?",
+        description: `${selectedQuotation.quotationNumber} will be sent to the customer for review.`,
+        confirmText:
+          "Send quotation",
+      });
 
     if (!confirmed) {
       return null;
@@ -256,9 +264,13 @@ export function useQuotations() {
     }
 
     const confirmed =
-      window.confirm(
-        `Convert ${selectedQuotation.quotationNumber} into a production job?`,
-      );
+      await confirm({
+        title:
+          "Create production job?",
+        description: `${selectedQuotation.quotationNumber} will be converted into a production job.`,
+        confirmText:
+          "Create job",
+      });
 
     if (!confirmed) {
       return;
@@ -503,10 +515,14 @@ export function useQuotations() {
       return;
     }
 
-    const confirmed =
-      window.confirm(
-        `Create a new revision for ${selectedQuotation.quotationNumber}?`,
-      );
+   const confirmed =
+      await confirm({
+        title:
+          "Create new revision?",
+        description: `A new editable revision will be created from ${selectedQuotation.quotationNumber}.`,
+        confirmText:
+          "Create revision",
+      });
 
     if (!confirmed) {
       return;

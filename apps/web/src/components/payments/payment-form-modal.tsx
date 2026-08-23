@@ -27,6 +27,14 @@ import type {
   PaymentMethod,
 } from "@/types/payment";
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 type PaymentFormModalProps = {
   jobs: Job[];
 
@@ -103,50 +111,40 @@ export function PaymentFormModal({
               Job
             </label>
 
-            <select
-              required
-              disabled={
-                lockJobSelection
-              }
-              value={
-                form.jobId
-              }
-              onChange={(event) =>
-                void form.handleJobChange(
-                  event.target
-                    .value,
-                )
-              }
-              className="qufo-input disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {!lockJobSelection && (
-                <option value="">
-                  Select job
-                </option>
-              )}
+            <Select
+              value={form.jobId || null}
+              disabled={lockJobSelection}
+              onValueChange={(value) => {
+                if (!value) return;
 
-              {jobs.map(
-                (job) => (
-                  <option
-                    key={
-                      job.id
-                    }
-                    value={
-                      job.id
-                    }
+                void form.handleJobChange(value);
+              }}
+            >
+              <SelectTrigger className="qufo-input h-auto! w-full disabled:cursor-not-allowed disabled:opacity-70">
+                <SelectValue>
+                  {form.selectedJob
+                    ? `${form.selectedJob.jobNumber} — ${
+                        form.selectedJob.customer.companyName ??
+                        form.selectedJob.customer.name
+                      }`
+                    : "Select job"}
+                </SelectValue>
+              </SelectTrigger>
+
+              <SelectContent align="start">
+                {jobs.map((job) => (
+                  <SelectItem
+                    key={job.id}
+                    value={job.id}
                   >
-                    {
-                      job.jobNumber
-                    }
+                    {job.jobNumber}
                     {" — "}
-                    {job.customer
-                      .companyName ??
-                      job.customer
-                        .name}
-                  </option>
-                ),
-              )}
-            </select>
+                    {job.customer.companyName ??
+                      job.customer.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {form.selectedJob && (
@@ -176,7 +174,7 @@ export function PaymentFormModal({
               </label>
 
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-600">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
                   ₱
                 </span>
 
@@ -184,24 +182,18 @@ export function PaymentFormModal({
                   type="number"
                   min="0.01"
                   max={
-                    form.balance >
-                    0
+                    form.balance > 0
                       ? form.balance
                       : undefined
                   }
                   step="0.01"
-                  value={
-                    form.amount
-                  }
-                  onChange={(
-                    event,
-                  ) =>
+                  value={form.amount}
+                  onChange={(event) =>
                     form.setAmount(
-                      event.target
-                        .value,
+                      event.target.value,
                     )
                   }
-                  className="qufo-input pl-8"
+                  className="qufo-input qufo-input-with-prefix"
                   placeholder="0.00"
                 />
               </div>
@@ -230,48 +222,51 @@ export function PaymentFormModal({
                 Payment method
               </label>
 
-              <select
-                value={
-                  form.method
-                }
-                onChange={(
-                  event,
-                ) =>
+              <Select
+                value={form.method}
+                onValueChange={(value) =>
                   form.setMethod(
-                    event.target
-                      .value as PaymentMethod,
+                    value as PaymentMethod,
                   )
                 }
-                className="qufo-input"
               >
-                <option value="CASH">
-                  Cash
-                </option>
+                <SelectTrigger className="qufo-input h-auto! w-full">
+                  <SelectValue />
+                </SelectTrigger>
 
-                <option value="GCASH">
-                  GCash
-                </option>
+                <SelectContent
+                  align="start"
+                  className="min-w-(--anchor-width)"
+                >
+                  <SelectItem value="CASH">
+                    Cash
+                  </SelectItem>
 
-                <option value="MAYA">
-                  Maya
-                </option>
+                  <SelectItem value="GCASH">
+                    GCash
+                  </SelectItem>
 
-                <option value="BANK_TRANSFER">
-                  Bank Transfer
-                </option>
+                  <SelectItem value="MAYA">
+                    Maya
+                  </SelectItem>
 
-                <option value="CARD">
-                  Card
-                </option>
+                  <SelectItem value="BANK_TRANSFER">
+                    Bank Transfer
+                  </SelectItem>
 
-                <option value="CHECK">
-                  Check
-                </option>
+                  <SelectItem value="CARD">
+                    Card
+                  </SelectItem>
 
-                <option value="OTHER">
-                  Other
-                </option>
-              </select>
+                  <SelectItem value="CHECK">
+                    Check
+                  </SelectItem>
+
+                  <SelectItem value="OTHER">
+                    Other
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

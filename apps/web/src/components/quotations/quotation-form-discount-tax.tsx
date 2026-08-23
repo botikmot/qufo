@@ -2,6 +2,14 @@ import type {
   QuotationDiscountType,
 } from "@/types/quotation-form";
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 type QuotationFormDiscountTaxProps = {
   discountType:
     QuotationDiscountType;
@@ -38,28 +46,40 @@ export function QuotationFormDiscountTax({
           Discount
         </label>
 
-        <select
+        <Select
           value={discountType}
-          onChange={(event) =>
+          onValueChange={(value) => {
+            if (!value) return;
+
             onDiscountTypeChange(
-              event.target
-                .value as QuotationDiscountType,
-            )
-          }
-          className="qufo-input"
+              value as QuotationDiscountType,
+            );
+          }}
         >
-          <option value="NONE">
-            No discount
-          </option>
+          <SelectTrigger className="qufo-input h-auto! w-full">
+            <SelectValue>
+              {discountType === "NONE"
+                ? "No discount"
+                : discountType === "FIXED"
+                  ? "Fixed amount"
+                  : "Percentage"}
+            </SelectValue>
+          </SelectTrigger>
 
-          <option value="FIXED">
-            Fixed amount
-          </option>
+          <SelectContent align="start">
+            <SelectItem value="NONE">
+              No discount
+            </SelectItem>
 
-          <option value="PERCENTAGE">
-            Percentage
-          </option>
-        </select>
+            <SelectItem value="FIXED">
+              Fixed amount
+            </SelectItem>
+
+            <SelectItem value="PERCENTAGE">
+              Percentage
+            </SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div>

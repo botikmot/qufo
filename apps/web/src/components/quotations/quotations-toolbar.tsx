@@ -13,6 +13,14 @@ import {
   QUOTATION_STATUS_OPTIONS,
 } from "@/constants/quotation";
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 import type {
   QuotationStatus,
 } from "@/types/quotation";
@@ -56,7 +64,7 @@ export function QuotationsToolbar({
       >
         <Search
           size={16}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600"
+          className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-muted-foreground"
         />
 
         <input
@@ -66,45 +74,44 @@ export function QuotationsToolbar({
               event.target.value,
             )
           }
-          className="qufo-input pl-9"
+          className="qufo-input !pl-10"
           placeholder="Search quotation or customer..."
         />
       </form>
 
-      <select
+      <Select
         value={status}
-        onChange={(event) =>
+        onValueChange={(value) =>
           onStatusChange(
-            event.target
-              .value as
-              QuotationStatusFilter,
+            value as QuotationStatusFilter,
           )
         }
-        className="qufo-input w-full text-sm lg:w-52"
       >
-        <option value="ALL">
-          All statuses
-        </option>
+        <SelectTrigger className="qufo-input h-auto! w-full lg:w-52">
+          <SelectValue placeholder="Select status" />
+        </SelectTrigger>
 
-        {QUOTATION_STATUS_OPTIONS.map(
-          (quotationStatus) => (
-            <option
-              key={
-                quotationStatus
-              }
-              value={
-                quotationStatus
-              }
-            >
-              {
-                QUOTATION_STATUS_LABELS[
-                  quotationStatus
-                ]
-              }
-            </option>
-          ),
-        )}
-      </select>
+        <SelectContent>
+          <SelectItem value="ALL">
+            All statuses
+          </SelectItem>
+
+          {QUOTATION_STATUS_OPTIONS.map(
+            (quotationStatus) => (
+              <SelectItem
+                key={quotationStatus}
+                value={quotationStatus}
+              >
+                {
+                  QUOTATION_STATUS_LABELS[
+                    quotationStatus
+                  ]
+                }
+              </SelectItem>
+            ),
+          )}
+        </SelectContent>
+      </Select>
     </div>
   );
 }
