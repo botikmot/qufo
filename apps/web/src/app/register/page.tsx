@@ -188,7 +188,7 @@ export default function RegisterPage() {
                     )
                   }
                   className="qufo-input"
-                  placeholder="Rocky Gonzales"
+                  placeholder="John Doe"
                 />
               </div>
 
