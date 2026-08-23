@@ -1,0 +1,374 @@
+"use client";
+
+import {
+  FormEvent,
+  useState,
+} from "react";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+
+import {
+  Building2,
+  LoaderCircle,
+  UserPlus,
+} from "lucide-react";
+
+import { apiFetch } from "@/lib/api";
+
+type RegisterResponse = {
+  message: string;
+
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+
+  organization: {
+    id: string;
+    name: string;
+    slug: string;
+    businessType: string | null;
+    role: string;
+  };
+
+  subscription: {
+    plan?: string;
+    status?: string;
+    trialStartedAt?: string;
+    trialEndsAt?: string;
+  };
+};
+
+export default function RegisterPage() {
+  const router = useRouter();
+
+  const [name, setName] =
+    useState("");
+
+  const [
+    businessName,
+    setBusinessName,
+  ] = useState("");
+
+  const [
+    businessType,
+    setBusinessType,
+  ] = useState("");
+
+  const [email, setEmail] =
+    useState("");
+
+  const [password, setPassword] =
+    useState("");
+
+  const [
+    confirmPassword,
+    setConfirmPassword,
+  ] = useState("");
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [error, setError] =
+    useState<string | null>(null);
+
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    setError(null);
+
+    if (
+      password !==
+      confirmPassword
+    ) {
+      setError(
+        "Passwords do not match.",
+      );
+
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await apiFetch<RegisterResponse>(
+        "/auth/register",
+        {
+          method: "POST",
+          requireAuth: false,
+
+          body: JSON.stringify({
+            name,
+            businessName,
+            businessType:
+              businessType.trim() ||
+              undefined,
+            email,
+            password,
+          }),
+        },
+      );
+
+      router.push(
+        "/login?registered=true",
+      );
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to create your account.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main className="qufo-background flex min-h-screen items-center justify-center px-6 py-12 text-white">
+      <div className="w-full max-w-xl">
+        <div className="mb-8">
+          <div className="mb-4 text-xs font-medium uppercase tracking-[0.35em] text-emerald-400">
+            Quick Flow
+          </div>
+
+          <h1 className="text-4xl font-semibold tracking-tight">
+            Create your QUFO workspace
+          </h1>
+
+          <p className="mt-3 max-w-lg text-sm leading-6 text-slate-400">
+            Start your business workspace
+            for quotations, jobs,
+            customers, payments, and
+            tracking.
+          </p>
+        </div>
+
+        <div className="qufo-surface rounded-3xl p-6 sm:p-8">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-400/[0.08] text-emerald-300">
+              <UserPlus size={18} />
+            </div>
+
+            <div>
+              <h2 className="font-medium text-slate-100">
+                Create account
+              </h2>
+
+              <p className="mt-1 text-xs text-slate-500">
+                Includes a 30-day
+                Standard trial.
+              </p>
+            </div>
+          </div>
+
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-5"
+          >
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="name"
+                  className="mb-2 block text-sm text-slate-400"
+                >
+                  Your name
+                </label>
+
+                <input
+                  id="name"
+                  required
+                  value={name}
+                  onChange={(event) =>
+                    setName(
+                      event.target.value,
+                    )
+                  }
+                  className="qufo-input"
+                  placeholder="Rocky Gonzales"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="businessName"
+                  className="mb-2 block text-sm text-slate-400"
+                >
+                  Business name
+                </label>
+
+                <input
+                  id="businessName"
+                  required
+                  value={
+                    businessName
+                  }
+                  onChange={(event) =>
+                    setBusinessName(
+                      event.target
+                        .value,
+                    )
+                  }
+                  className="qufo-input"
+                  placeholder="Eagle Printing"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="businessType"
+                className="mb-2 block text-sm text-slate-400"
+              >
+                Business type
+                <span className="ml-1 text-slate-600">
+                  Optional
+                </span>
+              </label>
+
+              <div className="relative">
+                <Building2
+                  size={16}
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-600"
+                />
+
+                <input
+                  id="businessType"
+                  value={
+                    businessType
+                  }
+                  onChange={(event) =>
+                    setBusinessType(
+                      event.target
+                        .value,
+                    )
+                  }
+                  className="qufo-input qufo-input-with-icon"
+                  placeholder="Printing, signage, fabrication..."
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="email"
+                className="mb-2 block text-sm text-slate-400"
+              >
+                Email
+              </label>
+
+              <input
+                id="email"
+                type="email"
+                required
+                autoComplete="email"
+                value={email}
+                onChange={(event) =>
+                  setEmail(
+                    event.target.value,
+                  )
+                }
+                className="qufo-input"
+                placeholder="you@example.com"
+              />
+            </div>
+
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="password"
+                  className="mb-2 block text-sm text-slate-400"
+                >
+                  Password
+                </label>
+
+                <input
+                  id="password"
+                  type="password"
+                  required
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(event) =>
+                    setPassword(
+                      event.target
+                        .value,
+                    )
+                  }
+                  className="qufo-input"
+                  placeholder="••••••••"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="confirmPassword"
+                  className="mb-2 block text-sm text-slate-400"
+                >
+                  Confirm password
+                </label>
+
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  required
+                  autoComplete="new-password"
+                  value={
+                    confirmPassword
+                  }
+                  onChange={(event) =>
+                    setConfirmPassword(
+                      event.target
+                        .value,
+                    )
+                  }
+                  className="qufo-input"
+                  placeholder="••••••••"
+                />
+              </div>
+            </div>
+
+            {error && (
+              <div className="rounded-xl border border-red-400/15 bg-red-400/[0.05] px-4 py-3 text-sm text-red-300">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-400 px-4 py-3 font-medium text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loading && (
+                <LoaderCircle
+                  size={16}
+                  className="animate-spin"
+                />
+              )}
+
+              {loading
+                ? "Creating workspace..."
+                : "Create workspace"}
+            </button>
+          </form>
+        </div>
+
+        <p className="mt-6 text-center text-sm text-slate-500">
+          Already have an account?{" "}
+          <Link
+            href="/login"
+            className="text-emerald-300 transition hover:text-emerald-200"
+          >
+            Sign in
+          </Link>
+        </p>
+
+        <p className="mt-5 text-center text-xs text-slate-600">
+          QUFO · Move work forward.
+        </p>
+      </div>
+    </main>
+  );
+}

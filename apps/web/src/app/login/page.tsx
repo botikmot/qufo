@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 
 import { apiFetch } from "@/lib/api";
 import { saveLoginSession } from "@/lib/auth-storage";
+import Link from "next/link";
 
 import type { LoginResponse } from "@/types/auth";
 
@@ -164,6 +165,16 @@ export default function LoginPage() {
               : "Sign in"}
           </button>
         </form>
+
+        <p className="mt-6 text-center text-sm text-slate-500">
+          Don&apos;t have an account?{" "}
+          <Link
+            href="/register"
+            className="font-medium text-emerald-300 transition hover:text-emerald-200"
+          >
+            Create an account
+          </Link>
+        </p>
 
         <p className="mt-8 text-center text-xs text-zinc-600">
           QUFO · Move work forward.
