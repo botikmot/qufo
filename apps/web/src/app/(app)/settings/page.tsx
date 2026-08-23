@@ -4,6 +4,7 @@ import {
   Building2,
   CreditCard,
   UserRound,
+  Headphones,
 } from "lucide-react";
 
 import {
@@ -36,6 +37,10 @@ import {
 import {
   useSubscriptionSettings,
 } from "@/hooks/use-subscription-settings";
+
+import {
+  SupportForm,
+} from "@/components/settings/support-form";
 
 export default function SettingsPage() {
   const business =
@@ -95,6 +100,18 @@ export default function SettingsPage() {
 
             Subscription
           </TabsTrigger>
+
+          <TabsTrigger
+            value="support"
+            className="gap-2 rounded-xl px-4 py-2.5 text-slate-400 data-[state=active]:bg-emerald-400/10 data-[state=active]:text-emerald-300"
+          >
+            <Headphones
+              size={16}
+            />
+
+            Support
+          </TabsTrigger>
+
         </TabsList>
 
         <TabsContent value="business">
@@ -185,6 +202,11 @@ export default function SettingsPage() {
             </div>
           )}
         </TabsContent>
+        
+        <TabsContent value="support">
+          <SupportForm />
+        </TabsContent>
+
       </Tabs>
     </div>
   );

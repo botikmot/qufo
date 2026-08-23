@@ -4,6 +4,7 @@ import type {
 
 import {
   Banknote,
+  BarChart3,
   BriefcaseBusiness,
   FileText,
   LayoutDashboard,
@@ -42,6 +43,11 @@ export const APP_NAVIGATION: AppNavigationItem[] = [
     label: "Payments",
     href: "/payments",
     icon: Banknote,
+  },
+  {
+    label: "Reports",
+    href: "/reports",
+    icon: BarChart3,
   },
   {
     label: "Settings",
