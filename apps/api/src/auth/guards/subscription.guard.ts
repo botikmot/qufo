@@ -78,7 +78,7 @@ export class SubscriptionGuard implements CanActivate {
      */
     if (effective.status === 'EXPIRED') {
       this.throwSubscriptionRequired(
-        'Your QUFO free trial has ended. Subscribe to continue making changes.',
+        'Your QUFO access has expired. Renew your subscription to continue making changes.',
       );
     }
 

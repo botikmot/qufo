@@ -12,6 +12,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { SettingsModule } from './settings/settings.module';
 import { ReportsModule } from './reports/reports.module';
 import { SupportModule } from './support/support.module';
+import { PlatformAdminModule } from './platform-admin/platform-admin.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { SupportModule } from './support/support.module';
     SettingsModule,
     ReportsModule,
     SupportModule,
+    PlatformAdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

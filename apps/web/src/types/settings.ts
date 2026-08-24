@@ -1,3 +1,5 @@
+import { SubscriptionStatus } from "./subscription";
+
 export type BusinessSettings = {
   id: string;
   name: string;
@@ -86,11 +88,6 @@ export type UpdateProfileSettingsResponse = {
 export type SubscriptionPlan =
   | "STANDARD";
 
-export type SubscriptionStatus =
-  | "TRIALING"
-  | "ACTIVE"
-  | "PAST_DUE"
-  | "CANCELED";
 
 export type SubscriptionSettings = {
   id: string;
@@ -113,6 +110,14 @@ export type SubscriptionSettings = {
 
   currentPeriodEnd:
     | string
+    | null;
+
+  trialDaysRemaining:
+    | number
+    | null;
+
+  daysRemaining:
+    | number
     | null;
 
   cancelAtPeriodEnd: boolean;

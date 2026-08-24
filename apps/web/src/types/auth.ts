@@ -8,6 +8,10 @@ export type OrganizationRole =
   | "MANAGER"
   | "STAFF";
 
+export type PlatformRole =
+  | "SUPER_ADMIN"
+  | "SUPPORT";
+
 export type Subscription =
   | SubscriptionSnapshot
   | null;
@@ -18,6 +22,16 @@ export type LoginOrganization = {
   slug: string;
   role: OrganizationRole;
   subscription: Subscription;
+};
+
+export type AuthUser = {
+  id: string;
+  name: string;
+  email: string;
+
+  platformRole:
+    | PlatformRole
+    | null;
 };
 
 export type LoginResponse = {

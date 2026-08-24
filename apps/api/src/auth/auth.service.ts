@@ -240,6 +240,7 @@ export class AuthService {
         name: user.name,
         email: user.email,
         avatarUrl: user.avatarUrl,
+        platformRole: user.platformRole,
       },
 
       organizations: user.memberships.map((membership) => ({

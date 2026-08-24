@@ -111,6 +111,11 @@ enum PaymentStatus {
   VOIDED
 }
 
+enum PlatformRole {
+  SUPER_ADMIN
+  SUPPORT
+}
+
 // ======================================================
 // USER
 // ======================================================
@@ -120,6 +125,8 @@ model User {
   name         String
   email        String @unique
   passwordHash String
+
+  platformRole PlatformRole?
 
   phone     String?
   avatarUrl String?

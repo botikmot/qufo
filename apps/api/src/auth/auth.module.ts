@@ -8,6 +8,7 @@ import { RolesGuard } from './guards/roles.guard';
 import { TenantGuard } from './guards/tenant.guard';
 import { SubscriptionGuard } from './guards/subscription.guard';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { PlatformAdminGuard } from './guards/platform-admin.guard';
 
 @Module({
   imports: [
@@ -41,7 +42,15 @@ import { ThrottlerModule } from '@nestjs/throttler';
     TenantGuard,
     RolesGuard,
     SubscriptionGuard,
+    PlatformAdminGuard,
   ],
-  exports: [AuthService, AuthGuard, TenantGuard, RolesGuard, SubscriptionGuard],
+  exports: [
+    AuthService,
+    AuthGuard,
+    TenantGuard,
+    RolesGuard,
+    SubscriptionGuard,
+    PlatformAdminGuard,
+  ],
 })
 export class AuthModule {}

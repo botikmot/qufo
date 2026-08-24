@@ -6,6 +6,11 @@ import {
   formatEnumLabel,
 } from "@/utils/string";
 
+import {
+  formatSubscriptionDate,
+  getSubscriptionExpiry,
+} from "@/utils/subscription";
+
 import type {
   DashboardResponse,
 } from "@/types/dashboard";
@@ -22,6 +27,10 @@ export function DashboardSubscriptionCard({
     subscription.status ===
     "TRIALING";
 
+  const active =
+    subscription.status ===
+    "ACTIVE";
+
   const readOnly =
     subscription.status ===
       "EXPIRED" ||
@@ -30,6 +39,13 @@ export function DashboardSubscriptionCard({
     subscription.status ===
       "CANCELLED" ||
     !subscription.status;
+
+  const expiry =
+    getSubscriptionExpiry(
+      subscription,
+    );
+
+  const daysRemaining = subscription.daysRemaining;
 
   return (
     <div className="qufo-surface rounded-2xl p-5">
@@ -47,7 +63,16 @@ export function DashboardSubscriptionCard({
               : "No plan"}
           </p>
 
-          <p className="mt-1 text-xs text-slate-500">
+          <p
+            className={[
+              "mt-1 text-xs",
+              active
+                ? "text-emerald-400"
+                : trialing
+                  ? "text-violet-300"
+                  : "text-slate-500",
+            ].join(" ")}
+          >
             {subscription.status
               ? formatEnumLabel(
                   subscription.status,
@@ -63,22 +88,24 @@ export function DashboardSubscriptionCard({
         </div>
       </div>
 
-      {trialing &&
-        subscription.trialDaysRemaining !==
-          null && (
-          <div className="mt-5 rounded-xl border border-violet-400/10 bg-violet-400/[0.035] px-4 py-3">
-            <p className="text-xs text-violet-200/70">
-              {
-                subscription
-                  .trialDaysRemaining
-              }{" "}
-              day
-              {subscription
-                .trialDaysRemaining ===
-              1
-                ? ""
-                : "s"}{" "}
-              remaining in your trial
+      {(trialing || active) &&
+        daysRemaining !== null && (
+          <div className="mt-5 rounded-xl border border-emerald-400/10 bg-emerald-400/[0.035] px-4 py-3">
+            <p className="text-sm font-medium text-slate-200">
+              {daysRemaining}{" "}
+              {daysRemaining === 1
+                ? "day"
+                : "days"}{" "}
+              remaining
+            </p>
+
+            <p className="mt-1 text-xs text-slate-500">
+              {trialing
+                ? "Trial ends"
+                : "Active until"}{" "}
+              {formatSubscriptionDate(
+                expiry,
+              )}
             </p>
           </div>
         )}

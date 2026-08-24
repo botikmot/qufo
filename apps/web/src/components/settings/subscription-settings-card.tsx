@@ -7,68 +7,32 @@ import {
   CreditCard,
 } from "lucide-react";
 
+import {
+  formatSubscriptionDate,
+  getSubscriptionDaysRemaining,
+} from "@/utils/subscription";
+
 import type {
   SubscriptionSettings,
 } from "@/types/settings";
 
 type SubscriptionSettingsCardProps = {
-  subscription: SubscriptionSettings;
+  subscription:
+    SubscriptionSettings;
 };
-
-function formatDate(
-  value: string | null,
-) {
-  if (!value) {
-    return "—";
-  }
-
-  return new Intl.DateTimeFormat(
-    "en-PH",
-    {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    },
-  ).format(
-    new Date(value),
-  );
-}
-
-function getDaysRemaining(
-  value: string | null,
-) {
-  if (!value) {
-    return null;
-  }
-
-  const now = new Date();
-
-  const end =
-    new Date(value);
-
-  const difference =
-    end.getTime() -
-    now.getTime();
-
-  return Math.max(
-    0,
-    Math.ceil(
-      difference /
-        (1000 * 60 * 60 * 24),
-    ),
-  );
-}
 
 export function SubscriptionSettingsCard({
   subscription,
 }: SubscriptionSettingsCardProps) {
-  const trialDaysRemaining =
+  const trialing =
     subscription.status ===
-    "TRIALING"
-      ? getDaysRemaining(
-          subscription.trialEndsAt,
-        )
-      : null;
+    "TRIALING";
+
+  const active =
+    subscription.status ===
+    "ACTIVE";
+
+ const daysRemaining = subscription.daysRemaining;
 
   return (
     <div className="qufo-surface overflow-hidden rounded-3xl">
@@ -95,6 +59,7 @@ export function SubscriptionSettingsCard({
       </div>
 
       <div className="space-y-6 p-6">
+        {/* Plan */}
         <div className="qufo-surface-soft rounded-2xl p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -112,74 +77,110 @@ export function SubscriptionSettingsCard({
               </div>
             </div>
 
-            <div className="w-fit rounded-full border border-emerald-400/15 bg-emerald-400/[0.07] px-3 py-1.5 text-xs font-medium text-emerald-300">
-              {subscription.status ===
-              "TRIALING"
+            <div
+              className={[
+                "w-fit rounded-full border px-3 py-1.5 text-xs font-medium",
+                active
+                  ? "border-emerald-400/15 bg-emerald-400/[0.07] text-emerald-300"
+                  : trialing
+                    ? "border-violet-400/15 bg-violet-400/[0.07] text-violet-300"
+                    : "border-amber-400/15 bg-amber-400/[0.07] text-amber-300",
+              ].join(" ")}
+            >
+              {trialing
                 ? "Trial active"
                 : subscription.status}
             </div>
           </div>
 
-          {trialDaysRemaining !==
-            null && (
-            <div className="mt-5 border-t border-[var(--qufo-border)] pt-5">
-              <div className="flex items-center gap-2 text-sm text-slate-300">
-                <Clock3
-                  size={16}
-                  className="text-emerald-300"
-                />
+          {daysRemaining !== null &&
+            (trialing ||
+              active) && (
+              <div className="mt-5 border-t border-[var(--qufo-border)] pt-5">
+                <div className="flex items-center gap-2 text-sm text-slate-300">
+                  <Clock3
+                    size={16}
+                    className="text-emerald-300"
+                  />
 
-                <span>
-                  <strong className="font-medium text-white">
-                    {
-                      trialDaysRemaining
-                    }
-                  </strong>{" "}
-                  {trialDaysRemaining ===
-                  1
-                    ? "day"
-                    : "days"}{" "}
-                  remaining in your
-                  trial
-                </span>
+                  <span>
+                    <strong className="font-medium text-white">
+                      {
+                        daysRemaining
+                      }
+                    </strong>{" "}
+                    {daysRemaining ===
+                    1
+                      ? "day"
+                      : "days"}{" "}
+                    remaining
+                  </span>
+                </div>
+
+                <p className="mt-2 pl-6 text-xs text-slate-500">
+                  {trialing
+                    ? "Trial ends"
+                    : "Active until"}{" "}
+                  {formatSubscriptionDate(
+                    trialing
+                      ? subscription.trialEndsAt
+                      : subscription.currentPeriodEnd,
+                  )}
+                </p>
               </div>
-            </div>
-          )}
+            )}
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="qufo-surface-soft rounded-2xl p-4">
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              <CalendarDays
-                size={15}
+        {/* Dates */}
+        {trialing ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <DateCard
+              label="Trial started"
+              value={
+                subscription.trialStartedAt
+              }
+            />
+
+            <DateCard
+              label="Trial ends"
+              value={
+                subscription.trialEndsAt
+              }
+            />
+          </div>
+        ) : active ? (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <DateCard
+                label="Paid period starts"
+                value={
+                  subscription.currentPeriodStart
+                }
               />
 
-              Trial started
-            </div>
-
-            <div className="mt-2 text-sm font-medium text-slate-200">
-              {formatDate(
-                subscription.trialStartedAt,
-              )}
-            </div>
-          </div>
-
-          <div className="qufo-surface-soft rounded-2xl p-4">
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              <CalendarDays
-                size={15}
+              <DateCard
+                label="Active until"
+                value={
+                  subscription.currentPeriodEnd
+                }
               />
-
-              Trial ends
             </div>
 
-            <div className="mt-2 text-sm font-medium text-slate-200">
-              {formatDate(
-                subscription.trialEndsAt,
-              )}
+            {/* Trial history */}
+            <div className="rounded-xl border border-[var(--qufo-border)] bg-white/[0.015] px-4 py-3">
+              <p className="text-xs text-slate-600">
+                Original trial:{" "}
+                {formatSubscriptionDate(
+                  subscription.trialStartedAt,
+                )}{" "}
+                –{" "}
+                {formatSubscriptionDate(
+                  subscription.trialEndsAt,
+                )}
+              </p>
             </div>
-          </div>
-        </div>
+          </>
+        ) : null}
 
         <div className="rounded-2xl border border-cyan-400/10 bg-cyan-400/[0.03] p-4">
           <div className="flex gap-3">
@@ -206,12 +207,36 @@ export function SubscriptionSettingsCard({
         </div>
 
         <p className="text-xs leading-5 text-slate-600">
-          Billing and plan
-          management will become
-          available when QUFO
-          subscriptions are
-          launched.
+          Subscription renewals are
+          currently managed through
+          QUFO support.
         </p>
+      </div>
+    </div>
+  );
+}
+
+function DateCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | null;
+}) {
+  return (
+    <div className="qufo-surface-soft rounded-2xl p-4">
+      <div className="flex items-center gap-2 text-xs text-slate-500">
+        <CalendarDays
+          size={15}
+        />
+
+        {label}
+      </div>
+
+      <div className="mt-2 text-sm font-medium text-slate-200">
+        {formatSubscriptionDate(
+          value,
+        )}
       </div>
     </div>
   );

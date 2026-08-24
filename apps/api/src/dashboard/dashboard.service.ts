@@ -330,9 +330,17 @@ export class DashboardService {
 
         status: subscriptionState?.status ?? null,
 
+        trialStartedAt: tenant.subscription?.trialStartedAt ?? null,
+
         trialEndsAt: tenant.subscription?.trialEndsAt ?? null,
 
+        currentPeriodStart: tenant.subscription?.currentPeriodStart ?? null,
+
+        currentPeriodEnd: tenant.subscription?.currentPeriodEnd ?? null,
+
         trialDaysRemaining: subscriptionState?.trialDaysRemaining ?? null,
+
+        daysRemaining: subscriptionState?.daysRemaining ?? null,
       },
 
       stats: {

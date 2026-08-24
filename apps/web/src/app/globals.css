@@ -130,10 +130,17 @@ body {
 }
 
 .qufo-input {
+  box-sizing: border-box;
+  /* display: block; */
+
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
   border-radius: 0.75rem;
   border: 1px solid var(--qufo-border);
   background: rgba(5, 15, 27, 0.55);
+
   padding: 0.7rem 0.9rem;
 
   color: var(--qufo-text);

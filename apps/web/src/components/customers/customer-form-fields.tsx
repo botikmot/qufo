@@ -47,7 +47,7 @@ export function CustomerFormFields({
 }: CustomerFormFieldsProps) {
   return (
     <div className="space-y-5">
-      <div className="grid gap-5 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <div>
           <label className="mb-2 block text-sm text-slate-400">
             Customer name
@@ -84,7 +84,7 @@ export function CustomerFormFields({
         </div>
       </div>
 
-      <div className="grid gap-5 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <div>
           <label className="mb-2 block text-sm text-slate-400">
             Email
@@ -144,7 +144,7 @@ export function CustomerFormFields({
         </label>
 
         <textarea
-          rows={4}
+          rows={3}
           value={notes}
           onChange={(event) =>
             onNotesChange(

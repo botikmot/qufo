@@ -15,7 +15,12 @@ export type TenantContext = {
   subscription: {
     plan: SubscriptionPlan;
     status: SubscriptionStatus;
+
+    trialStartedAt: Date;
     trialEndsAt: Date;
+
+    currentPeriodStart: Date | null;
+
     currentPeriodEnd: Date | null;
   } | null;
 };

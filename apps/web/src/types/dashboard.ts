@@ -89,11 +89,27 @@ export type DashboardResponse = {
       | SubscriptionStatus
       | null;
 
+    trialStartedAt:
+      | string
+      | null;
+
     trialEndsAt:
       | string
       | null;
 
+    currentPeriodStart:
+      | string
+      | null;
+
+    currentPeriodEnd:
+      | string
+      | null;
+
     trialDaysRemaining:
+      | number
+      | null;
+
+    daysRemaining:
       | number
       | null;
   };
