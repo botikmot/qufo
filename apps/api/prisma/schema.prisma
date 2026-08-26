@@ -116,6 +116,11 @@ enum PlatformRole {
   SUPPORT
 }
 
+enum LegalConsentType {
+  TERMS_OF_SERVICE
+  PRIVACY_POLICY
+}
+
 // ======================================================
 // USER
 // ======================================================
@@ -140,9 +145,10 @@ model User {
   createdCustomers  Customer[]           @relation("CustomerCreatedBy")
   createdQuotations Quotation[]          @relation("QuotationCreatedBy")
 
-  createdJobs     Job[]       @relation("JobCreatedBy")
-  jobUpdates      JobUpdate[] @relation("JobUpdateCreatedBy")
-  createdPayments Payment[]   @relation("PaymentCreatedBy")
+  createdJobs     Job[]          @relation("JobCreatedBy")
+  jobUpdates      JobUpdate[]    @relation("JobUpdateCreatedBy")
+  createdPayments Payment[]      @relation("PaymentCreatedBy")
+  legalConsents   LegalConsent[]
 
   refreshSessions RefreshSession[]
 
@@ -522,4 +528,23 @@ model RefreshSession {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+model LegalConsent {
+  id String @id @default(cuid())
+
+  userId String
+
+  type    LegalConsentType
+  version String
+
+  acceptedAt DateTime @default(now())
+
+  ipAddress String?
+  userAgent String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, type])
 }

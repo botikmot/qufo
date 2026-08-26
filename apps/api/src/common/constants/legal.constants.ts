@@ -1,0 +1,4 @@
+export const LEGAL_VERSIONS = {
+  TERMS_OF_SERVICE: '2026-08-26',
+  PRIVACY_POLICY: '2026-08-26',
+} as const;

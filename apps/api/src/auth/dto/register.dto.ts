@@ -5,6 +5,7 @@ import {
   IsString,
   MaxLength,
   MinLength,
+  IsBoolean,
 } from 'class-validator';
 
 export class RegisterDto {
@@ -31,4 +32,7 @@ export class RegisterDto {
   @IsString()
   @MaxLength(100)
   businessType?: string;
+
+  @IsBoolean()
+  acceptedTerms: boolean;
 }

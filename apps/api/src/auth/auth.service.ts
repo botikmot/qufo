@@ -2,6 +2,7 @@ import {
   ConflictException,
   Injectable,
   UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -11,6 +12,9 @@ import { LoginDto } from './dto/login.dto';
 import { JwtPayload } from './types/jwt-payload.type';
 
 import { createHash, randomBytes } from 'node:crypto';
+import { LegalConsentType } from '../generated/prisma/enums';
+
+import { LEGAL_VERSIONS } from '../common/constants/legal.constants';
 
 @Injectable()
 export class AuthService {
@@ -69,6 +73,12 @@ export class AuthService {
 
     if (existingUser) {
       throw new ConflictException('An account with this email already exists.');
+    }
+
+    if (!dto.acceptedTerms) {
+      throw new BadRequestException(
+        'You must accept the Terms of Service and acknowledge the Privacy Policy.',
+      );
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
@@ -140,6 +150,21 @@ export class AuthService {
             },
           },
         },
+      });
+
+      await tx.legalConsent.createMany({
+        data: [
+          {
+            userId: user.id,
+            type: LegalConsentType.TERMS_OF_SERVICE,
+            version: LEGAL_VERSIONS.TERMS_OF_SERVICE,
+          },
+          {
+            userId: user.id,
+            type: LegalConsentType.PRIVACY_POLICY,
+            version: LEGAL_VERSIONS.PRIVACY_POLICY,
+          },
+        ],
       });
 
       return {

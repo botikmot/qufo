@@ -7,6 +7,7 @@ import {
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 import {
   Building2,
@@ -74,6 +75,9 @@ export default function RegisterPage() {
   const [error, setError] =
     useState<string | null>(null);
 
+  const [acceptedTerms, setAcceptedTerms] =
+    useState(false);
+
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
   ) {
@@ -87,6 +91,14 @@ export default function RegisterPage() {
     ) {
       setError(
         "Passwords do not match.",
+      );
+
+      return;
+    }
+
+    if (!acceptedTerms) {
+      setError(
+        "Please agree to the Terms of Service and acknowledge the Privacy Policy.",
       );
 
       return;
@@ -109,6 +121,7 @@ export default function RegisterPage() {
               undefined,
             email,
             password,
+            acceptedTerms,
           }),
         },
       );
@@ -130,6 +143,16 @@ export default function RegisterPage() {
   return (
     <main className="qufo-background flex min-h-screen items-center justify-center px-6 py-12 text-white">
       <div className="w-full max-w-xl">
+        <div className="flex justify-center w-full">
+          <Link href="/">
+            <Image 
+              src="/images/qufo_logo1.png"
+              alt="QUFO"
+              width={60}
+              height={60}
+            />
+          </Link>
+        </div>
         <div className="mb-8">
           <div className="mb-4 text-xs font-medium uppercase tracking-[0.35em] text-emerald-400">
             Quick Flow
@@ -159,8 +182,7 @@ export default function RegisterPage() {
               </h2>
 
               <p className="mt-1 text-xs text-slate-500">
-                Includes a 30-day
-                Standard trial.
+                Includes your 30-day free trial.
               </p>
             </div>
           </div>
@@ -328,6 +350,48 @@ export default function RegisterPage() {
                   placeholder="••••••••"
                 />
               </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  required
+                  checked={acceptedTerms}
+                  onChange={(event) =>
+                    setAcceptedTerms(
+                      event.target.checked,
+                    )
+                  }
+                  className="
+                    mt-0.5 size-4 shrink-0
+                    cursor-pointer
+                    accent-emerald-400
+                  "
+                />
+
+                <span className="text-xs leading-6 text-slate-500 sm:text-sm">
+                  I agree to the{" "}
+                  <Link
+                    href="/terms"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-medium text-emerald-300 underline decoration-emerald-400/30 underline-offset-4 transition hover:text-emerald-200"
+                  >
+                    Terms of Service
+                  </Link>{" "}
+                  and acknowledge the{" "}
+                  <Link
+                    href="/privacy"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-medium text-emerald-300 underline decoration-emerald-400/30 underline-offset-4 transition hover:text-emerald-200"
+                  >
+                    Privacy Policy
+                  </Link>
+                  .
+                </span>
+              </label>
             </div>
 
             {error && (

@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { saveLoginSession } from "@/lib/auth-storage";
 import Link from "next/link";
+import Image from "next/image";
 
 import type { LoginResponse } from "@/types/auth";
 
@@ -83,6 +84,16 @@ export default function LoginPage() {
   return (
     <main className="qufo-background flex min-h-screen items-center justify-center px-6 text-white">
       <div className="w-full max-w-md">
+        <div className="flex justify-center w-full">
+          <Link href="/">
+            <Image 
+              src="/images/qufo_logo1.png"
+              alt="QUFO"
+              width={60}
+              height={60}
+            />
+          </Link>
+        </div>
         <div className="mb-10">
           <div className="mb-4 text-xs font-medium uppercase tracking-[0.35em] text-emerald-400">
             Quick Flow
