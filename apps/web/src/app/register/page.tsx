@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 
 import { apiFetch } from "@/lib/api";
+import { saveLoginSession } from "@/lib/auth-storage";
+import type { LoginResponse } from "@/types/auth";
 
 type RegisterResponse = {
   message: string;
@@ -107,6 +109,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
+      // 1. Create the account and workspace
       await apiFetch<RegisterResponse>(
         "/auth/register",
         {
@@ -126,9 +129,39 @@ export default function RegisterPage() {
         },
       );
 
-      router.push(
-        "/login?registered=true",
+      // 2. Automatically sign in
+      const loginResponse =
+        await apiFetch<LoginResponse>(
+          "/auth/login",
+          {
+            method: "POST",
+            requireAuth: false,
+
+            body: JSON.stringify({
+              email,
+              password,
+            }),
+          },
+        );
+
+      // 3. Select the newly created organization
+      const organization =
+        loginResponse.organizations[0];
+
+      if (!organization) {
+        throw new Error(
+          "Your workspace was created, but no organization was found.",
+        );
+      }
+
+      // 4. Save the same session used by the normal login flow
+      saveLoginSession(
+        loginResponse,
+        organization,
       );
+
+      // 5. Go directly to the dashboard
+      router.replace("/dashboard");
     } catch (error) {
       setError(
         error instanceof Error
