@@ -32,7 +32,7 @@ export function LandingFooter() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-x-12 gap-y-3 text-sm sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-x-12 gap-y-3 text-sm sm:grid-cols-4">
             <div className="space-y-3">
               <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-600">
                 Product
@@ -99,6 +99,27 @@ export function LandingFooter() {
                 Privacy Policy
               </Link>
             </div>
+
+            <div className="space-y-3">
+              <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-600">
+                Support
+              </p>
+
+              <a
+                href="#contact"
+                className="block text-slate-400 transition hover:text-white"
+              >
+                Contact Us
+              </a>
+
+              <a
+                href="mailto:support@nxtasq.site"
+                className="block text-slate-400 transition hover:text-white"
+              >
+                Email Support
+              </a>
+            </div>
+
           </div>
         </div>
 

@@ -8,6 +8,20 @@ import { TrackingSection } from "@/components/marketing/tracking-section";
 import { TrialCtaSection } from "@/components/marketing/trial-cta-section";
 import { WorkflowSection } from "@/components/marketing/workflow-section";
 import { FaqSection } from "@/components/marketing/faq-section";
+import { ContactSection } from "@/components/marketing/contact-section";
+
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "QUFO — Run Your Entire Workflow Without the Chaos",
+
+  description:
+    "Manage customers, quotations, approvals, jobs, payments, and customer tracking in one connected workspace.",
+
+  alternates: {
+    canonical: "https://qufo.im",
+  },
+};
 
 export default function HomePage() {
   return (
@@ -22,6 +36,7 @@ export default function HomePage() {
       <ReportsSection />
       <TrialCtaSection />
       <FaqSection />
+      <ContactSection />
       <LandingFooter />
     </main>
   );

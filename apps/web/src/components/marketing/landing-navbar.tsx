@@ -42,6 +42,10 @@ export function LandingNavbar() {
           <a href="#faq" className="transition hover:text-white">
             FAQ
           </a>
+
+          <a href="#contact" className="transition hover:text-white">
+            Contact Us
+          </a>
         </nav>
 
         <div className="flex items-center gap-2">

@@ -1,9 +1,10 @@
 import Link from "next/link";
 
 import { LegalPageShell } from "@/components/marketing/legal-page-shell";
+import type { Metadata } from "next";
 
-export const metadata = {
-  title: "Terms of Service | QUFO",
+export const metadata: Metadata = {
+  title: "Terms of Service",
   description: "Terms governing the use of QUFO.",
 };
 

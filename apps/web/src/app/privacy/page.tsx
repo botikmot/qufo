@@ -1,7 +1,8 @@
 import { LegalPageShell } from "@/components/marketing/legal-page-shell";
+import type { Metadata } from "next";
 
-export const metadata = {
-  title: "Privacy Policy | QUFO",
+export const metadata: Metadata = {
+  title: "Privacy Policy",
   description:
     "Learn how QUFO collects, uses, stores, and protects personal information.",
 };
