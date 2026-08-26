@@ -30,38 +30,55 @@ export function CustomerTableRow({
   onOpen,
   onArchive,
 }: CustomerTableRowProps) {
+  const companyLabel =
+    customer.companyName ??
+    "Individual customer";
+
   return (
     <tr className="border-b border-[var(--qufo-border)] transition last:border-0 hover:bg-white/[0.018]">
-      <td className="px-5 py-4">
-        <p className="font-medium text-slate-200">
+      {/* Customer */}
+      <td className="min-w-0 px-4 py-4 sm:px-5">
+        <p className="break-words text-sm font-medium text-slate-200">
           {customer.name}
         </p>
 
-        {customer.companyName && (
-          <p className="mt-1 text-xs text-slate-600">
-            {
-              customer.companyName
-            }
-          </p>
-        )}
+        {/* Mobile only */}
+        <p className="mt-1 break-words text-xs leading-5 text-slate-600 sm:hidden">
+          {companyLabel}
+        </p>
       </td>
 
-      <td className="px-5 py-4">
+      {/* Company - tablet / desktop only */}
+      <td className="hidden px-5 py-4 sm:table-cell">
         <span className="text-sm text-slate-500">
-          {customer.companyName ??
-            "Individual customer"}
+          {companyLabel}
         </span>
       </td>
 
-      <td className="px-5 py-4">
-        <div className="flex justify-end gap-1">
+      {/* Actions */}
+      <td className="w-24 whitespace-nowrap px-2 py-4 sm:px-5">
+        <div className="flex items-center justify-end gap-1">
           <button
             type="button"
             title="View customer"
+            aria-label={`View ${customer.name}`}
             onClick={() =>
               onOpen(customer)
             }
-            className="flex size-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-cyan-400/[0.07] hover:text-cyan-300"
+            className="
+              flex
+              size-8
+              shrink-0
+              items-center
+              justify-center
+              rounded-lg
+              text-slate-500
+              transition
+              hover:bg-cyan-400/[0.07]
+              hover:text-cyan-300
+
+              sm:size-9
+            "
           >
             <Eye size={16} />
           </button>
@@ -73,6 +90,7 @@ export function CustomerTableRow({
                 ? "Workspace is read-only"
                 : "Archive customer"
             }
+            aria-label={`Archive ${customer.name}`}
             onClick={() =>
               onArchive(customer)
             }
@@ -80,7 +98,24 @@ export function CustomerTableRow({
               archiving ||
               readOnly
             }
-            className="flex size-9 items-center justify-center rounded-lg text-slate-600 transition hover:bg-red-400/[0.07] hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-600"
+            className="
+              flex
+              size-8
+              shrink-0
+              items-center
+              justify-center
+              rounded-lg
+              text-slate-600
+              transition
+              hover:bg-red-400/[0.07]
+              hover:text-red-300
+              disabled:cursor-not-allowed
+              disabled:opacity-30
+              disabled:hover:bg-transparent
+              disabled:hover:text-slate-600
+
+              sm:size-9
+            "
           >
             {archiving ? (
               <LoaderCircle
@@ -88,9 +123,7 @@ export function CustomerTableRow({
                 className="animate-spin"
               />
             ) : (
-              <Archive
-                size={15}
-              />
+              <Archive size={15} />
             )}
           </button>
         </div>

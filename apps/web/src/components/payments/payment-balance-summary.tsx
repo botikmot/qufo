@@ -29,26 +29,26 @@ export function PaymentBalanceSummary({
   loading = false,
 }: PaymentBalanceSummaryProps) {
   return (
-    <div className="space-y-3">
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-[var(--qufo-border)] bg-black/10 p-4">
+    <div className="min-w-0 space-y-3">
+      <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="min-w-0 rounded-xl border border-[var(--qufo-border)] bg-black/10 p-4">
           <p className="text-[10px] uppercase tracking-wider text-slate-600">
             Job Total
           </p>
 
-          <p className="mt-2 text-lg font-semibold text-slate-300">
+          <p className="mt-2 break-words text-lg font-semibold text-slate-300">
             {formatCurrency(
               total,
             )}
           </p>
         </div>
 
-        <div className="rounded-xl border border-[var(--qufo-border)] bg-black/10 p-4">
+        <div className="min-w-0 rounded-xl border border-[var(--qufo-border)] bg-black/10 p-4">
           <p className="text-[10px] uppercase tracking-wider text-slate-600">
             Paid
           </p>
 
-          <p className="mt-2 text-lg font-semibold text-emerald-300">
+          <p className="mt-2 break-words text-lg font-semibold text-emerald-300">
             {loading
               ? "Loading..."
               : formatCurrency(
@@ -57,12 +57,12 @@ export function PaymentBalanceSummary({
           </p>
         </div>
 
-        <div className="rounded-xl border border-[var(--qufo-border)] bg-black/10 p-4">
+        <div className="min-w-0 rounded-xl border border-[var(--qufo-border)] bg-black/10 p-4">
           <p className="text-[10px] uppercase tracking-wider text-slate-600">
             Balance
           </p>
 
-          <p className="mt-2 text-lg font-semibold text-amber-300">
+          <p className="mt-2 break-words text-lg font-semibold text-amber-300">
             {loading
               ? "Loading..."
               : formatCurrency(
@@ -73,14 +73,33 @@ export function PaymentBalanceSummary({
       </div>
 
       {!loading && (
-        <div className="flex items-center justify-between rounded-xl border border-[var(--qufo-border)] bg-black/10 px-4 py-3">
+        <div
+          className="
+            flex
+            min-w-0
+            flex-col
+            gap-2
+            rounded-xl
+            border
+            border-[var(--qufo-border)]
+            bg-black/10
+            px-4
+            py-3
+
+            sm:flex-row
+            sm:items-center
+            sm:justify-between
+          "
+        >
           <span className="text-xs text-slate-500">
             Payment status
           </span>
 
-          <PaymentSummaryStatus
-            status={status}
-          />
+          <div className="min-w-0">
+            <PaymentSummaryStatus
+              status={status}
+            />
+          </div>
         </div>
       )}
     </div>

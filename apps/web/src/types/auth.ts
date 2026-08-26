@@ -37,11 +37,7 @@ export type AuthUser = {
 export type LoginResponse = {
   accessToken: string;
 
-  user: {
-    id: string;
-    name: string;
-    email: string;
-  };
+  user: AuthUser
 
   organizations:
     LoginOrganization[];
@@ -50,11 +46,7 @@ export type LoginResponse = {
 export type AuthSession = {
   accessToken: string;
 
-  user: {
-    id: string;
-    name: string;
-    email: string;
-  };
+  user: AuthUser
 
   organization:
     LoginOrganization;

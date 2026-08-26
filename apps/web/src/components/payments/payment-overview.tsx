@@ -32,12 +32,12 @@ export function PaymentOverview({
 }: Props) {
   return (
     <div className="qufo-surface mb-5 overflow-hidden rounded-2xl">
-      <div className="border-b border-[var(--qufo-border)] px-5 py-4">
+      <div className="border-b border-[var(--qufo-border)] px-4 py-4 sm:px-5">
         <h2 className="text-sm font-medium text-slate-300">
           Payment Overview
         </h2>
 
-        <p className="mt-1 text-xs text-slate-600">
+        <p className="mt-1 text-xs leading-5 text-slate-600">
           Current payment status
           and outstanding balance
           for each job.
@@ -47,13 +47,10 @@ export function PaymentOverview({
       {loading ? (
         <LoadingState label="Loading payment overview..." />
       ) : !summary ||
-        summary.items.length ===
-          0 ? (
+        summary.items.length === 0 ? (
         <div className="flex min-h-48 flex-col items-center justify-center px-6 text-center">
           <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-emerald-400/[0.05] text-emerald-300">
-            <Banknote
-              size={18}
-            />
+            <Banknote size={18} />
           </div>
 
           <p className="text-sm font-medium text-slate-400">
@@ -68,31 +65,31 @@ export function PaymentOverview({
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[950px]">
+        <div className="w-full overflow-hidden">
+          <table className="w-full table-fixed xl:table-auto">
             <thead>
               <tr className="border-b border-[var(--qufo-border)]">
                 <TableHead>
                   Job
                 </TableHead>
 
-                <TableHead>
+                <TableHead className="hidden xl:table-cell">
                   Customer
                 </TableHead>
 
-                <TableHead>
+                <TableHead className="hidden xl:table-cell">
                   Job Total
                 </TableHead>
 
-                <TableHead>
+                <TableHead className="hidden xl:table-cell">
                   Paid
                 </TableHead>
 
-                <TableHead>
+                <TableHead className="hidden xl:table-cell">
                   Balance
                 </TableHead>
 
-                <TableHead>
+                <TableHead className="hidden xl:table-cell">
                   Payment Status
                 </TableHead>
               </tr>

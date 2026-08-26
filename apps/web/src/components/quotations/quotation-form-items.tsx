@@ -32,24 +32,51 @@ export function QuotationFormItems({
   onChange,
 }: QuotationFormItemsProps) {
   return (
-    <div>
-      <div className="mb-3 flex items-center justify-between gap-4">
-        <div>
+    <div className="min-w-0">
+      <div
+        className="
+          mb-4
+          flex
+          flex-col
+          gap-3
+
+          sm:flex-row
+          sm:items-center
+          sm:justify-between
+        "
+      >
+        <div className="min-w-0">
           <h3 className="text-sm font-medium text-slate-300">
             Quotation items
           </h3>
 
-          <p className="mt-1 text-xs text-slate-600">
-            Add products or
-            services included
-            in the quotation.
+          <p className="mt-1 text-xs leading-5 text-slate-600">
+            Add products or services included in the quotation.
           </p>
         </div>
 
         <button
           type="button"
           onClick={onAdd}
-          className="flex items-center gap-2 rounded-xl border border-[var(--qufo-border)] px-3 py-2 text-xs text-slate-300 transition hover:bg-white/[0.04]"
+          className="
+            flex
+            w-full
+            shrink-0
+            items-center
+            justify-center
+            gap-2
+            rounded-xl
+            border
+            border-[var(--qufo-border)]
+            px-3
+            py-2.5
+            text-xs
+            text-slate-300
+            transition
+            hover:bg-white/[0.04]
+
+            sm:w-auto
+          "
         >
           <Plus size={14} />
 
@@ -57,7 +84,7 @@ export function QuotationFormItems({
         </button>
       </div>
 
-      <div className="space-y-3">
+      <div className="min-w-0 space-y-3">
         {items.map(
           (item) => (
             <QuotationFormItemRow

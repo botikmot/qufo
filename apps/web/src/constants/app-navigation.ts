@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   Settings,
   Users,
+  ShieldCheck,
 } from "lucide-react";
 
 export type AppNavigationItem = {
@@ -55,3 +56,9 @@ export const APP_NAVIGATION: AppNavigationItem[] = [
     icon: Settings,
   },
 ];
+
+export const PLATFORM_ADMIN_NAVIGATION: AppNavigationItem = {
+  label: "Platform Admin",
+  href: "/admin",
+  icon: ShieldCheck,
+};

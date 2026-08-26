@@ -41,6 +41,10 @@ import {
 } from "@/components/jobs/job-value-card";
 
 import {
+  QufoModal,
+} from "@/components/ui/qufo-modal";
+
+import {
   useJobDetail,
 } from "@/hooks/use-job-detail";
 
@@ -95,8 +99,14 @@ export function JobDetailModal({
     });
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
-      <div className="qufo-surface max-h-[94vh] w-full max-w-4xl overflow-y-auto rounded-3xl">
+    <QufoModal
+      title={`Job ${job.jobNumber}`}
+      onClose={onClose}
+      closeDisabled={
+        actionLoading
+      }
+      size="4xl"
+      customHeader={
         <JobDetailHeader
           job={job}
           loading={
@@ -106,120 +116,120 @@ export function JobDetailModal({
             onClose
           }
         />
+      }
+    >
+      <div className="min-w-0 space-y-7">
+        <JobInfoGrid
+          job={job}
+        />
 
-        <div className="space-y-7 p-6">
-          <JobInfoGrid
-            job={job}
-          />
+        <JobProductionProgress
+          status={
+            job.status
+          }
+        />
 
-          <JobProductionProgress
-            status={
-              job.status
-            }
-          />
+        <JobItemsList
+          items={
+            job.items
+          }
+        />
 
-          <JobItemsList
-            items={
-              job.items
-            }
-          />
+        <JobValueCard
+          job={job}
+        />
 
-          <JobValueCard
-            job={job}
-          />
+        <JobPaymentCard
+          job={job}
+        />
 
-          <JobPaymentCard
-            job={job}
-          />
+        <JobTrackingCard
+          trackingEnabled={
+            job.trackingEnabled
+          }
+          trackingLink={
+            detail.trackingLink
+          }
+          trackingError={
+            detail.trackingError
+          }
+          copied={
+            detail.copied
+          }
+          loading={
+            actionLoading
+          }
+          onGenerate={() =>
+            void detail.generateTrackingLink()
+          }
+          onCopy={() =>
+            void detail.copyTrackingLink()
+          }
+        />
 
-          <JobTrackingCard
-            trackingEnabled={
-              job.trackingEnabled
-            }
-            trackingLink={
-              detail.trackingLink
-            }
-            trackingError={
-              detail.trackingError
-            }
-            copied={
-              detail.copied
-            }
-            loading={
-              actionLoading
-            }
-            onGenerate={() =>
-              void detail.generateTrackingLink()
-            }
-            onCopy={() =>
-              void detail.copyTrackingLink()
-            }
-          />
+        <JobStatusUpdateForm
+          nextStatuses={
+            detail.nextStatuses
+          }
+          selectedStatus={
+            detail.selectedStatus
+          }
+          internalMessage={
+            detail.internalMessage
+          }
+          publicMessage={
+            detail.publicMessage
+          }
+          loading={
+            actionLoading
+          }
+          onStatusChange={
+            detail.setSelectedStatus
+          }
+          onInternalMessageChange={
+            detail.setInternalMessage
+          }
+          onPublicMessageChange={
+            detail.setPublicMessage
+          }
+          onSubmit={() =>
+            void detail.updateStatus()
+          }
+        />
 
-          <JobStatusUpdateForm
-            nextStatuses={
-              detail.nextStatuses
-            }
-            selectedStatus={
-              detail.selectedStatus
-            }
-            internalMessage={
-              detail.internalMessage
-            }
-            publicMessage={
-              detail.publicMessage
-            }
-            loading={
-              actionLoading
-            }
-            onStatusChange={
-              detail.setSelectedStatus
-            }
-            onInternalMessageChange={
-              detail.setInternalMessage
-            }
-            onPublicMessageChange={
-              detail.setPublicMessage
-            }
-            onSubmit={() =>
-              void detail.updateStatus()
-            }
-          />
+        <JobLifecycleActions
+          job={job}
+          cancellationReason={
+            detail.cancellationReason
+          }
+          canCancel={
+            canCancel
+          }
+          canReopen={
+            canReopen
+          }
+          loading={
+            actionLoading
+          }
+          onCancellationReasonChange={
+            detail.setCancellationReason
+          }
+          onCancel={() =>
+            void onCancel(
+              detail.cancellationReason,
+            )
+          }
+          onReopen={() =>
+            void onReopen()
+          }
+        />
 
-          <JobLifecycleActions
-            job={job}
-            cancellationReason={
-              detail.cancellationReason
-            }
-            canCancel={
-              canCancel
-            }
-            canReopen={
-              canReopen
-            }
-            loading={
-              actionLoading
-            }
-            onCancellationReasonChange={
-              detail.setCancellationReason
-            }
-            onCancel={() =>
-              void onCancel(
-                detail.cancellationReason,
-              )
-            }
-            onReopen={() =>
-              void onReopen()
-            }
-          />
-
-          <JobActivityHistory
-            updates={
-              job.updates
-            }
-          />
-        </div>
+        <JobActivityHistory
+          updates={
+            job.updates
+          }
+        />
       </div>
-    </div>
+    </QufoModal>
   );
 }

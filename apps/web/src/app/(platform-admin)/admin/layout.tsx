@@ -1,6 +1,10 @@
 import {
-  PlatformAdminSidebar,
-} from "@/components/platform-admin/platform-admin-sidebar";
+  PlatformAdminAccessGate,
+} from "@/components/platform-admin/platform-admin-access-gate";
+
+import {
+  PlatformAdminShell,
+} from "@/components/platform-admin/platform-admin-shell";
 
 export default function PlatformAdminLayout({
   children,
@@ -9,12 +13,10 @@ export default function PlatformAdminLayout({
     React.ReactNode;
 }>) {
   return (
-    <div className="qufo-background flex min-h-dvh bg-[var(--qufo-bg)]">
-      <PlatformAdminSidebar />
-
-      <div className="min-w-0 flex-1">
+    <PlatformAdminAccessGate>
+      <PlatformAdminShell>
         {children}
-      </div>
-    </div>
+      </PlatformAdminShell>
+    </PlatformAdminAccessGate>
   );
 }

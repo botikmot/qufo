@@ -73,45 +73,134 @@ export default function SettingsPage() {
         defaultValue="business"
         className="w-full"
       >
-        <TabsList className="qufo-surface mb-6 h-auto w-full justify-start gap-1 rounded-2xl p-1.5 sm:w-auto">
+        <TabsList
+          className="
+            qufo-surface
+            mb-6
+            !grid
+            !h-auto
+            !w-full
+            grid-cols-2
+            items-stretch
+            gap-1.5
+            rounded-2xl
+            p-1.5
+
+            md:!inline-flex
+            md:!w-auto
+          "
+        >
           <TabsTrigger
             value="business"
-            className="gap-2 rounded-xl px-4 py-2.5 text-slate-400 data-[state=active]:bg-emerald-400/10 data-[state=active]:text-emerald-300"
-          >
-            <Building2 size={16} />
+            className="
+              !h-auto
+              !w-full
+              min-w-0
+              justify-center
+              gap-2
+              rounded-xl
+              px-3
+              py-2.5
+              text-slate-400
+              data-[state=active]:bg-emerald-400/10
+              data-[state=active]:text-emerald-300
 
-            Business
+              md:!w-auto
+            "
+          >
+            <Building2
+              size={16}
+              className="shrink-0"
+            />
+
+            <span className="truncate">
+              Business
+            </span>
           </TabsTrigger>
 
           <TabsTrigger
             value="profile"
-            className="gap-2 rounded-xl px-4 py-2.5 text-slate-400 data-[state=active]:bg-emerald-400/10 data-[state=active]:text-emerald-300"
-          >
-            <UserRound size={16} />
+            className="
+              !h-auto
+              !w-full
+              min-w-0
+              justify-center
+              gap-2
+              rounded-xl
+              px-3
+              py-2.5
+              text-slate-400
+              data-[state=active]:bg-emerald-400/10
+              data-[state=active]:text-emerald-300
 
-            My Profile
+              md:!w-auto
+            "
+          >
+            <UserRound
+              size={16}
+              className="shrink-0"
+            />
+
+            <span className="truncate">
+              My Profile
+            </span>
           </TabsTrigger>
 
           <TabsTrigger
             value="subscription"
-            className="gap-2 rounded-xl px-4 py-2.5 text-slate-400 data-[state=active]:bg-emerald-400/10 data-[state=active]:text-emerald-300"
-          >
-            <CreditCard size={16} />
+            className="
+              !h-auto
+              !w-full
+              min-w-0
+              justify-center
+              gap-2
+              rounded-xl
+              px-3
+              py-2.5
+              text-slate-400
+              data-[state=active]:bg-emerald-400/10
+              data-[state=active]:text-emerald-300
 
-            Subscription
+              md:!w-auto
+            "
+          >
+            <CreditCard
+              size={16}
+              className="shrink-0"
+            />
+
+            <span className="truncate">
+              Subscription
+            </span>
           </TabsTrigger>
 
           <TabsTrigger
             value="support"
-            className="gap-2 rounded-xl px-4 py-2.5 text-slate-400 data-[state=active]:bg-emerald-400/10 data-[state=active]:text-emerald-300"
+            className="
+              !h-auto
+              !w-full
+              min-w-0
+              justify-center
+              gap-2
+              rounded-xl
+              px-3
+              py-2.5
+              text-slate-400
+              data-[state=active]:bg-emerald-400/10
+              data-[state=active]:text-emerald-300
+
+              md:!w-auto
+            "
           >
             <Headphones
               size={16}
+              className="shrink-0"
             />
 
-            Support
+            <span className="truncate">
+              Support
+            </span>
           </TabsTrigger>
-
         </TabsList>
 
         <TabsContent value="business">

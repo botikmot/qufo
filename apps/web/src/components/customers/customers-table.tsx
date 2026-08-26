@@ -94,19 +94,19 @@ export function CustomersTable({
 
   return (
     <div className="qufo-surface overflow-hidden rounded-2xl">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[700px]">
+      <div className="w-full overflow-hidden">
+        <table className="w-full table-fixed sm:table-auto">
           <thead>
             <tr className="border-b border-[var(--qufo-border)]">
               <TableHead>
                 Customer
               </TableHead>
 
-              <TableHead>
+              <TableHead className="hidden sm:table-cell">
                 Company
               </TableHead>
 
-              <TableHead>
+              <TableHead className="w-20 sm:w-24">
                 <span className="sr-only">
                   Actions
                 </span>
@@ -134,7 +134,9 @@ export function CustomersTable({
                   onArchive={
                     onArchive
                   }
-                  readOnly={readOnly}
+                  readOnly={
+                    readOnly
+                  }
                 />
               ),
             )}
@@ -142,9 +144,27 @@ export function CustomersTable({
         </table>
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-[var(--qufo-border)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-slate-600">
-          {total} customers
+      <div
+        className="
+          flex
+          flex-col
+          gap-3
+          border-t
+          border-[var(--qufo-border)]
+          px-4
+          py-4
+
+          sm:flex-row
+          sm:items-center
+          sm:justify-between
+          sm:px-5
+        "
+      >
+        <p className="text-xs text-slate-600 sm:text-sm">
+          {total}{" "}
+          {total === 1
+            ? "customer"
+            : "customers"}
         </p>
 
         <Pagination

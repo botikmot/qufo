@@ -28,13 +28,17 @@ import {
   QuotationNotesTerms,
 } from "@/components/quotations/quotation-notes-terms";
 
-import type {
-  Quotation,
-} from "@/types/quotation";
-
 import {
   QuotationSendResult,
 } from "@/components/quotations/quotation-send-result";
+
+import {
+  QufoModal,
+} from "@/components/ui/qufo-modal";
+
+import type {
+  Quotation,
+} from "@/types/quotation";
 
 type QuotationDetailModalProps = {
   quotation: Quotation;
@@ -65,69 +69,83 @@ export function QuotationDetailModal({
   onConvertToJob,
 }: QuotationDetailModalProps) {
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
-      <div className="qufo-surface max-h-[94vh] w-full max-w-5xl overflow-y-auto rounded-3xl">
+    <QufoModal
+      title={`Quotation ${quotation.quotationNumber}`}
+      onClose={onClose}
+      closeDisabled={loading}
+      size="5xl"
+      customHeader={
         <QuotationDetailHeader
           quotation={
             quotation
           }
-          loading={loading}
-          onClose={onClose}
+          loading={
+            loading
+          }
+          onClose={
+            onClose
+          }
+        />
+      }
+    >
+      <div className="min-w-0 space-y-7">
+        <QuotationInfoGrid
+          quotation={
+            quotation
+          }
         />
 
-        <div className="space-y-7 p-6">
-          <QuotationInfoGrid
-            quotation={
-              quotation
-            }
-          />
+        <QuotationCustomerResponseCard
+          quotation={
+            quotation
+          }
+        />
 
-          <QuotationCustomerResponseCard
-            quotation={
-              quotation
-            }
-          />
+        <QuotationItemsTable
+          items={
+            quotation.items
+          }
+        />
 
-          <QuotationItemsTable
-            items={
-              quotation.items
-            }
-          />
+        <QuotationFinancialSummary
+          quotation={
+            quotation
+          }
+        />
 
-          <QuotationFinancialSummary
-            quotation={
-              quotation
-            }
-          />
+        <QuotationNotesTerms
+          quotation={
+            quotation
+          }
+        />
 
-          <QuotationNotesTerms
-            quotation={
-              quotation
-            }
+        {sentUrl && (
+          <QuotationSendResult
+            url={sentUrl}
           />
+        )}
 
-          {sentUrl && (
-            <QuotationSendResult
-              url={sentUrl}
-            />
-          )}
-
-          <QuotationActions
-            quotation={
-              quotation
-            }
-            loading={loading}
-            onEdit={onEdit}
-            onSend={onSend}
-            onCreateRevision={
-              onCreateRevision
-            }
-            onConvertToJob={
-              onConvertToJob
-            }
-          />
-        </div>
+        <QuotationActions
+          quotation={
+            quotation
+          }
+          loading={
+            loading
+          }
+          onEdit={
+            onEdit
+          }
+          onSend={
+            onSend
+          }
+          onCreateRevision={
+            onCreateRevision
+          }
+          onConvertToJob={
+            onConvertToJob
+          }
+        />
       </div>
-    </div>
+    </QufoModal>
   );
 }

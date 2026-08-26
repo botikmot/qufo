@@ -285,15 +285,8 @@ export function PaymentTransactions({
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table
-            className={[
-              "w-full",
-              jobVariant
-                ? "min-w-[760px]"
-                : "min-w-[1100px]",
-            ].join(" ")}
-          >
+        <div className="w-full overflow-hidden">
+          <table className="w-full table-fixed 2xl:table-auto">
             <thead>
               <tr className="border-b border-[var(--qufo-border)]">
                 <TableHead>
@@ -302,38 +295,38 @@ export function PaymentTransactions({
 
                 {!jobVariant && (
                   <>
-                    <TableHead>
+                    <TableHead className="hidden 2xl:table-cell">
                       Job
                     </TableHead>
 
-                    <TableHead>
+                    <TableHead className="hidden 2xl:table-cell">
                       Customer
                     </TableHead>
                   </>
                 )}
 
-                <TableHead>
+                <TableHead className="hidden 2xl:table-cell">
                   Method
                 </TableHead>
 
-                <TableHead>
+                <TableHead className="hidden 2xl:table-cell">
                   Reference
                 </TableHead>
 
-                <TableHead>
+                <TableHead className="hidden 2xl:table-cell">
                   Status
                 </TableHead>
 
-                <TableHead>
+                <TableHead className="hidden 2xl:table-cell">
                   Amount
                 </TableHead>
 
-                <TableHead>
+                <TableHead className="hidden 2xl:table-cell">
                   Date
                 </TableHead>
 
                 {showActions && (
-                  <TableHead>
+                  <TableHead className="w-16 sm:w-20">
                     <span className="sr-only">
                       Actions
                     </span>
@@ -344,145 +337,228 @@ export function PaymentTransactions({
 
             <tbody>
               {filteredPayments.map(
-                (payment) => (
-                  <tr
-                    key={
-                      payment.id
-                    }
-                    className="border-b border-[var(--qufo-border)] transition last:border-0 hover:bg-white/[0.018]"
-                  >
-                    <td className="px-5 py-4">
-                      <p className="font-medium text-slate-200">
-                        {
-                          payment.paymentNumber
-                        }
-                      </p>
+                (payment) => {
+                  const jobNumber =
+                    payment.job
+                      ?.jobNumber ??
+                    "—";
 
-                      {payment.notes && (
-                        <p className="mt-1 max-w-[220px] truncate text-xs text-slate-600">
+                  const jobTitle =
+                    payment.job?.title;
+
+                  const customerName =
+                    payment.customer
+                      ?.companyName ??
+                    payment.customer
+                      ?.name ??
+                    "—";
+
+                  const paidDate =
+                    formatDateTime(
+                      payment.paidAt ??
+                        payment.createdAt,
+                    );
+
+                  const methodLabel =
+                    PAYMENT_METHOD_LABELS[
+                      payment.method
+                    ];
+
+                  return (
+                    <tr
+                      key={payment.id}
+                      className="border-b border-[var(--qufo-border)] transition last:border-0 hover:bg-white/[0.018]"
+                    >
+                      {/* Main / compact payment */}
+                      <td className="min-w-0 px-4 py-4 sm:px-5">
+                        <p className="break-words text-sm font-medium text-slate-200">
                           {
-                            payment.notes
+                            payment.paymentNumber
                           }
                         </p>
-                      )}
-                    </td>
 
-                    {!jobVariant && (
-                      <>
-                        <td className="px-5 py-4">
-                          <p className="text-sm text-slate-300">
-                            {payment.job
-                              ?.jobNumber ??
-                              "—"}
+                        {payment.notes && (
+                          <p className="mt-1 break-words text-xs leading-5 text-slate-600">
+                            {payment.notes}
                           </p>
-
-                          {payment.job
-                            ?.title && (
-                            <p className="mt-1 max-w-[200px] truncate text-xs text-slate-600">
-                              {
-                                payment.job
-                                  .title
-                              }
-                            </p>
-                          )}
-                        </td>
-
-                        <td className="px-5 py-4 text-sm text-slate-400">
-                          {payment
-                            .customer
-                            ?.companyName ??
-                            payment
-                              .customer
-                              ?.name ??
-                            "—"}
-                        </td>
-                      </>
-                    )}
-
-                    <td className="px-5 py-4 text-sm text-slate-400">
-                      {
-                        PAYMENT_METHOD_LABELS[
-                          payment
-                            .method
-                        ]
-                      }
-                    </td>
-
-                    <td className="px-5 py-4 text-sm text-slate-500">
-                      {payment.referenceNumber ??
-                        "—"}
-                    </td>
-
-                    <td className="px-5 py-4">
-                      <PaymentStatusBadge
-                        status={
-                          payment.status
-                        }
-                      />
-                    </td>
-
-                    <td className="px-5 py-4">
-                      <span
-                        className={
-                          payment.status ===
-                          "VOIDED"
-                            ? "font-medium text-slate-600 line-through"
-                            : "font-medium text-emerald-300"
-                        }
-                      >
-                        {formatCurrency(
-                          payment.amount,
                         )}
-                      </span>
-                    </td>
 
-                    <td className="px-5 py-4 text-sm text-slate-500">
-                      {formatDateTime(
-                        payment.paidAt ??
-                          payment.createdAt,
-                      )}
-                    </td>
+                        {/* Mobile / tablet / normal desktop */}
+                        <div className="mt-4 space-y-3 2xl:hidden">
+                          {!jobVariant && (
+                            <div className="space-y-2">
+                              <div>
+                                <p className="text-[10px] uppercase tracking-wider text-slate-600">
+                                  Job
+                                </p>
 
-                    {showActions && (
-                      <td className="px-5 py-4">
-                        {canVoid &&
-                          onVoid &&
-                          payment.status ===
-                            "PAID" && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                void onVoid(
-                                  payment,
-                                )
-                              }
-                              disabled={
-                                voidingId ===
-                                payment.id
-                              }
-                              className="flex size-9 items-center justify-center rounded-lg text-slate-600 transition hover:bg-red-400/[0.07] hover:text-red-300 disabled:opacity-50"
-                            >
-                              {voidingId ===
-                              payment.id ? (
-                                <LoaderCircle
-                                  size={
-                                    15
-                                  }
-                                  className="animate-spin"
-                                />
-                              ) : (
-                                <XCircle
-                                  size={
-                                    15
-                                  }
-                                />
-                              )}
-                            </button>
+                                <p className="mt-1 break-words text-sm text-slate-300">
+                                  {jobNumber}
+                                </p>
+
+                                {jobTitle && (
+                                  <p className="mt-0.5 break-words text-xs text-slate-600">
+                                    {jobTitle}
+                                  </p>
+                                )}
+                              </div>
+
+                              <div>
+                                <p className="text-[10px] uppercase tracking-wider text-slate-600">
+                                  Customer
+                                </p>
+
+                                <p className="mt-1 break-words text-sm text-slate-400">
+                                  {customerName}
+                                </p>
+                              </div>
+                            </div>
                           )}
+
+                          <div className="flex flex-wrap items-center gap-2">
+                            <PaymentStatusBadge
+                              status={
+                                payment.status
+                              }
+                            />
+
+                            <span className="rounded-lg border border-[var(--qufo-border)] px-2 py-1 text-xs text-slate-500">
+                              {methodLabel}
+                            </span>
+                          </div>
+
+                          {payment.referenceNumber && (
+                            <div>
+                              <p className="text-[10px] uppercase tracking-wider text-slate-600">
+                                Reference
+                              </p>
+
+                              <p className="mt-1 break-all text-xs text-slate-500">
+                                {
+                                  payment.referenceNumber
+                                }
+                              </p>
+                            </div>
+                          )}
+
+                          <div className="flex flex-col gap-1.5 border-t border-[var(--qufo-border)] pt-3 sm:flex-row sm:items-center sm:justify-between">
+                            <span
+                              className={
+                                payment.status ===
+                                "VOIDED"
+                                  ? "text-sm font-medium text-slate-600 line-through"
+                                  : "text-sm font-medium text-emerald-300"
+                              }
+                            >
+                              {formatCurrency(
+                                payment.amount,
+                              )}
+                            </span>
+
+                            <span className="text-xs text-slate-600">
+                              {paidDate}
+                            </span>
+                          </div>
+                        </div>
                       </td>
-                    )}
-                  </tr>
-                ),
+
+                      {!jobVariant && (
+                        <>
+                          <td className="hidden px-5 py-4 2xl:table-cell">
+                            <p className="text-sm text-slate-300">
+                              {jobNumber}
+                            </p>
+
+                            {jobTitle && (
+                              <p className="mt-1 max-w-[200px] truncate text-xs text-slate-600">
+                                {jobTitle}
+                              </p>
+                            )}
+                          </td>
+
+                          <td className="hidden px-5 py-4 text-sm text-slate-400 2xl:table-cell">
+                            {customerName}
+                          </td>
+                        </>
+                      )}
+
+                      <td className="hidden px-5 py-4 text-sm text-slate-400 2xl:table-cell">
+                        {methodLabel}
+                      </td>
+
+                      <td className="hidden px-5 py-4 text-sm text-slate-500 2xl:table-cell">
+                        {payment.referenceNumber ??
+                          "—"}
+                      </td>
+
+                      <td className="hidden px-5 py-4 2xl:table-cell">
+                        <PaymentStatusBadge
+                          status={
+                            payment.status
+                          }
+                        />
+                      </td>
+
+                      <td className="hidden px-5 py-4 2xl:table-cell">
+                        <span
+                          className={
+                            payment.status ===
+                            "VOIDED"
+                              ? "font-medium text-slate-600 line-through"
+                              : "font-medium text-emerald-300"
+                          }
+                        >
+                          {formatCurrency(
+                            payment.amount,
+                          )}
+                        </span>
+                      </td>
+
+                      <td className="hidden px-5 py-4 text-sm text-slate-500 2xl:table-cell">
+                        {paidDate}
+                      </td>
+
+                      {showActions && (
+                        <td className="w-16 whitespace-nowrap px-2 py-4 sm:w-20 sm:px-4">
+                          <div className="flex justify-end">
+                            {canVoid &&
+                              onVoid &&
+                              payment.status ===
+                                "PAID" && (
+                                <button
+                                  type="button"
+                                  title="Void payment"
+                                  aria-label={`Void ${payment.paymentNumber}`}
+                                  onClick={() =>
+                                    void onVoid(
+                                      payment,
+                                    )
+                                  }
+                                  disabled={
+                                    voidingId ===
+                                    payment.id
+                                  }
+                                  className="flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-600 transition hover:bg-red-400/[0.07] hover:text-red-300 disabled:opacity-50 sm:size-9"
+                                >
+                                  {voidingId ===
+                                  payment.id ? (
+                                    <LoaderCircle
+                                      size={15}
+                                      className="animate-spin"
+                                    />
+                                  ) : (
+                                    <XCircle
+                                      size={15}
+                                    />
+                                  )}
+                                </button>
+                              )}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                },
               )}
             </tbody>
           </table>

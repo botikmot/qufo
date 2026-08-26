@@ -3,7 +3,6 @@
 import {
   FileText,
   LoaderCircle,
-  X,
 } from "lucide-react";
 
 import {
@@ -29,6 +28,10 @@ import {
 import {
   QuotationFormSummary,
 } from "@/components/quotations/quotation-form-summary";
+
+import {
+  QufoModal,
+} from "@/components/ui/qufo-modal";
 
 import {
   useQuotationForm,
@@ -77,166 +80,200 @@ export function QuotationFormModal({
     Boolean(quotation);
 
   return (
-    <div className="fixed inset-0 z-[140] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
-      <div className="qufo-surface max-h-[96vh] w-full max-w-6xl overflow-y-auto rounded-3xl">
-        <div className="sticky top-0 z-20 flex items-start justify-between border-b border-[var(--qufo-border)] bg-[rgba(8,20,35,0.94)] px-6 py-5 backdrop-blur-xl">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-cyan-400/[0.08] text-cyan-300">
-              <FileText
-                size={18}
-              />
-            </div>
+    <QufoModal
+      title={
+        editing
+          ? "Edit quotation"
+          : "New quotation"
+      }
+      description={
+        editing
+          ? quotation?.quotationNumber
+          : "Prepare a new quotation for a customer."
+      }
+      icon={
+        <FileText size={18} />
+      }
+      onClose={onClose}
+      closeDisabled={loading}
+      size="6xl"
+      footer={
+        <div
+          className="
+            flex
+            flex-col-reverse
+            gap-2.5
 
-            <div>
-              <h2 className="text-lg font-semibold text-white">
-                {editing
-                  ? "Edit quotation"
-                  : "New quotation"}
-              </h2>
-
-              <p className="mt-1 text-xs text-slate-500">
-                {editing
-                  ? quotation
-                      ?.quotationNumber
-                  : "Prepare a new quotation for a customer."}
-              </p>
-            </div>
-          </div>
-
+            sm:flex-row
+            sm:justify-end
+            sm:gap-3
+          "
+        >
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="flex size-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-white/[0.05] hover:text-white disabled:opacity-50"
+            className="
+              w-full
+              rounded-xl
+              px-4
+              py-2.5
+              text-sm
+              text-slate-400
+              transition
+              hover:bg-white/[0.04]
+              hover:text-white
+              disabled:pointer-events-none
+              disabled:opacity-50
+
+              sm:w-auto
+            "
           >
-            <X size={18} />
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            form="quotation-form"
+            disabled={loading}
+            className="
+              flex
+              w-full
+              items-center
+              justify-center
+              gap-2
+              rounded-xl
+              bg-emerald-400
+              px-5
+              py-2.5
+              text-sm
+              font-medium
+              text-slate-950
+              transition
+              hover:bg-emerald-300
+              disabled:cursor-not-allowed
+              disabled:opacity-50
+
+              sm:w-auto
+            "
+          >
+            {loading && (
+              <LoaderCircle
+                size={16}
+                className="animate-spin"
+              />
+            )}
+
+            {editing
+              ? "Save changes"
+              : "Create quotation"}
           </button>
         </div>
-
-        <form
-          onSubmit={
-            form.handleSubmit
-          }
-          className="space-y-8 p-6"
-        >
-          <div className="grid gap-5 md:grid-cols-2">
-            <QuotationFormCustomer
-              customers={customers}
-              value={form.customerId}
-              onChange={form.setCustomerId}
-            />
-
-            <QuotationFormDates
-              validUntil={form.validUntil}
-              onValidUntilChange={form.setValidUntil}
-            />
-          </div>
-
-          <QuotationFormItems
-            items={
-              form.items
+      }
+    >
+      <form
+        id="quotation-form"
+        onSubmit={
+          form.handleSubmit
+        }
+        className="min-w-0 space-y-8"
+      >
+        <div className="grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2">
+          <QuotationFormCustomer
+            customers={
+              customers
             }
-            onAdd={
-              form.addItem
-            }
-            onRemove={
-              form.removeItem
+            value={
+              form.customerId
             }
             onChange={
-              form.updateItem
+              form.setCustomerId
             }
           />
 
-          <QuotationFormDiscountTax
-            discountType={
-              form.discountType
+          <QuotationFormDates
+            validUntil={
+              form.validUntil
             }
-            discountValue={
-              form.discountValue
-            }
-            taxRate={
-              form.taxRate
-            }
-            onDiscountTypeChange={
-              form.setDiscountType
-            }
-            onDiscountValueChange={
-              form.setDiscountValue
-            }
-            onTaxRateChange={
-              form.setTaxRate
+            onValidUntilChange={
+              form.setValidUntil
             }
           />
+        </div>
 
-          <QuotationFormSummary
-            subtotal={
-              form.totals
-                .subtotal
-            }
-            discountAmount={
-              form.totals
-                .discountAmount
-            }
-            taxAmount={
-              form.totals
-                .taxAmount
-            }
-            total={
-              form.totals
-                .total
-            }
-          />
+        <QuotationFormItems
+          items={
+            form.items
+          }
+          onAdd={
+            form.addItem
+          }
+          onRemove={
+            form.removeItem
+          }
+          onChange={
+            form.updateItem
+          }
+        />
 
-          <QuotationFormNotes
-            notes={
-              form.notes
-            }
-            terms={
-              form.terms
-            }
-            onNotesChange={
-              form.setNotes
-            }
-            onTermsChange={
-              form.setTerms
-            }
-          />
+        <QuotationFormDiscountTax
+          discountType={
+            form.discountType
+          }
+          discountValue={
+            form.discountValue
+          }
+          taxRate={
+            form.taxRate
+          }
+          onDiscountTypeChange={
+            form.setDiscountType
+          }
+          onDiscountValueChange={
+            form.setDiscountValue
+          }
+          onTaxRateChange={
+            form.setTaxRate
+          }
+        />
 
-          {form.error && (
-            <div className="rounded-xl border border-red-400/15 bg-red-400/[0.05] px-4 py-3 text-sm text-red-300">
-              {form.error}
-            </div>
-          )}
+        <QuotationFormSummary
+          subtotal={
+            form.totals.subtotal
+          }
+          discountAmount={
+            form.totals
+              .discountAmount
+          }
+          taxAmount={
+            form.totals.taxAmount
+          }
+          total={
+            form.totals.total
+          }
+        />
 
-          <div className="flex justify-end gap-3 border-t border-[var(--qufo-border)] pt-6">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="rounded-xl px-4 py-2.5 text-sm text-slate-400 transition hover:bg-white/[0.04] hover:text-white"
-            >
-              Cancel
-            </button>
+        <QuotationFormNotes
+          notes={
+            form.notes
+          }
+          terms={
+            form.terms
+          }
+          onNotesChange={
+            form.setNotes
+          }
+          onTermsChange={
+            form.setTerms
+          }
+        />
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex items-center gap-2 rounded-xl bg-emerald-400 px-5 py-2.5 text-sm font-medium text-slate-950 transition hover:bg-emerald-300 disabled:opacity-50"
-            >
-              {loading && (
-                <LoaderCircle
-                  size={16}
-                  className="animate-spin"
-                />
-              )}
-
-              {editing
-                ? "Save changes"
-                : "Create quotation"}
-            </button>
+        {form.error && (
+          <div className="rounded-xl border border-red-400/15 bg-red-400/[0.05] px-4 py-3 text-sm text-red-300">
+            {form.error}
           </div>
-        </form>
-      </div>
-    </div>
+        )}
+      </form>
+    </QufoModal>
   );
 }

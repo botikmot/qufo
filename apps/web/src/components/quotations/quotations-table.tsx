@@ -63,7 +63,9 @@ export function QuotationsTable({
     return (
       <div className="qufo-surface flex min-h-80 flex-col items-center justify-center rounded-2xl px-6 text-center">
         <div className="mb-4 flex size-12 items-center justify-center rounded-2xl border border-[var(--qufo-border)] bg-cyan-400/[0.04] text-cyan-300">
-          <FileText size={20} />
+          <FileText
+            size={20}
+          />
         </div>
 
         <h3 className="font-medium text-slate-300">
@@ -81,35 +83,35 @@ export function QuotationsTable({
 
   return (
     <div className="qufo-surface overflow-hidden rounded-2xl">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[1100px]">
+      <div className="w-full overflow-hidden">
+        <table className="w-full table-fixed xl:table-auto">
           <thead>
             <tr className="border-b border-[var(--qufo-border)]">
               <TableHead>
                 Quotation
               </TableHead>
 
-              <TableHead>
+              <TableHead className="hidden xl:table-cell">
                 Customer
               </TableHead>
 
-              <TableHead>
+              <TableHead className="hidden xl:table-cell">
                 Status
               </TableHead>
 
-              <TableHead>
+              <TableHead className="hidden xl:table-cell">
                 Customer Response
               </TableHead>
 
-              <TableHead>
+              <TableHead className="hidden xl:table-cell">
                 Total
               </TableHead>
 
-              <TableHead>
+              <TableHead className="hidden xl:table-cell">
                 Created
               </TableHead>
 
-              <TableHead>
+              <TableHead className="w-16 sm:w-20">
                 <span className="sr-only">
                   Actions
                 </span>
@@ -137,9 +139,27 @@ export function QuotationsTable({
         </table>
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-[var(--qufo-border)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-slate-600">
-          {total} quotations
+      <div
+        className="
+          flex
+          flex-col
+          gap-3
+          border-t
+          border-[var(--qufo-border)]
+          px-4
+          py-4
+
+          sm:flex-row
+          sm:items-center
+          sm:justify-between
+          sm:px-5
+        "
+      >
+        <p className="text-xs text-slate-600 sm:text-sm">
+          {total}{" "}
+          {total === 1
+            ? "quotation"
+            : "quotations"}
         </p>
 
         <Pagination

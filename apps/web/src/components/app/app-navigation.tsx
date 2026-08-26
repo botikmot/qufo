@@ -10,11 +10,16 @@ import {
 
 import {
   APP_NAVIGATION,
+  PLATFORM_ADMIN_NAVIGATION,
 } from "@/constants/app-navigation";
 
 import {
   isNavigationActive,
 } from "@/utils/navigation";
+
+import {
+  usePlatformRole,
+} from "@/hooks/use-platform-role";
 
 type AppNavigationProps = {
   onNavigate?: () => void;
@@ -26,9 +31,21 @@ export function AppNavigation({
   const pathname =
     usePathname();
 
+   const {
+    isSuperAdmin,
+  } = usePlatformRole();
+
+   const navigation =
+    isSuperAdmin
+      ? [
+          ...APP_NAVIGATION,
+          PLATFORM_ADMIN_NAVIGATION,
+        ]
+      : APP_NAVIGATION;
+
   return (
     <nav className="space-y-1">
-      {APP_NAVIGATION.map(
+      {navigation.map(
         (item) => (
           <AppNavItem
             key={item.href}

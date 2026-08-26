@@ -81,39 +81,39 @@ export function JobsTable({
 
   return (
     <div className="qufo-surface overflow-hidden rounded-2xl">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[1050px]">
+      <div className="w-full overflow-hidden">
+        <table className="w-full table-fixed xl:table-auto">
           <thead>
             <tr className="border-b border-[var(--qufo-border)]">
               <TableHead>
                 Job
               </TableHead>
 
-              <TableHead>
+              <TableHead className="hidden xl:table-cell">
                 Customer
               </TableHead>
 
-              <TableHead>
+              <TableHead className="hidden xl:table-cell">
                 Status
               </TableHead>
 
-              <TableHead>
+              <TableHead className="hidden xl:table-cell">
                 Priority
               </TableHead>
 
-              <TableHead>
+              <TableHead className="hidden xl:table-cell">
                 Due Date
               </TableHead>
 
-              <TableHead>
+              <TableHead className="hidden xl:table-cell">
                 Progress
               </TableHead>
 
-              <TableHead>
+              <TableHead className="hidden xl:table-cell">
                 Value
               </TableHead>
 
-              <TableHead>
+              <TableHead className="w-16 sm:w-20">
                 <span className="sr-only">
                   Actions
                 </span>
@@ -135,9 +135,27 @@ export function JobsTable({
         </table>
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-[var(--qufo-border)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-slate-600">
-          {total} jobs
+      <div
+        className="
+          flex
+          flex-col
+          gap-3
+          border-t
+          border-[var(--qufo-border)]
+          px-4
+          py-4
+
+          sm:flex-row
+          sm:items-center
+          sm:justify-between
+          sm:px-5
+        "
+      >
+        <p className="text-xs text-slate-600 sm:text-sm">
+          {total}{" "}
+          {total === 1
+            ? "job"
+            : "jobs"}
         </p>
 
         <Pagination
