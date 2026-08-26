@@ -12,7 +12,7 @@ export function AppBrand() {
           Q
         </span> */}
         <Image 
-          src="/images/qufo_logo1.png"
+          src="/images/qufo_logo_variant2.png"
           alt="QUFO"
           width={50}
           height={50}

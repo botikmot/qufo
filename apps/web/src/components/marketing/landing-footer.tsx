@@ -10,7 +10,7 @@ export function LandingFooter() {
             <Link href="/" className="inline-flex items-center gap-3">
               <div className="flex size-10 items-center justify-center font-black text-emerald-300">
                 <Image 
-                  src="/images/qufo_logo1.png"
+                  src="/images/qufo_logo_variant2.png"
                   alt="QUFO"
                   width={30}
                   height={30}

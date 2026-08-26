@@ -14,7 +14,7 @@ export function LandingNavbar() {
           </div> */}
 
           <Image 
-            src="/images/qufo logo.png"
+            src="/images/qufo_variant2.png"
             alt="QUFO"
             width={180}
             height={50}

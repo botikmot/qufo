@@ -87,7 +87,7 @@ export default function LoginPage() {
         <div className="flex justify-center w-full">
           <Link href="/">
             <Image 
-              src="/images/qufo_logo1.png"
+              src="/images/qufo_logo_variant2.png"
               alt="QUFO"
               width={60}
               height={60}
