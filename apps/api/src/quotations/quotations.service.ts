@@ -19,12 +19,14 @@ import { createHash, randomBytes } from 'node:crypto';
 import { RespondQuotationDto } from './dto/respond-quotation.dto';
 import { ConvertQuotationToJobDto } from './dto/convert-quotation-to-job.dto';
 import { CustomerQuotationFeedbackDto } from './dto/customer-quotation-feedback.dto';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 
 @Injectable()
 export class QuotationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly realtimeGateway: RealtimeGateway,
   ) {}
 
   private hashPublicToken(token: string) {
@@ -971,6 +973,20 @@ export class QuotationsService {
       },
     });
 
+    if (updated) {
+      this.realtimeGateway.emitQuotationUpdated(quotation.organizationId, {
+        quotationId: quotation.id,
+
+        quotationNumber: updated.quotationNumber,
+
+        status: updated.status,
+
+        customerResponseNote: dto.note?.trim() || null,
+
+        respondedAt: updated.approvedAt,
+      });
+    }
+
     return {
       message: 'Quotation approved successfully.',
 
@@ -986,9 +1002,13 @@ export class QuotationsService {
 
     const rejectedAt = new Date();
 
-    const updated = await this.prisma.quotation.update({
+    const result = await this.prisma.quotation.updateMany({
       where: {
         id: quotation.id,
+
+        status: {
+          in: ['SENT', 'VIEWED'],
+        },
       },
 
       data: {
@@ -998,14 +1018,43 @@ export class QuotationsService {
 
         customerResponseNote: dto.note.trim(),
       },
+    });
+
+    if (result.count !== 1) {
+      throw new BadRequestException(
+        'This quotation has already received a response.',
+      );
+    }
+
+    const updated = await this.prisma.quotation.findUnique({
+      where: {
+        id: quotation.id,
+      },
 
       select: {
         quotationNumber: true,
+
         status: true,
+
         rejectedAt: true,
+
         customerResponseNote: true,
       },
     });
+
+    if (updated) {
+      this.realtimeGateway.emitQuotationUpdated(quotation.organizationId, {
+        quotationId: quotation.id,
+
+        quotationNumber: updated.quotationNumber,
+
+        status: updated.status,
+
+        customerResponseNote: updated.customerResponseNote,
+
+        respondedAt: updated.rejectedAt,
+      });
+    }
 
     return {
       message: 'Quotation declined.',
@@ -1233,9 +1282,13 @@ export class QuotationsService {
 
     const changesRequestedAt = new Date();
 
-    const updated = await this.prisma.quotation.update({
+    const result = await this.prisma.quotation.updateMany({
       where: {
         id: quotation.id,
+
+        status: {
+          in: ['SENT', 'VIEWED'],
+        },
       },
 
       data: {
@@ -1245,14 +1298,43 @@ export class QuotationsService {
 
         customerResponseNote: dto.note.trim(),
       },
+    });
+
+    if (result.count !== 1) {
+      throw new BadRequestException(
+        'This quotation has already received a response.',
+      );
+    }
+
+    const updated = await this.prisma.quotation.findUnique({
+      where: {
+        id: quotation.id,
+      },
 
       select: {
         quotationNumber: true,
+
         status: true,
+
         changesRequestedAt: true,
+
         customerResponseNote: true,
       },
     });
+
+    if (updated) {
+      this.realtimeGateway.emitQuotationUpdated(quotation.organizationId, {
+        quotationId: quotation.id,
+
+        quotationNumber: updated.quotationNumber,
+
+        status: updated.status,
+
+        customerResponseNote: updated.customerResponseNote,
+
+        respondedAt: updated.changesRequestedAt,
+      });
+    }
 
     return {
       message: 'Change request submitted successfully.',

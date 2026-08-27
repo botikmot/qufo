@@ -2,6 +2,7 @@
 
 import {
   type FormEvent,
+  useCallback,
   useEffect,
   useState,
 } from "react";
@@ -31,6 +32,14 @@ import type {
 } from "@/types/customer";
 
 import { useConfirm } from "@/components/providers/confirm-dialog-provider";
+
+import {
+  useQuotationRealtime,
+} from "@/hooks/use-quotation-realtime";
+
+import type {
+  QuotationUpdatedEvent,
+} from "@/types/realtime";
 
 export function useQuotations() {
   const [
@@ -302,72 +311,157 @@ export function useQuotations() {
     }
   }
 
-  async function loadQuotations(
-    options?: {
-      page?: number;
-      search?: string;
+  const loadQuotations =
+    useCallback(
+      async (
+        options?: {
+          page?: number;
 
-      status?:
-        QuotationStatusFilter;
-    },
-  ) {
-    const targetPage =
-      options?.page ?? page;
+          search?: string;
 
-    const targetSearch =
-      options?.search ??
-      activeSearch;
+          status?:
+            QuotationStatusFilter;
 
-    const targetStatus =
-      options?.status ??
-      status;
+          silent?: boolean;
+        },
+      ) => {
+        const targetPage =
+          options?.page ?? page;
 
-    setLoading(true);
-    setError(null);
+        const targetSearch =
+          options?.search ??
+          activeSearch;
 
-    try {
-      const data =
-        await quotationsService.getAll(
-          {
-            page:
-              targetPage,
+        const targetStatus =
+          options?.status ??
+          status;
 
-            limit: 20,
+        const silent =
+          options?.silent ?? false;
 
-            search:
-              targetSearch ||
-              undefined,
+        if (!silent) {
+          setLoading(true);
+        }
 
-            status:
-              targetStatus,
-          },
-        );
+        setError(null);
 
-      setQuotations(
-        data.items,
-      );
+        try {
+          const data =
+            await quotationsService.getAll({
+              page:
+                targetPage,
 
-      setPage(
-        data.pagination.page,
-      );
+              limit: 20,
 
-      setPages(
-        data.pagination.pages,
-      );
+              search:
+                targetSearch ||
+                undefined,
 
-      setTotal(
-        data.pagination.total,
-      );
-    } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Unable to load quotations.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
+              status:
+                targetStatus,
+            });
+
+          setQuotations(
+            data.items,
+          );
+
+          setPage(
+            data.pagination.page,
+          );
+
+          setPages(
+            data.pagination.pages,
+          );
+
+          setTotal(
+            data.pagination.total,
+          );
+        } catch (error) {
+          setError(
+            error instanceof Error
+              ? error.message
+              : "Unable to load quotations.",
+          );
+        } finally {
+          if (!silent) {
+            setLoading(false);
+          }
+        }
+      },
+      [
+        page,
+        activeSearch,
+        status,
+      ],
+    );
+
+  const selectedQuotationId =
+    selectedQuotation?.id ??
+    null;
+
+  const handleRealtimeQuotationUpdate =
+    useCallback(
+      (
+        event:
+          QuotationUpdatedEvent,
+      ) => {
+        /*
+        * Refresh the current table
+        * silently using its existing
+        * page/search/status filters.
+        */
+        void loadQuotations({
+          page,
+          silent: true,
+        });
+
+        /*
+        * If the quotation currently
+        * open in the detail modal is
+        * the one that changed, refresh
+        * the full detail as well.
+        */
+        if (
+          selectedQuotationId !==
+          event.quotationId
+        ) {
+          return;
+        }
+
+        void quotationsService
+          .getOne(
+            event.quotationId,
+          )
+          .then(
+            (
+              refreshedQuotation,
+            ) => {
+              setSelectedQuotation(
+                refreshedQuotation,
+              );
+            },
+          )
+          .catch(
+            (error: unknown) => {
+              setError(
+                error instanceof Error
+                  ? error.message
+                  : "Unable to refresh quotation.",
+              );
+            },
+          );
+      },
+      [
+        loadQuotations,
+        page,
+        selectedQuotationId,
+      ],
+    );
+
+  useQuotationRealtime({
+    onUpdated:
+      handleRealtimeQuotationUpdate,
+  });
 
   function openCreateForm() {
     setEditingQuotation(null);

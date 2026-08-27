@@ -5,9 +5,10 @@ import { AuthModule } from '../auth/auth.module';
 import { QuotationsController } from './quotations.controller';
 import { QuotationsService } from './quotations.service';
 import { PublicQuotationsController } from './public-quotations.controller';
+import { RealtimeModule } from '../realtime/realtime.module';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, RealtimeModule],
 
   controllers: [QuotationsController, PublicQuotationsController],
 
