@@ -14,6 +14,7 @@ import { ReportsModule } from './reports/reports.module';
 import { SupportModule } from './support/support.module';
 import { PlatformAdminModule } from './platform-admin/platform-admin.module';
 import { OrganizationsModule } from './organizations/organizations.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { OrganizationsModule } from './organizations/organizations.module';
     SupportModule,
     PlatformAdminModule,
     OrganizationsModule,
+    SubscriptionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

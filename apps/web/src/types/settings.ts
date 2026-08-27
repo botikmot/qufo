@@ -1,5 +1,3 @@
-import { SubscriptionStatus } from "./subscription";
-
 export type BusinessSettings = {
   id: string;
 
@@ -79,47 +77,6 @@ export type UpdateProfileSettingsResponse = {
   message: string;
 
   profile: ProfileSettings;
-};
-
-export type SubscriptionPlan =
-  | "STANDARD";
-
-
-export type SubscriptionSettings = {
-  id: string;
-
-  plan: SubscriptionPlan;
-
-  status: SubscriptionStatus;
-
-  trialStartedAt:
-    | string
-    | null;
-
-  trialEndsAt:
-    | string
-    | null;
-
-  currentPeriodStart:
-    | string
-    | null;
-
-  currentPeriodEnd:
-    | string
-    | null;
-
-  trialDaysRemaining:
-    | number
-    | null;
-
-  daysRemaining:
-    | number
-    | null;
-
-  cancelAtPeriodEnd: boolean;
-
-  createdAt: string;
-  updatedAt: string;
 };
 
 export type ChangePasswordData = {

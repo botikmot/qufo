@@ -45,6 +45,10 @@ import {
   SupportForm,
 } from "@/components/settings/support-form";
 
+import {
+  useSearchParams,
+} from "next/navigation";
+
 export default function SettingsPage() {
   const business =
     useBusinessSettings();
@@ -54,6 +58,26 @@ export default function SettingsPage() {
 
   const subscription =
     useSubscriptionSettings();
+
+  const searchParams =
+    useSearchParams();
+
+  const requestedTab =
+    searchParams.get(
+      "tab",
+    );
+
+  const defaultTab =
+    requestedTab ===
+      "subscription"
+      ? "subscription"
+      : requestedTab ===
+          "profile"
+        ? "profile"
+        : requestedTab ===
+            "support"
+          ? "support"
+          : "business";
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6">
@@ -73,7 +97,7 @@ export default function SettingsPage() {
       </div>
 
       <Tabs
-        defaultValue="business"
+        defaultValue={defaultTab}
         className="w-full"
       >
         <TabsList
@@ -291,10 +315,31 @@ export default function SettingsPage() {
             <div className="qufo-surface rounded-3xl p-8 text-sm text-slate-500">
               Loading subscription...
             </div>
-          ) : subscription.subscription ? (
+          ) : subscription.billing ? (
             <SubscriptionSettingsCard
-              subscription={
-                subscription.subscription
+              billing={
+                subscription.billing
+              }
+              payments={
+                subscription.payments
+              }
+              renewing={
+                subscription.renewing
+              }
+              confirmingPayment={
+                subscription.confirmingPayment
+              }
+              paymentResult={
+                subscription.paymentResult
+              }
+              error={
+                subscription.error
+              }
+              onRenew={
+                subscription.renew
+              }
+              onRefresh={
+                subscription.refresh
               }
             />
           ) : (

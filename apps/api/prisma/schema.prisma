@@ -121,6 +121,14 @@ enum LegalConsentType {
   PRIVACY_POLICY
 }
 
+enum SubscriptionPaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
 // ======================================================
 // USER
 // ======================================================
@@ -180,13 +188,14 @@ model Organization {
 
   status OrganizationStatus @default(ACTIVE)
 
-  memberships  OrganizationMember[]
-  subscription Subscription?
-  customers    Customer[]
-  quotations   Quotation[]
-  sequence     OrganizationSequence?
-  jobs         Job[]
-  payments     Payment[]
+  memberships          OrganizationMember[]
+  subscription         Subscription?
+  subscriptionPayments SubscriptionPayment[]
+  customers            Customer[]
+  quotations           Quotation[]
+  sequence             OrganizationSequence?
+  jobs                 Job[]
+  payments             Payment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -229,8 +238,9 @@ model Subscription {
 
   organizationId String @unique
 
-  plan   SubscriptionPlan   @default(STANDARD)
-  status SubscriptionStatus @default(TRIALING)
+  plan     SubscriptionPlan      @default(STANDARD)
+  status   SubscriptionStatus    @default(TRIALING)
+  payments SubscriptionPayment[]
 
   trialStartedAt DateTime
   trialEndsAt    DateTime
@@ -249,6 +259,63 @@ model Subscription {
   @@index([status])
   @@index([trialEndsAt])
   @@index([currentPeriodEnd])
+}
+
+model SubscriptionPayment {
+  id String @id @default(cuid())
+
+  organizationId String
+  subscriptionId String
+
+  /**
+   * Keep provider flexible for now.
+   * Examples later:
+   * PAYMONGO
+   * PAYPAL
+   */
+  provider String @db.VarChar(30)
+
+  /**
+   * Identifier returned by the
+   * payment provider.
+   */
+  providerReference String? @db.VarChar(191)
+
+  amount   Decimal @db.Decimal(14, 2)
+  currency String  @db.VarChar(3)
+
+  status SubscriptionPaymentStatus @default(PENDING)
+
+  /**
+   * Snapshot of what this payment
+   * purchases.
+   */
+  periodMonths Int @default(1)
+
+  periodStart DateTime?
+  periodEnd   DateTime?
+
+  checkoutUrl String?
+
+  paidAt      DateTime?
+  failedAt    DateTime?
+  cancelledAt DateTime?
+  refundedAt  DateTime?
+
+  metadata Json?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, providerReference])
+  @@index([organizationId])
+  @@index([subscriptionId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model Customer {

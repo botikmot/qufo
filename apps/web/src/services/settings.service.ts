@@ -5,15 +5,16 @@ import {
 import type {
   BusinessSettings,
   ProfileSettings,
-  SubscriptionSettings,
   UpdateBusinessSettingsData,
   UpdateProfileSettingsData,
   UpdateProfileSettingsResponse,
   ChangePasswordData,
   ChangePasswordResponse,
   UploadProfilePhotoResponse,
-  RemoveProfilePhotoResponse
+  RemoveProfilePhotoResponse,
 } from "@/types/settings";
+
+import type { SubscriptionSettings, SubscriptionBillingSummary, SubscriptionCheckoutResponse, SubscriptionPaymentHistoryResponse } from "@/types/subscription";
 
 export const settingsService = {
   getBusiness() {
@@ -103,6 +104,35 @@ export const settingsService = {
       {
         method: "DELETE",
       },
+    );
+  },
+
+  async getSubscriptionBilling() {
+    return apiFetch<SubscriptionBillingSummary>(
+      "/subscriptions/billing",
+    );
+  },
+
+  async createSubscriptionCheckout(
+    provider:
+      | "PAYMONGO"
+      | "PAYPAL",
+  ) {
+    return apiFetch<SubscriptionCheckoutResponse>(
+      "/subscriptions/billing/checkout",
+      {
+        method: "POST",
+
+        body: JSON.stringify({
+          provider,
+        }),
+      },
+    );
+  },
+
+  async getSubscriptionPayments() {
+    return apiFetch<SubscriptionPaymentHistoryResponse>(
+      "/subscriptions/billing/payments",
     );
   },
 
