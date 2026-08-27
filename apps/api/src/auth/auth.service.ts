@@ -61,6 +61,8 @@ export class AuthService {
     const email = dto.email.trim().toLowerCase();
     const name = dto.name.trim();
     const businessName = dto.businessName.trim();
+    const countryCode = dto.countryCode.trim().toUpperCase();
+    const currency = dto.currency.trim().toUpperCase();
 
     const existingUser = await this.prisma.user.findUnique({
       where: {
@@ -113,6 +115,9 @@ export class AuthService {
           slug,
 
           businessType: dto.businessType?.trim() || null,
+
+          countryCode,
+          currency,
 
           sequence: {
             create: {},

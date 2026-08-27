@@ -11,13 +11,28 @@ import Image from "next/image";
 
 import {
   Building2,
+  Globe2,
   LoaderCircle,
   UserPlus,
+  WalletCards,
 } from "lucide-react";
 
 import { apiFetch } from "@/lib/api";
 import { saveLoginSession } from "@/lib/auth-storage";
 import type { LoginResponse } from "@/types/auth";
+
+import {
+  BUSINESS_COUNTRIES,
+  SUPPORTED_CURRENCIES,
+} from "@/constants/currencies";
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type RegisterResponse = {
   message: string;
@@ -33,6 +48,8 @@ type RegisterResponse = {
     name: string;
     slug: string;
     businessType: string | null;
+    countryCode: string | null;
+    currency: string;
     role: string;
   };
 
@@ -80,6 +97,34 @@ export default function RegisterPage() {
   const [acceptedTerms, setAcceptedTerms] =
     useState(false);
 
+  const [
+    countryCode,
+    setCountryCode,
+  ] = useState("");
+
+  const [
+    currency,
+    setCurrency,
+  ] = useState("");
+
+  function handleCountryChange(
+    value: string,
+  ) {
+    setCountryCode(value);
+
+    const country =
+      BUSINESS_COUNTRIES.find(
+        (item) =>
+          item.code === value,
+      );
+
+    if (country) {
+      setCurrency(
+        country.currency,
+      );
+    }
+  }
+
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
   ) {
@@ -97,6 +142,22 @@ export default function RegisterPage() {
 
       return;
     }
+
+    if (!countryCode) {
+        setError(
+          "Please select your business country.",
+        );
+
+        return;
+      }
+
+      if (!currency) {
+        setError(
+          "Please select your preferred currency.",
+        );
+
+        return;
+      }
 
     if (!acceptedTerms) {
       setError(
@@ -122,6 +183,8 @@ export default function RegisterPage() {
             businessType:
               businessType.trim() ||
               undefined,
+            countryCode,
+            currency,
             email,
             password,
             acceptedTerms,
@@ -306,6 +369,124 @@ export default function RegisterPage() {
                 />
               </div>
             </div>
+
+            <div className="grid gap-5 sm:grid-cols-2">
+              {/* Country */}
+              <div>
+                <label
+                  htmlFor="business-country"
+                  className="mb-2 block text-sm text-slate-400"
+                >
+                  Business country
+                </label>
+
+                <div className="relative">
+                  <Globe2
+                    size={16}
+                    className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-slate-600"
+                  />
+
+                  <Select
+                    value={countryCode}
+                    onValueChange={(value) => {
+                      if (value !== null) {
+                        handleCountryChange(
+                          value,
+                        );
+                      }
+                    }}
+                  >
+                    <SelectTrigger
+                      id="business-country"
+                      className="w-full pl-10"
+                    >
+                      <SelectValue placeholder="Select country" />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {BUSINESS_COUNTRIES.map(
+                        (country) => (
+                          <SelectItem
+                            key={country.code}
+                            value={country.code}
+                          >
+                            {country.name}
+                          </SelectItem>
+                        ),
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <p className="mt-2 text-xs leading-5 text-slate-600">
+                  Where your business is
+                  primarily based.
+                </p>
+              </div>
+
+              {/* Currency */}
+              <div>
+                <label
+                  htmlFor="business-currency"
+                  className="mb-2 block text-sm text-slate-400"
+                >
+                  Preferred currency
+                </label>
+
+                <div className="relative">
+                  <WalletCards
+                    size={16}
+                    className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-slate-600"
+                  />
+
+                  <Select
+                    value={currency}
+                    onValueChange={(value) => {
+                      if (value !== null) {
+                        setCurrency(value);
+                      }
+                    }}
+                  >
+                    <SelectTrigger
+                      id="business-currency"
+                      className="w-full pl-10"
+                    >
+                      <SelectValue placeholder="Select currency" />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {SUPPORTED_CURRENCIES.map(
+                        (item) => (
+                          <SelectItem
+                            key={item.code}
+                            value={item.code}
+                          >
+                            {item.code} —{" "}
+                            {item.name}
+                          </SelectItem>
+                        ),
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <p className="mt-2 text-xs leading-5 text-slate-600">
+                  Used for quotations,
+                  jobs, payments, and
+                  reports.
+                </p>
+              </div>
+            </div>
+            <div className="rounded-xl border border-amber-400/10 bg-amber-400/[0.03] px-4 py-3">
+              <p className="text-xs leading-5 text-amber-200/70">
+                Choose your business
+                currency carefully. You
+                can change it until your
+                first quotation is
+                created.
+              </p>
+            </div>
+
 
             <div>
               <label

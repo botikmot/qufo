@@ -6,7 +6,32 @@ import {
   MaxLength,
   MinLength,
   IsBoolean,
+  IsIn,
+  Length,
 } from 'class-validator';
+
+const SUPPORTED_COUNTRY_CODES = [
+  'PH',
+  'US',
+  'AU',
+  'GB',
+  'CA',
+  'SG',
+  'JP',
+  'NZ',
+] as const;
+
+const SUPPORTED_CURRENCIES = [
+  'PHP',
+  'USD',
+  'AUD',
+  'GBP',
+  'EUR',
+  'CAD',
+  'SGD',
+  'JPY',
+  'NZD',
+] as const;
 
 export class RegisterDto {
   @IsString()
@@ -32,6 +57,16 @@ export class RegisterDto {
   @IsString()
   @MaxLength(100)
   businessType?: string;
+
+  @IsString()
+  @Length(2, 2)
+  @IsIn(SUPPORTED_COUNTRY_CODES)
+  countryCode: string;
+
+  @IsString()
+  @Length(3, 3)
+  @IsIn(SUPPORTED_CURRENCIES)
+  currency: string;
 
   @IsBoolean()
   acceptedTerms: boolean;
