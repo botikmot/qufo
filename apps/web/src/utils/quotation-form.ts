@@ -10,5 +10,6 @@ export function createQuotationFormItem(): QuotationFormItem {
     quantity: "1",
     unit: "pc",
     unitPrice: "",
+    currency: "",
   };
 }
