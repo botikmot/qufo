@@ -97,6 +97,8 @@ export default function PublicQuotationPage() {
   const quotation =
     quote.quotation;
 
+  console.log('public qout:', quotation)
+
   return (
     <main className="qufo-background min-h-screen px-4 py-8 text-slate-100 sm:px-6 lg:py-12">
       <div className="mx-auto max-w-5xl">
@@ -130,6 +132,7 @@ export default function PublicQuotationPage() {
               items={
                 quotation.items
               }
+              currency={quotation.currency}
             />
 
             <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px]">
@@ -143,6 +146,7 @@ export default function PublicQuotationPage() {
                 quotation={
                   quotation
                 }
+                currency={quotation.currency}
               />
             </div>
           </div>

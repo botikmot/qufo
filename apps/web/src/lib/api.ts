@@ -102,8 +102,12 @@ export async function apiFetch<T>(
   const finalHeaders =
     new Headers(headers);
 
+  const isFormData =
+    requestOptions.body instanceof FormData;
+
   if (
     requestOptions.body &&
+    !isFormData &&
     !finalHeaders.has("Content-Type")
   ) {
     finalHeaders.set(

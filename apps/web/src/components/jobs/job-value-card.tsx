@@ -35,6 +35,7 @@ export function JobValueCard({
         <p className="text-2xl font-semibold text-emerald-300">
           {formatCurrency(
             job.total,
+            job.currency
           )}
         </p>
       </div>

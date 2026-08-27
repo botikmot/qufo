@@ -38,6 +38,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import {
+  SUPPORTED_CURRENCIES,
+} from "@/constants/currencies";
+
 type PaymentFormModalProps = {
   jobs: Job[];
 
@@ -68,6 +72,14 @@ export function PaymentFormModal({
       initialJobId,
       onSubmit,
     });
+
+  const currency = form.selectedJob?.currency ?? "PHP";
+
+  const currencySymbol =
+    SUPPORTED_CURRENCIES.find(
+      (item) =>
+        item.code === currency,
+    )?.symbol ?? currency;
 
   return (
     <QufoModal
@@ -191,6 +203,7 @@ export function PaymentFormModal({
             loading={
               form.loadingBalance
             }
+            currency={currency}
           />
         )}
 
@@ -202,7 +215,7 @@ export function PaymentFormModal({
 
             <div className="relative min-w-0">
               <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
-                ₱
+                {currencySymbol}
               </span>
 
               <input

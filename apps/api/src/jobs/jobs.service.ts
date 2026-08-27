@@ -192,6 +192,7 @@ export class JobsService {
 
           dueDate: true,
           completedAt: true,
+          currency: true,
 
           total: true,
 

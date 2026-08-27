@@ -42,6 +42,8 @@ export function JobPaymentCard({
     !payment.error &&
     payment.balance > 0;
 
+  const currency = job.currency
+
   return (
     <>
       <section className="min-w-0 overflow-hidden rounded-2xl border border-[var(--qufo-border)] bg-black/10">
@@ -128,6 +130,7 @@ export function JobPaymentCard({
             loading={
               payment.loading
             }
+            currency={currency}
           />
 
           {payment.loading && (

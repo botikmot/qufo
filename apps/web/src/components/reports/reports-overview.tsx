@@ -32,6 +32,7 @@ export function ReportsOverview({
           Number(
             overview.totalJobValue,
           ),
+          overview.currency
         ),
       helper:
         "Jobs created in period",
@@ -47,6 +48,7 @@ export function ReportsOverview({
           Number(
             overview.totalPaid,
           ),
+          overview.currency
         ),
       helper:
         `${overview.paymentCount} paid payments`,
@@ -62,6 +64,7 @@ export function ReportsOverview({
           Number(
             overview.outstandingBalance,
           ),
+          overview.currency
         ),
       helper:
         "Period job value less collections",

@@ -32,6 +32,8 @@ export default function ReportsPage() {
   const reports =
     useReports();
 
+  console.log('reports::', reports)
+
   return (
     <div className="space-y-6">
       <div>

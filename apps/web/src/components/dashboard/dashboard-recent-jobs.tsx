@@ -101,6 +101,7 @@ export function DashboardRecentJobs({
                 <span className="text-xs font-medium text-slate-400">
                   {formatCurrency(
                     job.total,
+                    job.currency
                   )}
                 </span>
               </div>

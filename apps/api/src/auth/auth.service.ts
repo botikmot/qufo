@@ -183,6 +183,8 @@ export class AuthService {
         name: result.organization.name,
         slug: result.organization.slug,
         businessType: result.organization.businessType,
+        countryCode: result.organization.countryCode,
+        currency: result.organization.currency,
         role: result.organization.memberships[0]?.role ?? 'OWNER',
       },
 
@@ -272,6 +274,9 @@ export class AuthService {
         id: membership.organization.id,
         name: membership.organization.name,
         slug: membership.organization.slug,
+
+        countryCode: membership.organization.countryCode,
+        currency: membership.organization.currency,
 
         role: membership.role,
 

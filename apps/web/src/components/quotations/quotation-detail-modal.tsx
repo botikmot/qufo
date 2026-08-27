@@ -68,6 +68,9 @@ export function QuotationDetailModal({
   onCreateRevision,
   onConvertToJob,
 }: QuotationDetailModalProps) {
+
+  console.log('quotation::', quotation)
+
   return (
     <QufoModal
       title={`Quotation ${quotation.quotationNumber}`}
@@ -105,12 +108,14 @@ export function QuotationDetailModal({
           items={
             quotation.items
           }
+          currency={quotation.currency}
         />
 
         <QuotationFinancialSummary
           quotation={
             quotation
           }
+          currency={quotation.currency}
         />
 
         <QuotationNotesTerms

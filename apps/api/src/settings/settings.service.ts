@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -6,11 +10,17 @@ import type { TenantContext } from '../auth/types/tenant-context.type';
 
 import { UpdateBusinessSettingsDto } from './dto/update-business-settings.dto';
 import { UpdateProfileSettingsDto } from './dto/update-profile-settings.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtPayload } from '../auth/types/jwt-payload.type';
+import * as bcrypt from 'bcrypt';
+import { UploadsService } from '../uploads/uploads.service';
 
 @Injectable()
 export class SettingsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly uploadsService: UploadsService,
+  ) {}
 
   async getBusinessSettings(user: JwtPayload, tenant: TenantContext) {
     const organization = await this.prisma.organization.findUnique({
@@ -212,5 +222,159 @@ export class SettingsService {
     }
 
     return subscription;
+  }
+
+  async changePassword(user: JwtPayload, dto: ChangePasswordDto) {
+    const account = await this.prisma.user.findUnique({
+      where: {
+        id: user.sub,
+      },
+
+      select: {
+        id: true,
+        passwordHash: true,
+      },
+    });
+
+    if (!account) {
+      throw new NotFoundException('User account not found.');
+    }
+
+    const currentPasswordMatches = await bcrypt.compare(
+      dto.currentPassword,
+      account.passwordHash,
+    );
+
+    if (!currentPasswordMatches) {
+      throw new BadRequestException('Current password is incorrect.');
+    }
+
+    const sameAsCurrentPassword = await bcrypt.compare(
+      dto.newPassword,
+      account.passwordHash,
+    );
+
+    if (sameAsCurrentPassword) {
+      throw new BadRequestException(
+        'New password must be different from your current password.',
+      );
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 12);
+
+    await this.prisma.user.update({
+      where: {
+        id: account.id,
+      },
+
+      data: {
+        passwordHash,
+      },
+    });
+
+    return {
+      message: 'Password changed successfully.',
+    };
+  }
+
+  async uploadProfileAvatar(user: JwtPayload, file: Express.Multer.File) {
+    const account = await this.prisma.user.findUnique({
+      where: {
+        id: user.sub,
+      },
+
+      select: {
+        id: true,
+        avatarUrl: true,
+        avatarPublicId: true,
+      },
+    });
+
+    if (!account) {
+      throw new NotFoundException('User account not found.');
+    }
+
+    const uploaded = await this.uploadsService.uploadProfileImage(file);
+
+    const updated = await this.prisma.user.update({
+      where: {
+        id: account.id,
+      },
+
+      data: {
+        avatarUrl: uploaded.url,
+
+        avatarPublicId: uploaded.publicId,
+      },
+
+      select: {
+        id: true,
+        avatarUrl: true,
+      },
+    });
+
+    /*
+     * Delete the previous image only after
+     * the new image and DB update succeed.
+     */
+    if (
+      account.avatarPublicId &&
+      account.avatarPublicId !== uploaded.publicId
+    ) {
+      try {
+        await this.uploadsService.deleteImage(account.avatarPublicId);
+      } catch {
+        /*
+         * Don't fail the successful profile
+         * update just because cleanup failed.
+         */
+      }
+    }
+
+    return {
+      message: 'Profile photo updated successfully.',
+
+      avatarUrl: updated.avatarUrl,
+    };
+  }
+
+  async removeProfileAvatar(user: JwtPayload) {
+    const account = await this.prisma.user.findUnique({
+      where: {
+        id: user.sub,
+      },
+
+      select: {
+        id: true,
+        avatarPublicId: true,
+      },
+    });
+
+    if (!account) {
+      throw new NotFoundException('User account not found.');
+    }
+
+    await this.prisma.user.update({
+      where: {
+        id: account.id,
+      },
+
+      data: {
+        avatarUrl: null,
+        avatarPublicId: null,
+      },
+    });
+
+    if (account.avatarPublicId) {
+      try {
+        await this.uploadsService.deleteImage(account.avatarPublicId);
+      } catch {
+        // DB state is already safely updated.
+      }
+    }
+
+    return {
+      message: 'Profile photo removed successfully.',
+    };
   }
 }

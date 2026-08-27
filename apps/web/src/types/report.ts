@@ -24,7 +24,6 @@ export type ReportJobStatus = {
 
 export type ReportPaymentMethod = {
   method: string;
-
   _count: {
     _all: number;
   };
@@ -42,6 +41,7 @@ export type ReportTopCustomer = {
   jobCount: number;
 
   totalValue: string;
+  currency: string;
 };
 
 export type ReportData = {
@@ -51,6 +51,7 @@ export type ReportData = {
   };
 
   overview: {
+    currency: string;
     customers: number;
     quotations: number;
     jobs: number;
@@ -84,8 +85,9 @@ export type ReportData = {
   payments: {
     count: number;
     collected: string;
-
+    currency: string;
     byMethod: ReportPaymentMethod[];
+    
   };
 
   topCustomers: ReportTopCustomer[];

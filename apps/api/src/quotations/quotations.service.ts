@@ -140,6 +140,20 @@ export class QuotationsService {
     });
 
     return this.prisma.$transaction(async (tx) => {
+      const organization = await tx.organization.findUnique({
+        where: {
+          id: tenant.organizationId,
+        },
+        select: {
+          id: true,
+          currency: true,
+        },
+      });
+
+      if (!organization) {
+        throw new NotFoundException('Organization not found.');
+      }
+
       const sequence = await tx.organizationSequence.upsert({
         where: {
           organizationId: tenant.organizationId,
@@ -175,6 +189,8 @@ export class QuotationsService {
           createdById: user.sub,
 
           quotationNumber,
+
+          currency: organization.currency,
 
           validUntil: dto.validUntil ? new Date(dto.validUntil) : null,
 
@@ -318,6 +334,8 @@ export class QuotationsService {
           id: true,
           quotationNumber: true,
           status: true,
+
+          currency: true,
 
           issueDate: true,
           validUntil: true,
@@ -869,6 +887,8 @@ export class QuotationsService {
 
       status: quotation.status,
 
+      currency: quotation.currency,
+
       issueDate: quotation.issueDate,
 
       validUntil: quotation.validUntil,
@@ -1113,6 +1133,8 @@ export class QuotationsService {
           createdById: user.sub,
 
           jobNumber,
+
+          currency: quotation.currency,
 
           title: dto.title?.trim() || defaultTitle,
 
@@ -1390,6 +1412,8 @@ export class QuotationsService {
           createdById: user.sub,
 
           quotationNumber,
+
+          currency: quotation.currency,
 
           revisionNumber: nextRevision,
 

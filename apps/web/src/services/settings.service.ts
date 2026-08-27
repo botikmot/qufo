@@ -7,23 +7,26 @@ import type {
   ProfileSettings,
   SubscriptionSettings,
   UpdateBusinessSettingsData,
-  UpdateBusinessSettingsResponse,
   UpdateProfileSettingsData,
   UpdateProfileSettingsResponse,
+  ChangePasswordData,
+  ChangePasswordResponse,
+  UploadProfilePhotoResponse,
+  RemoveProfilePhotoResponse
 } from "@/types/settings";
 
 export const settingsService = {
   getBusiness() {
     return apiFetch<BusinessSettings>(
-      "/settings/business",
+      "/organizations/current",
     );
   },
 
   updateBusiness(
     data: UpdateBusinessSettingsData,
   ) {
-    return apiFetch<UpdateBusinessSettingsResponse>(
-      "/settings/business",
+    return apiFetch<BusinessSettings>(
+      "/organizations/current",
       {
         method: "PATCH",
 
@@ -58,6 +61,48 @@ export const settingsService = {
   getSubscription() {
     return apiFetch<SubscriptionSettings>(
       "/settings/subscription",
+    );
+  },
+
+  changePassword(
+    data: ChangePasswordData,
+  ) {
+    return apiFetch<ChangePasswordResponse>(
+      "/settings/password",
+      {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      },
+    );
+  },
+
+  uploadProfilePhoto(
+    file: File,
+  ) {
+    const formData =
+      new FormData();
+
+    formData.append(
+      "file",
+      file,
+    );
+
+    return apiFetch<UploadProfilePhotoResponse>(
+      "/settings/profile/avatar",
+      {
+        method: "POST",
+
+        body: formData,
+      },
+    );
+  },
+
+  removeProfilePhoto() {
+    return apiFetch<RemoveProfilePhotoResponse>(
+      "/settings/profile/avatar",
+      {
+        method: "DELETE",
+      },
     );
   },
 

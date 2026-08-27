@@ -22,8 +22,6 @@ export function JobInfoGrid({
   job,
 }: JobInfoGridProps) {
 
-  console.log('job::-->>', job)
-
   return (
     <div className="grid gap-4 md:grid-cols-3">
       <InfoCard

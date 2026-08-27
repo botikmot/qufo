@@ -7,6 +7,7 @@ type QuotationFormSummaryProps = {
   discountAmount: number;
   taxAmount: number;
   total: number;
+  currency: string;
 };
 
 export function QuotationFormSummary({
@@ -14,6 +15,7 @@ export function QuotationFormSummary({
   discountAmount,
   taxAmount,
   total,
+  currency,
 }: QuotationFormSummaryProps) {
   return (
     <div className="flex justify-end">
@@ -27,6 +29,7 @@ export function QuotationFormSummary({
             <span className="text-slate-300">
               {formatCurrency(
                 subtotal,
+                currency
               )}
             </span>
           </div>
@@ -42,6 +45,7 @@ export function QuotationFormSummary({
                 -
                 {formatCurrency(
                   discountAmount,
+                  currency
                 )}
               </span>
             </div>
@@ -56,6 +60,7 @@ export function QuotationFormSummary({
               <span className="text-slate-300">
                 {formatCurrency(
                   taxAmount,
+                  currency
                 )}
               </span>
             </div>
@@ -70,6 +75,7 @@ export function QuotationFormSummary({
           <span className="text-2xl font-semibold text-emerald-300">
             {formatCurrency(
               total,
+              currency
             )}
           </span>
         </div>

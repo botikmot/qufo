@@ -37,12 +37,15 @@ export function PaymentSummaryCards({
         .totalBalance ?? 0,
     );
 
+  const currency = summary?.summary.currency ?? 'PHP'
+
   return (
     <div className="mb-5 grid gap-4 md:grid-cols-3">
       <StatCard
         label="Total Job Value"
         value={formatCurrency(
           totalJobValue,
+          currency
         )}
       />
 
@@ -50,6 +53,7 @@ export function PaymentSummaryCards({
         label="Total Collected"
         value={formatCurrency(
           totalPaid,
+          currency
         )}
         variant="success"
       />
@@ -58,6 +62,7 @@ export function PaymentSummaryCards({
         label="Outstanding Balance"
         value={formatCurrency(
           totalBalance,
+          currency
         )}
         variant={
           totalBalance > 0

@@ -17,14 +17,23 @@ export function AppUserSummary({
   user,
   onLogout,
 }: AppUserSummaryProps) {
+
+  console.log('user::', user)
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3 rounded-xl border border-[var(--qufo-border)] bg-black/10 p-3">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-cyan-400/[0.07] text-cyan-300">
-          <UserRound
-            size={16}
+        {user.avatarUrl ? (
+          <img
+            src={user.avatarUrl}
+            alt={user.name}
+            className="size-9 rounded-xl object-cover"
           />
-        </div>
+        ) : (
+          <div className="flex size-9 items-center justify-center rounded-xl bg-cyan-400/[0.08] text-cyan-300">
+            <UserRound size={16} />
+          </div>
+        )}
 
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-slate-300">

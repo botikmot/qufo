@@ -15,6 +15,9 @@ import {
   ProfileSettingsForm,
 } from "@/components/settings/profile-settings-form";
 
+import { ChangePasswordForm } from "@/components/settings/change-password-form";
+import { ProfilePhotoCard } from "@/components/settings/profile-photo-card";
+
 import {
   Tabs,
   TabsContent,
@@ -244,27 +247,37 @@ export default function SettingsPage() {
               Loading profile...
             </div>
           ) : profile.profile ? (
-            <ProfileSettingsForm
-              key={
-                profile.profile
-                  .updatedAt
-              }
-              profile={
-                profile.profile
-              }
-              saving={
-                profile.saving
-              }
-              error={
-                profile.error
-              }
-              success={
-                profile.success
-              }
-              onSave={
-                profile.update
-              }
-            />
+            <div className="space-y-6">
+              <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
+                <ProfilePhotoCard
+                  profile={profile.profile}
+                />
+
+                <ProfileSettingsForm
+                  key={
+                    profile.profile
+                      .updatedAt
+                  }
+                  profile={
+                    profile.profile
+                  }
+                  saving={
+                    profile.saving
+                  }
+                  error={
+                    profile.error
+                  }
+                  success={
+                    profile.success
+                  }
+                  onSave={
+                    profile.update
+                  }
+                />
+              </div>
+
+              <ChangePasswordForm />
+            </div>
           ) : (
             <div className="rounded-2xl border border-red-400/15 bg-red-400/[0.05] p-5 text-sm text-red-300">
               {profile.error ??

@@ -19,6 +19,7 @@ type PaymentBalanceSummaryProps = {
     JobPaymentStatus;
 
   loading?: boolean;
+  currency: string;
 };
 
 export function PaymentBalanceSummary({
@@ -27,6 +28,7 @@ export function PaymentBalanceSummary({
   balance,
   status,
   loading = false,
+  currency
 }: PaymentBalanceSummaryProps) {
   return (
     <div className="min-w-0 space-y-3">
@@ -39,6 +41,7 @@ export function PaymentBalanceSummary({
           <p className="mt-2 break-words text-lg font-semibold text-slate-300">
             {formatCurrency(
               total,
+              currency
             )}
           </p>
         </div>
@@ -53,6 +56,7 @@ export function PaymentBalanceSummary({
               ? "Loading..."
               : formatCurrency(
                   paidAmount,
+                  currency
                 )}
           </p>
         </div>
@@ -67,6 +71,7 @@ export function PaymentBalanceSummary({
               ? "Loading..."
               : formatCurrency(
                   balance,
+                  currency
                 )}
           </p>
         </div>

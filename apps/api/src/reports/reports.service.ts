@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 import { Prisma } from '../generated/prisma/client';
 
@@ -58,6 +62,8 @@ export class ReportsService {
     ] as const;
 
     const [
+      organization,
+
       totalCustomers,
 
       quotationCount,
@@ -82,6 +88,16 @@ export class ReportsService {
 
       topCustomerJobs,
     ] = await this.prisma.$transaction([
+      this.prisma.organization.findUnique({
+        where: {
+          id: organizationId,
+        },
+
+        select: {
+          currency: true,
+        },
+      }),
+
       /*
        * Customers created during range
        */
@@ -326,6 +342,12 @@ export class ReportsService {
       }),
     ]);
 
+    if (!organization) {
+      throw new NotFoundException('Organization not found.');
+    }
+
+    const currency = organization.currency;
+
     const totalJobValue = jobValue._sum.total ?? new Prisma.Decimal(0);
 
     const totalPaid = paidPayments._sum.amount ?? new Prisma.Decimal(0);
@@ -371,6 +393,7 @@ export class ReportsService {
         companyName: string | null;
         jobCount: number;
         totalValue: Prisma.Decimal;
+        currency: string;
       }
     >();
 
@@ -395,6 +418,7 @@ export class ReportsService {
         jobCount: 1,
 
         totalValue: job.total,
+        currency,
       });
     }
 
@@ -411,6 +435,8 @@ export class ReportsService {
       },
 
       overview: {
+        currency,
+
         customers: totalCustomers,
 
         quotations: quotationCount,
@@ -455,6 +481,7 @@ export class ReportsService {
       },
 
       payments: {
+        currency,
         count: paymentCount,
 
         collected: totalPaid,

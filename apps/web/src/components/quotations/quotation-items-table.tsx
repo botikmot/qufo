@@ -12,14 +12,18 @@ import type {
 
 type QuotationItemsTableProps = {
   items: Quotation["items"];
+  currency: string;
 };
 
 export function QuotationItemsTable({
   items,
+  currency,
 }: QuotationItemsTableProps) {
   if (!items?.length) {
     return null;
   }
+
+  console.log('items::-->',items)
 
   return (
     <div className="min-w-0">
@@ -82,6 +86,7 @@ export function QuotationItemsTable({
                   <p className="mt-1 text-sm text-slate-400">
                     {formatCurrency(
                       item.unitPrice,
+                      currency
                     )}
                   </p>
                 </div>
@@ -95,6 +100,7 @@ export function QuotationItemsTable({
                 <span className="text-sm font-semibold text-slate-200">
                   {formatCurrency(
                     item.total,
+                    currency
                   )}
                 </span>
               </div>
@@ -157,12 +163,14 @@ export function QuotationItemsTable({
                   <td className="whitespace-nowrap px-5 py-4 text-right text-sm text-slate-500">
                     {formatCurrency(
                       item.unitPrice,
+                      currency
                     )}
                   </td>
 
                   <td className="whitespace-nowrap px-5 py-4 text-right text-sm font-medium text-slate-300">
                     {formatCurrency(
                       item.total,
+                      currency
                     )}
                   </td>
                 </tr>

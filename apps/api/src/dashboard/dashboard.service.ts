@@ -42,6 +42,8 @@ export class DashboardService {
     ] as const;
 
     const [
+      organization,
+
       activeCustomers,
 
       openQuotations,
@@ -60,6 +62,17 @@ export class DashboardService {
       recentQuotations,
       recentPayments,
     ] = await this.prisma.$transaction([
+      this.prisma.organization.findUnique({
+        where: {
+          id: organizationId,
+        },
+
+        select: {
+          currency: true,
+          countryCode: true,
+        },
+      }),
+
       /*
        * Customers
        */
@@ -218,6 +231,7 @@ export class DashboardService {
           priority: true,
           dueDate: true,
           total: true,
+          currency: true,
 
           customer: {
             select: {
@@ -249,6 +263,7 @@ export class DashboardService {
           status: true,
           total: true,
           validUntil: true,
+          currency: true,
 
           customer: {
             select: {
@@ -281,6 +296,7 @@ export class DashboardService {
           method: true,
           status: true,
           paidAt: true,
+          currency: true,
 
           customer: {
             select: {
@@ -299,6 +315,8 @@ export class DashboardService {
         },
       }),
     ]);
+
+    const currency = organization?.currency ?? 'PHP';
 
     const totalJobValue = jobTotals._sum.total ?? new Prisma.Decimal(0);
 
@@ -360,6 +378,7 @@ export class DashboardService {
         },
 
         financials: {
+          currency,
           revenueThisMonth:
             revenueThisMonth._sum.amount ?? new Prisma.Decimal(0),
 

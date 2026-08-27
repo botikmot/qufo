@@ -102,6 +102,7 @@ export function DashboardRecentQuotations({
                   <span className="text-xs font-medium text-slate-400">
                     {formatCurrency(
                       quotation.total,
+                      quotation.currency
                     )}
                   </span>
                 </div>

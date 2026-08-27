@@ -15,23 +15,36 @@ import type {
 } from "@/types/settings";
 
 export function useBusinessSettings() {
-  const [settings, setSettings] =
+  const [
+    settings,
+    setSettings,
+  ] =
     useState<BusinessSettings | null>(
       null,
     );
 
-  const [loading, setLoading] =
-    useState(true);
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
 
-  const [saving, setSaving] =
-    useState(false);
+  const [
+    saving,
+    setSaving,
+  ] = useState(false);
 
-  const [error, setError] =
+  const [
+    error,
+    setError,
+  ] =
     useState<string | null>(
       null,
     );
 
-  const [success, setSuccess] =
+  const [
+    success,
+    setSuccess,
+  ] =
     useState<string | null>(
       null,
     );
@@ -47,8 +60,6 @@ export function useBusinessSettings() {
         if (cancelled) {
           return;
         }
-
-        console.log('settings::', response)
 
         setSettings(response);
         setError(null);
@@ -89,12 +100,10 @@ export function useBusinessSettings() {
           data,
         );
 
-      setSettings(
-        response.organization,
-      );
+      setSettings(response);
 
       setSuccess(
-        response.message,
+        "Business settings updated successfully.",
       );
 
       return true;

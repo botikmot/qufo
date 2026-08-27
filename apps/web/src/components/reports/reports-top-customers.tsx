@@ -67,6 +67,7 @@ export function ReportsTopCustomers({
                       Number(
                         customer.totalValue,
                       ),
+                      customer.currency
                     )}
                   </div>
 

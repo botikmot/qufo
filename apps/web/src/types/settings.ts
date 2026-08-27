@@ -2,28 +2,22 @@ import { SubscriptionStatus } from "./subscription";
 
 export type BusinessSettings = {
   id: string;
+
   name: string;
   slug: string;
 
-  businessType:
-    | string
-    | null;
+  businessType: string | null;
 
-  email:
-    | string
-    | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  logoUrl: string | null;
 
-  phone:
-    | string
-    | null;
+  countryCode: string | null;
 
-  address:
-    | string
-    | null;
+  currency: string;
 
-  logoUrl:
-    | string
-    | null;
+  currencyLocked: boolean;
 
   status: string;
 
@@ -37,7 +31,9 @@ export type UpdateBusinessSettingsData = {
   email?: string;
   phone?: string;
   address?: string;
-  logoUrl?: string;
+
+  countryCode?: string;
+  currency?: string;
 };
 
 export type UpdateBusinessSettingsResponse = {
@@ -124,4 +120,22 @@ export type SubscriptionSettings = {
 
   createdAt: string;
   updatedAt: string;
+};
+
+export type ChangePasswordData = {
+  currentPassword: string;
+  newPassword: string;
+};
+
+export type ChangePasswordResponse = {
+  message: string;
+};
+
+export type UploadProfilePhotoResponse = {
+  message: string;
+  avatarUrl: string;
+};
+
+export type RemoveProfilePhotoResponse = {
+  message: string;
 };

@@ -34,6 +34,7 @@ export type DashboardRecentJob = {
   dueDate: string | null;
 
   total: string;
+  currency: string;
 
   customer: DashboardCustomerSummary;
 };
@@ -50,6 +51,8 @@ export type DashboardRecentQuotation = {
   validUntil: string | null;
 
   customer: DashboardCustomerSummary;
+
+  currency: string;
 };
 
 export type DashboardRecentPayment = {
@@ -65,6 +68,7 @@ export type DashboardRecentPayment = {
   paidAt: string;
 
   customer: DashboardCustomerSummary;
+  currency: string;
 
   job: {
     id: string;
@@ -133,6 +137,7 @@ export type DashboardResponse = {
       totalJobValue: string;
       totalPaid: string;
       outstandingBalance: string;
+      currency: string;
     };
   };
 

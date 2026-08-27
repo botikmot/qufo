@@ -124,6 +124,7 @@ export function JobTableRow({
             <p className="text-sm font-medium text-slate-300">
               {formatCurrency(
                 job.total,
+                job.currency
               )}
             </p>
 
@@ -201,6 +202,7 @@ export function JobTableRow({
       <td className="hidden px-5 py-4 font-medium text-slate-300 xl:table-cell">
         {formatCurrency(
           job.total,
+          job.currency
         )}
       </td>
 

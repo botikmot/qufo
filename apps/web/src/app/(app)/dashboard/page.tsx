@@ -57,6 +57,8 @@ export default function DashboardPage() {
   const data =
     dashboard.dashboard;
 
+  console.log('data:', data)
+
   return (
     <>
       <PageHeader

@@ -12,10 +12,12 @@ import type {
 
 type QuotationFinancialSummaryProps = {
   quotation: Quotation;
+  currency: string;
 };
 
 export function QuotationFinancialSummary({
   quotation,
+  currency,
 }: QuotationFinancialSummaryProps) {
   const discountAmount =
     Number(
@@ -51,6 +53,7 @@ export function QuotationFinancialSummary({
             <span className="font-medium text-slate-300">
               {formatCurrency(
                 quotation.subtotal,
+                currency
               )}
             </span>
           </div>
@@ -76,6 +79,7 @@ export function QuotationFinancialSummary({
                 -
                 {formatCurrency(
                   discountAmount,
+                  currency
                 )}
               </span>
             </div>
@@ -100,6 +104,7 @@ export function QuotationFinancialSummary({
               <span className="font-medium text-slate-300">
                 {formatCurrency(
                   taxAmount,
+                  currency
                 )}
               </span>
             </div>
@@ -120,6 +125,7 @@ export function QuotationFinancialSummary({
           <p className="text-2xl font-semibold text-emerald-300">
             {formatCurrency(
               quotation.total,
+              currency
             )}
           </p>
         </div>

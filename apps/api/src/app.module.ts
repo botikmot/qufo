@@ -13,6 +13,7 @@ import { SettingsModule } from './settings/settings.module';
 import { ReportsModule } from './reports/reports.module';
 import { SupportModule } from './support/support.module';
 import { PlatformAdminModule } from './platform-admin/platform-admin.module';
+import { OrganizationsModule } from './organizations/organizations.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { PlatformAdminModule } from './platform-admin/platform-admin.module';
     ReportsModule,
     SupportModule,
     PlatformAdminModule,
+    OrganizationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

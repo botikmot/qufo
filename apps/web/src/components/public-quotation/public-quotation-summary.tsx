@@ -9,10 +9,12 @@ import type {
 type PublicQuotationSummaryProps = {
   quotation:
     PublicQuotation;
+  currency: string;
 };
 
 export function PublicQuotationSummary({
   quotation,
+  currency
 }: PublicQuotationSummaryProps) {
   const numberFormatter =
     new Intl.NumberFormat(
@@ -36,6 +38,7 @@ export function PublicQuotationSummary({
         <span className="text-slate-300">
           {formatCurrency(
             quotation.subtotal,
+            currency
           )}
         </span>
       </div>
@@ -59,6 +62,7 @@ export function PublicQuotationSummary({
             -{" "}
             {formatCurrency(
               quotation.discountAmount,
+              currency
             )}
           </span>
         </div>
@@ -81,6 +85,7 @@ export function PublicQuotationSummary({
           <span className="text-slate-300">
             {formatCurrency(
               quotation.taxAmount,
+              currency
             )}
           </span>
         </div>
@@ -95,6 +100,7 @@ export function PublicQuotationSummary({
           <span className="text-2xl font-semibold tracking-tight text-emerald-300">
             {formatCurrency(
               quotation.total,
+              currency
             )}
           </span>
         </div>

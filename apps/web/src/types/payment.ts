@@ -29,6 +29,8 @@ export type Payment = {
 
   paidAt: string | null;
 
+  currency: string;
+
   createdAt: string;
   updatedAt?: string;
 
@@ -89,6 +91,7 @@ export type JobPaymentSummary = {
 
   jobNumber: string;
   title: string;
+  currency: string;
 
   jobStatus: string;
 
@@ -111,6 +114,7 @@ export type PaymentsSummaryResponse = {
     totalJobValue: string;
     totalPaid: string;
     totalBalance: string;
+    currency: string;
   };
 
   items: JobPaymentSummary[];

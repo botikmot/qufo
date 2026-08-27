@@ -70,6 +70,7 @@ export function PaymentOverviewRow({
               <p className="mt-1 text-sm font-medium text-slate-300">
                 {formatCurrency(
                   item.total,
+                  item.currency
                 )}
               </p>
             </div>
@@ -82,6 +83,7 @@ export function PaymentOverviewRow({
               <p className="mt-1 text-sm font-medium text-emerald-300">
                 {formatCurrency(
                   item.paidAmount,
+                  item.currency
                 )}
               </p>
             </div>
@@ -123,12 +125,14 @@ export function PaymentOverviewRow({
       <td className="hidden px-5 py-4 font-medium text-slate-300 xl:table-cell">
         {formatCurrency(
           item.total,
+          item.currency
         )}
       </td>
 
       <td className="hidden px-5 py-4 font-medium text-emerald-300 xl:table-cell">
         {formatCurrency(
           item.paidAmount,
+          item.currency
         )}
       </td>
 
@@ -142,6 +146,7 @@ export function PaymentOverviewRow({
         >
           {formatCurrency(
             balance,
+            item.currency
           )}
         </span>
       </td>

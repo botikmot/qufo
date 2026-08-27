@@ -33,6 +33,7 @@ export class PaymentsService {
             customerId: true,
             status: true,
             total: true,
+            currency: true,
 
             customer: {
               select: {
@@ -120,6 +121,8 @@ export class PaymentsService {
             createdById: user.sub,
 
             paymentNumber,
+
+            currency: job.currency,
 
             amount,
 
@@ -291,6 +294,8 @@ export class PaymentsService {
           paymentNumber: true,
 
           amount: true,
+          currency: true,
+
           method: true,
           status: true,
 
@@ -314,6 +319,7 @@ export class PaymentsService {
               jobNumber: true,
               title: true,
               total: true,
+              currency: true,
             },
           },
 
@@ -389,6 +395,7 @@ export class PaymentsService {
         id: true,
         jobNumber: true,
         total: true,
+        currency: true,
 
         payments: {
           orderBy: {
@@ -400,6 +407,7 @@ export class PaymentsService {
             paymentNumber: true,
 
             amount: true,
+            currency: true,
             method: true,
             status: true,
 
@@ -440,6 +448,8 @@ export class PaymentsService {
         jobNumber: job.jobNumber,
 
         total: job.total,
+
+        currency: job.currency,
       },
 
       summary: {
@@ -515,45 +525,62 @@ export class PaymentsService {
   }
 
   async getSummary(tenant: TenantContext) {
-    const jobs = await this.prisma.job.findMany({
-      where: {
-        organizationId: tenant.organizationId,
-
-        status: {
-          not: 'CANCELLED',
+    const [organization, jobs] = await this.prisma.$transaction([
+      this.prisma.organization.findUnique({
+        where: {
+          id: tenant.organizationId,
         },
-      },
 
-      select: {
-        id: true,
-        jobNumber: true,
-        title: true,
-        total: true,
-        status: true,
+        select: {
+          currency: true,
+        },
+      }),
 
-        customer: {
-          select: {
-            id: true,
-            name: true,
-            companyName: true,
+      this.prisma.job.findMany({
+        where: {
+          organizationId: tenant.organizationId,
+
+          status: {
+            not: 'CANCELLED',
           },
         },
 
-        payments: {
-          where: {
-            status: 'PAID',
+        select: {
+          id: true,
+          jobNumber: true,
+          title: true,
+          total: true,
+          currency: true,
+          status: true,
+
+          customer: {
+            select: {
+              id: true,
+              name: true,
+              companyName: true,
+            },
           },
 
-          select: {
-            amount: true,
+          payments: {
+            where: {
+              status: 'PAID',
+            },
+
+            select: {
+              amount: true,
+            },
           },
         },
-      },
 
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+    ]);
+
+    if (!organization) {
+      throw new NotFoundException('Organization not found.');
+    }
 
     const items = jobs.map((job) => {
       const total = Number(job.total);
@@ -586,6 +613,8 @@ export class PaymentsService {
 
         customer: job.customer,
 
+        currency: job.currency,
+
         total: total.toFixed(2),
 
         paidAmount: paidAmount.toFixed(2),
@@ -613,6 +642,8 @@ export class PaymentsService {
         totalPaid: totalPaid.toFixed(2),
 
         totalBalance: Math.max(totalJobValue - totalPaid, 0).toFixed(2),
+
+        currency: organization.currency,
       },
 
       items,

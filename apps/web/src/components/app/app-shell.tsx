@@ -100,6 +100,8 @@ export function AppShell({
     );
   }
 
+  console.log('session::', session)
+
   const shellUser = {
     name:
       session.user.name ||
@@ -107,6 +109,8 @@ export function AppShell({
 
     email:
       session.user.email,
+
+    avatarUrl: session.user.avatarUrl,
   };
 
   const shellOrganization = {

@@ -142,6 +142,7 @@ export function useQuotationForm({
                 String(
                   item.unitPrice,
                 ),
+              currency: item.currency ?? 'PHP',
             }),
           )
         : [

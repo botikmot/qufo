@@ -12,7 +12,6 @@ import type {
 
 type QuotationFormItemsProps = {
   items: QuotationFormItem[];
-
   onAdd: () => void;
 
   onRemove: (
@@ -23,6 +22,7 @@ type QuotationFormItemsProps = {
     key: string,
     patch: Partial<QuotationFormItem>,
   ) => void;
+  currency: string;
 };
 
 export function QuotationFormItems({
@@ -30,6 +30,7 @@ export function QuotationFormItems({
   onAdd,
   onRemove,
   onChange,
+   currency,
 }: QuotationFormItemsProps) {
   return (
     <div className="min-w-0">
@@ -106,6 +107,7 @@ export function QuotationFormItems({
                   item.key,
                 )
               }
+              currency={currency}
             />
           ),
         )}

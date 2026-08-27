@@ -84,6 +84,7 @@ export function ReportsPaymentMethods({
                         .amount ??
                         0,
                     ),
+                    payments.currency
                   )}
                 </div>
               </div>

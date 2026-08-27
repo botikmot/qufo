@@ -10,6 +10,7 @@ export type QuotationFormItem = {
   quantity: string;
   unit: string;
   unitPrice: string;
+  currency: string;
 };
 
 export type QuotationFormPayload = {

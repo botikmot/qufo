@@ -452,6 +452,7 @@ export function PaymentTransactions({
                             >
                               {formatCurrency(
                                 payment.amount,
+                                payment.currency
                               )}
                             </span>
 
@@ -510,6 +511,7 @@ export function PaymentTransactions({
                         >
                           {formatCurrency(
                             payment.amount,
+                            payment.currency
                           )}
                         </span>
                       </td>

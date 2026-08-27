@@ -104,6 +104,7 @@ export function QuotationTableRow({
             <p className="text-sm font-medium text-slate-300">
               {formatCurrency(
                 quotation.total,
+                quotation.currency
               )}
             </p>
 
@@ -150,6 +151,7 @@ export function QuotationTableRow({
       <td className="hidden px-5 py-4 font-medium text-slate-300 xl:table-cell">
         {formatCurrency(
           quotation.total,
+          quotation.currency
         )}
       </td>
 

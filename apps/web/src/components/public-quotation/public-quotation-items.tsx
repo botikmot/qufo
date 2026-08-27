@@ -9,10 +9,12 @@ import type {
 type PublicQuotationItemsProps = {
   items:
     PublicQuotation["items"];
+  currency: string;
 };
 
 export function PublicQuotationItems({
   items,
+  currency,
 }: PublicQuotationItemsProps) {
   const quantityFormatter =
     new Intl.NumberFormat(
@@ -79,12 +81,14 @@ export function PublicQuotationItems({
               <div className="mt-2 text-sm text-slate-400 sm:mt-0">
                 {formatCurrency(
                   item.unitPrice,
+                  currency
                 )}
               </div>
 
               <div className="mt-2 text-sm font-medium text-slate-200 sm:mt-0 sm:text-right">
                 {formatCurrency(
                   item.total,
+                  currency
                 )}
               </div>
             </div>

@@ -59,6 +59,7 @@ export type Job = {
 
   dueDate: string | null;
   completedAt: string | null;
+  currency: string;
 
   subtotal: string;
   discountAmount: string;

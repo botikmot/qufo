@@ -7,17 +7,33 @@ import {
 
 import {
   Building2,
+  Globe2,
   LoaderCircle,
+  LockKeyhole,
   Mail,
   MapPin,
   Phone,
   Save,
+  WalletCards,
 } from "lucide-react";
+
+import {
+  BUSINESS_COUNTRIES,
+  SUPPORTED_CURRENCIES,
+} from "@/constants/currencies";
 
 import type {
   BusinessSettings,
   UpdateBusinessSettingsData,
 } from "@/types/settings";
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type BusinessSettingsFormProps = {
   settings: BusinessSettings;
@@ -76,6 +92,41 @@ export function BusinessSettingsForm({
     settings.address ?? "",
   );
 
+  const [
+    countryCode,
+    setCountryCode,
+  ] = useState(
+    settings.countryCode ?? "PH",
+  );
+
+  const [
+    currency,
+    setCurrency,
+  ] = useState(
+    settings.currency ?? "PHP",
+  );
+
+  function handleCountryChange(
+    value: string,
+  ) {
+    setCountryCode(value);
+
+    if (settings.currencyLocked) {
+      return;
+    }
+
+    const country =
+      BUSINESS_COUNTRIES.find(
+        (item) =>
+          item.code === value,
+      );
+
+    if (country) {
+      setCurrency(
+        country.currency,
+      );
+    }
+  }
   
 
   async function handleSubmit(
@@ -89,6 +140,9 @@ export function BusinessSettingsForm({
       email,
       phone,
       address,
+
+      countryCode,
+      currency,
     });
   }
 
@@ -269,6 +323,131 @@ export function BusinessSettingsForm({
             />
           </div>
         </div>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div>
+            <label
+              htmlFor="business-country"
+              className="mb-2 block text-sm text-slate-400"
+            >
+              Business country
+            </label>
+
+            <div className="relative">
+              <Globe2
+                size={16}
+                className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-slate-600"
+              />
+
+              <Select
+                value={countryCode}
+                onValueChange={(value) => {
+                  if (value !== null) {
+                    handleCountryChange(value);
+                  }
+                }}
+              >
+                <SelectTrigger
+                  id="business-country"
+                  className="w-full pl-10"
+                >
+                  <SelectValue placeholder="Select country" />
+                </SelectTrigger>
+
+                <SelectContent>
+                  {BUSINESS_COUNTRIES.map(
+                    (country) => (
+                      <SelectItem
+                        key={country.code}
+                        value={country.code}
+                      >
+                        {country.name}
+                      </SelectItem>
+                    ),
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <p className="mt-2 text-xs text-slate-600">
+              Used to suggest the
+              appropriate business
+              currency.
+            </p>
+          </div>
+
+          <div>
+            <label
+              htmlFor="business-currency"
+              className="mb-2 block text-sm text-slate-400"
+            >
+              Business currency
+            </label>
+
+            <div className="relative">
+              <WalletCards
+                size={16}
+                className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-slate-600"
+              />
+
+              <Select
+                value={currency}
+                onValueChange={(value) => {
+                  if (value !== null) {
+                    setCurrency(value);
+                  }
+                }}
+                disabled={
+                  settings.currencyLocked
+                }
+              >
+                <SelectTrigger
+                  id="business-currency"
+                  className="w-full pl-10 pr-10"
+                >
+                  <SelectValue placeholder="Select currency" />
+                </SelectTrigger>
+
+                <SelectContent>
+                  {SUPPORTED_CURRENCIES.map(
+                    (item) => (
+                      <SelectItem
+                        key={item.code}
+                        value={item.code}
+                      >
+                        {item.code} —{" "}
+                        {item.name}
+                      </SelectItem>
+                    ),
+                  )}
+                </SelectContent>
+              </Select>
+
+              {settings.currencyLocked && (
+                <LockKeyhole
+                  size={15}
+                  className="pointer-events-none absolute right-10 top-1/2 z-10 -translate-y-1/2 text-amber-300"
+                />
+              )}
+            </div>
+
+            {settings.currencyLocked ? (
+              <p className="mt-2 text-xs text-amber-300/70">
+                Currency is locked
+                because this workspace
+                already contains
+                quotations.
+              </p>
+            ) : (
+              <p className="mt-2 text-xs text-slate-600">
+                Currency becomes locked
+                after your first quotation
+                is created.
+              </p>
+            )}
+          </div>
+        </div>
+
 
         <div>
           <label className="mb-2 block text-sm text-slate-400">

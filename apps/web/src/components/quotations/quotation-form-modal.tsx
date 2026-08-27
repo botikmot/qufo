@@ -49,6 +49,9 @@ import type {
   QuotationFormPayload,
 } from "@/types/quotation-form";
 
+import { settingsService } from "@/services/settings.service";
+import { useEffect, useState } from "react";
+
 type QuotationFormModalProps = {
   customers: Customer[];
 
@@ -78,6 +81,55 @@ export function QuotationFormModal({
 
   const editing =
     Boolean(quotation);
+
+  const [
+    organizationCurrency,
+    setOrganizationCurrency,
+  ] = useState("PHP");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadOrganizationCurrency() {
+      /*
+      * Existing quotations must always use
+      * their saved currency snapshot.
+      */
+      if (quotation?.currency) {
+        setOrganizationCurrency(
+          quotation.currency,
+        );
+
+        return;
+      }
+
+      try {
+        const organization =
+          await settingsService.getBusiness();
+
+        if (cancelled) {
+          return;
+        }
+
+        setOrganizationCurrency(
+          organization.currency,
+        );
+      } catch {
+        /*
+        * Keep PHP as a safe fallback.
+        */
+      }
+    }
+
+    void loadOrganizationCurrency();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [quotation?.currency]);
+
+
+  const currency = quotation?.currency ?? organizationCurrency;
 
   return (
     <QufoModal
@@ -214,6 +266,7 @@ export function QuotationFormModal({
           onChange={
             form.updateItem
           }
+          currency={currency}
         />
 
         <QuotationFormDiscountTax
@@ -251,6 +304,7 @@ export function QuotationFormModal({
           total={
             form.totals.total
           }
+          currency={currency}
         />
 
         <QuotationFormNotes

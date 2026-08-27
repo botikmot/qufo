@@ -31,6 +31,7 @@ export type QuotationItem = {
   unitPrice: string;
   total: string;
   sortOrder?: number;
+  currency: string;
 };
 
 export type Quotation = {
@@ -59,6 +60,7 @@ export type Quotation = {
   taxAmount: string;
 
   total: string;
+  currency: string;
 
   notes?: string | null;
   terms?: string | null;
@@ -94,6 +96,7 @@ export type QuotationFormItem = {
   quantity: string;
   unit: string;
   unitPrice: string;
+  currency: string;
 };
 
 export type QuotationFormData = {
@@ -154,6 +157,8 @@ export type PublicQuotation = {
   taxAmount: string;
 
   total: string;
+
+  currency: string;
 
   notes: string | null;
   terms: string | null;

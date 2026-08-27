@@ -104,6 +104,7 @@ export function DashboardRecentPayments({
                   <span className="text-xs font-medium text-emerald-300">
                     {formatCurrency(
                       payment.amount,
+                      payment.currency
                     )}
                   </span>
                 </div>

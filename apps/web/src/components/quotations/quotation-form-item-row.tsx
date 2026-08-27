@@ -24,6 +24,7 @@ type QuotationFormItemRowProps = {
   ) => void;
 
   onRemove: () => void;
+  currency: string;
 };
 
 export function QuotationFormItemRow({
@@ -31,6 +32,7 @@ export function QuotationFormItemRow({
   canRemove,
   onChange,
   onRemove,
+  currency,
 }: QuotationFormItemRowProps) {
   const total =
     calculateQuotationItemTotal(
@@ -257,6 +259,7 @@ export function QuotationFormItemRow({
           <span className="font-medium text-slate-300">
             {formatCurrency(
               total,
+              currency
             )}
           </span>
         </p>

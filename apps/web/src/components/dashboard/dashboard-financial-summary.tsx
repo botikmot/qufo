@@ -18,6 +18,7 @@ type DashboardFinancialSummaryProps = {
 export function DashboardFinancialSummary({
   financials,
 }: DashboardFinancialSummaryProps) {
+
   return (
     <div>
       <div className="mb-3">
@@ -37,6 +38,7 @@ export function DashboardFinancialSummary({
           label="Revenue This Month"
           value={formatCurrency(
             financials.revenueThisMonth,
+            financials.currency
           )}
           variant="success"
         />
@@ -45,6 +47,7 @@ export function DashboardFinancialSummary({
           label="Total Job Value"
           value={formatCurrency(
             financials.totalJobValue,
+            financials.currency
           )}
         />
 
@@ -52,6 +55,7 @@ export function DashboardFinancialSummary({
           label="Total Collected"
           value={formatCurrency(
             financials.totalPaid,
+            financials.currency
           )}
           variant="success"
         />
@@ -60,6 +64,7 @@ export function DashboardFinancialSummary({
           label="Outstanding Balance"
           value={formatCurrency(
             financials.outstandingBalance,
+            financials.currency
           )}
           variant={
             Number(
