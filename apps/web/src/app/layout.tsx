@@ -32,6 +32,16 @@ export const metadata: Metadata = {
   applicationName: "QUFO",
   creator: "QUFO",
   publisher: "QUFO",
+  
+  icons: {
+    icon: [
+      {
+        url: "/favicon.ico",
+        type: "image/x-icon",
+      },
+    ],
+    shortcut: "/favicon.ico",
+  },
 
   alternates: {
     canonical: "/",
