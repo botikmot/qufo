@@ -6,6 +6,7 @@ import type {
   Quotation,
   QuotationsResponse,
   QuotationStatus,
+  QuotationDetail,
 } from "@/types/quotation";
 
 import type {
@@ -111,7 +112,7 @@ export const quotationsService = {
   getOne(
     quotationId: string,
   ) {
-    return apiFetch<Quotation>(
+    return apiFetch<QuotationDetail>(
       `/quotations/${quotationId}`,
     );
   },

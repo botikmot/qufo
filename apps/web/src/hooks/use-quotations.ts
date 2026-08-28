@@ -17,6 +17,7 @@ import {
 
 import type {
   Quotation,
+  QuotationDetail,
 } from "@/types/quotation";
 
 import type {
@@ -41,6 +42,7 @@ import type {
   QuotationUpdatedEvent,
 } from "@/types/realtime";
 
+
 export function useQuotations() {
   const [
     quotations,
@@ -54,7 +56,7 @@ export function useQuotations() {
     selectedQuotation,
     setSelectedQuotation,
   ] =
-    useState<Quotation | null>(
+    useState<QuotationDetail | null>(
       null,
     );
 

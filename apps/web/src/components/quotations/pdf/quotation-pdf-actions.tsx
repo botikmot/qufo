@@ -7,7 +7,6 @@ import {
 import {
   Download,
   LoaderCircle,
-  Printer,
 } from "lucide-react";
 
 import {
