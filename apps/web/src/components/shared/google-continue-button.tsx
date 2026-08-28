@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -51,9 +53,33 @@ export function GoogleContinueButton({
     setLoading,
   ] = useState(false);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+   const [buttonWidth, setButtonWidth] = useState(400);
+
   const clientId =
     process.env
       .NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
+
+  useEffect(() => {
+    const element = containerRef.current;
+
+    if (!element) return;
+
+    const updateWidth = () => {
+      const width = element.clientWidth;
+
+      setButtonWidth(Math.min(width, 400));
+    };
+
+    updateWidth();
+
+    const observer = new ResizeObserver(updateWidth);
+
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, []);
 
   if (!clientId) {
     return (
@@ -63,7 +89,6 @@ export function GoogleContinueButton({
       </div>
     );
   }
-
   async function handleCredential(
     credential: string,
   ) {
@@ -176,7 +201,7 @@ export function GoogleContinueButton({
               : "",
           ].join(" ")}
         >
-          <div className="flex w-full justify-center">
+          <div ref={containerRef} className="flex w-full justify-center">
             <GoogleLogin
               onSuccess={(
                 response,
@@ -207,7 +232,7 @@ export function GoogleContinueButton({
               shape="circle"
               text="continue_with"
               logo_alignment="left"
-              width="400"
+              width={String(buttonWidth)}
             />
           </div>
 
