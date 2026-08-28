@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 import { FazierBadge } from "@/components/marketing/fazier-badge";
+import { StartupBaseBadge } from "@/components/marketing/startupbase-badge";
 
 export function LandingFooter() {
   return (
@@ -130,6 +131,7 @@ export function LandingFooter() {
 
           <p>Quick Flow for your business.</p>
           <FazierBadge />
+          <StartupBaseBadge />
         </div>
       </div>
     </footer>
