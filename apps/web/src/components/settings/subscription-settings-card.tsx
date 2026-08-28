@@ -410,8 +410,7 @@ export function SubscriptionSettingsCard({
                   className="rounded-xl"
                   disabled={
                     renewing ||
-                    confirmingPayment ||
-                    !phpBilling
+                    confirmingPayment
                   }
                   onClick={() => {
                     void onRenew();
@@ -437,14 +436,6 @@ export function SubscriptionSettingsCard({
             </div>
           </div>
 
-          {!phpBilling && (
-            <p className="text-xs leading-5 text-slate-600">
-              International online
-              subscription payments
-              will be available through
-              PayPal soon.
-            </p>
-          )}
         </div>
       </div>
 

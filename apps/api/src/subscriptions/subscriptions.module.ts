@@ -7,14 +7,21 @@ import { SubscriptionsBillingController } from './subscriptions-billing.controll
 import { SubscriptionsBillingService } from './subscriptions-billing.service';
 import { PayMongoService } from './providers/paymongo.service';
 import { PayMongoWebhookController } from './webhooks/paymongo-webhook.controller';
+import { PayPalWebhookController } from './webhooks/paypal-webhook.controller';
+import { PayPalService } from './providers/paypal.service';
 
 @Module({
-  controllers: [SubscriptionsBillingController, PayMongoWebhookController],
+  controllers: [
+    SubscriptionsBillingController,
+    PayMongoWebhookController,
+    PayPalWebhookController,
+  ],
 
   providers: [
     SubscriptionPricingService,
     SubscriptionsBillingService,
     PayMongoService,
+    PayPalService,
   ],
 
   exports: [SubscriptionPricingService, SubscriptionsBillingService],

@@ -1,4 +1,5 @@
 import {
+  BadGatewayException,
   BadRequestException,
   Injectable,
   NotFoundException,
@@ -15,6 +16,8 @@ import { CreateSubscriptionCheckoutDto } from './dto/create-subscription-checkou
 import { ConfigService } from '@nestjs/config';
 
 import { PayMongoService } from './providers/paymongo.service';
+import { PayPalService } from './providers/paypal.service';
+import { Prisma } from '../generated/prisma/client';
 
 @Injectable()
 export class SubscriptionsBillingService {
@@ -22,8 +25,57 @@ export class SubscriptionsBillingService {
     private readonly prisma: PrismaService,
     private readonly pricingService: SubscriptionPricingService,
     private readonly payMongoService: PayMongoService,
+    private readonly payPalService: PayPalService,
     private readonly configService: ConfigService,
   ) {}
+
+  private readonly pendingCheckoutReuseMs = 30 * 60 * 1000; // 30 minutes
+
+  private async findReusablePendingCheckout(input: {
+    organizationId: string;
+
+    provider: 'PAYMONGO' | 'PAYPAL';
+
+    amount: Prisma.Decimal;
+
+    currency: string;
+
+    periodMonths: number;
+  }) {
+    const cutoff = new Date(Date.now() - this.pendingCheckoutReuseMs);
+
+    return this.prisma.subscriptionPayment.findFirst({
+      where: {
+        organizationId: input.organizationId,
+
+        provider: input.provider,
+
+        status: 'PENDING',
+
+        amount: input.amount,
+
+        currency: input.currency,
+
+        periodMonths: input.periodMonths,
+
+        providerReference: {
+          not: null,
+        },
+
+        checkoutUrl: {
+          not: null,
+        },
+
+        createdAt: {
+          gte: cutoff,
+        },
+      },
+
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
 
   private addMonths(date: Date, months: number) {
     const result = new Date(date);
@@ -43,6 +95,366 @@ export class SubscriptionsBillingService {
     result.setDate(Math.min(originalDay, lastDay));
 
     return result;
+  }
+
+  private addOneCalendarMonth(date: Date) {
+    const result = new Date(date);
+
+    const originalDay = result.getUTCDate();
+
+    result.setUTCDate(1);
+
+    result.setUTCMonth(result.getUTCMonth() + 1);
+
+    const lastDay = new Date(
+      Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0),
+    ).getUTCDate();
+
+    result.setUTCDate(Math.min(originalDay, lastDay));
+
+    return result;
+  }
+
+  private resolveNextPaidPeriod(subscription: {
+    trialEndsAt: Date;
+
+    currentPeriodEnd: Date | null;
+  }) {
+    const now = new Date();
+
+    let periodStart: Date;
+
+    /*
+     * If there is already a future
+     * paid period, stack after it.
+     */
+    if (subscription.currentPeriodEnd && subscription.currentPeriodEnd > now) {
+      periodStart = subscription.currentPeriodEnd;
+    }
+
+    /*
+     * Otherwise preserve remaining
+     * trial time.
+     */
+    else if (subscription.trialEndsAt > now) {
+      periodStart = subscription.trialEndsAt;
+    }
+
+    /*
+     * Expired / past due:
+     * start immediately.
+     */
+    else {
+      periodStart = now;
+    }
+
+    const periodEnd = this.addOneCalendarMonth(periodStart);
+
+    return {
+      periodStart,
+      periodEnd,
+    };
+  }
+
+  private async finalizePaidSubscriptionPayment(input: {
+    paymentId: string;
+    paidAt: Date;
+  }) {
+    const maxAttempts = 3;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      try {
+        return await this.prisma.$transaction(
+          async (tx) => {
+            const payment = await tx.subscriptionPayment.findUnique({
+              where: {
+                id: input.paymentId,
+              },
+
+              select: {
+                id: true,
+                subscriptionId: true,
+                status: true,
+              },
+            });
+
+            if (!payment) {
+              throw new NotFoundException('Subscription payment not found.');
+            }
+
+            /*
+             * Webhook / browser retry safety.
+             */
+            if (payment.status === 'PAID') {
+              return {
+                processed: false,
+                reason: 'already_paid',
+                paymentId: payment.id,
+              };
+            }
+
+            if (payment.status !== 'PENDING') {
+              return {
+                processed: false,
+                reason: `payment_${payment.status.toLowerCase()}`,
+                paymentId: payment.id,
+              };
+            }
+
+            const subscription = await tx.subscription.findUnique({
+              where: {
+                id: payment.subscriptionId,
+              },
+
+              select: {
+                id: true,
+                trialEndsAt: true,
+                currentPeriodStart: true,
+                currentPeriodEnd: true,
+              },
+            });
+
+            if (!subscription) {
+              throw new NotFoundException('Subscription not found.');
+            }
+
+            /*
+             * IMPORTANT:
+             * Compute the credited month
+             * from the LATEST subscription state.
+             */
+            const { periodStart, periodEnd } =
+              this.resolveNextPaidPeriod(subscription);
+
+            const claimed = await tx.subscriptionPayment.updateMany({
+              where: {
+                id: payment.id,
+                status: 'PENDING',
+              },
+
+              data: {
+                status: 'PAID',
+
+                paidAt: input.paidAt,
+
+                periodStart,
+                periodEnd,
+
+                failedAt: null,
+                cancelledAt: null,
+              },
+            });
+
+            if (claimed.count !== 1) {
+              return {
+                processed: false,
+                reason: 'already_processed',
+                paymentId: payment.id,
+              };
+            }
+
+            /*
+             * Preserve the beginning of the
+             * existing paid subscription while
+             * extending only its ending date.
+             */
+            const subscriptionPeriodStart =
+              subscription.currentPeriodStart ?? periodStart;
+
+            await tx.subscription.update({
+              where: {
+                id: payment.subscriptionId,
+              },
+
+              data: {
+                status: 'ACTIVE',
+
+                currentPeriodStart: subscriptionPeriodStart,
+
+                currentPeriodEnd: periodEnd,
+
+                cancelAtPeriodEnd: false,
+                cancelledAt: null,
+              },
+            });
+
+            return {
+              processed: true,
+
+              paymentId: payment.id,
+
+              status: 'PAID',
+
+              creditedPeriodStart: periodStart,
+
+              creditedPeriodEnd: periodEnd,
+
+              currentPeriodStart: subscriptionPeriodStart,
+
+              currentPeriodEnd: periodEnd,
+            };
+          },
+          {
+            isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          },
+        );
+      } catch (error) {
+        const shouldRetry =
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2034' &&
+          attempt < maxAttempts - 1;
+
+        if (shouldRetry) {
+          continue;
+        }
+
+        throw error;
+      }
+    }
+
+    throw new BadGatewayException('Unable to finalize subscription payment.');
+  }
+
+  async handlePayPalOrderApprovedWebhook(orderId: string) {
+    const payment = await this.prisma.subscriptionPayment.findFirst({
+      where: {
+        provider: 'PAYPAL',
+
+        providerReference: orderId,
+      },
+
+      select: {
+        id: true,
+        organizationId: true,
+        status: true,
+      },
+    });
+
+    if (!payment) {
+      console.warn(
+        '[PayPal Webhook] No SubscriptionPayment for order:',
+        orderId,
+      );
+
+      return {
+        processed: false,
+        reason: 'payment_not_found',
+      };
+    }
+
+    if (payment.status === 'PAID') {
+      return {
+        processed: false,
+        reason: 'already_paid',
+      };
+    }
+
+    /*
+     * Reuse our existing secure capture flow.
+     *
+     * This means even if the customer closes
+     * their browser, webhook can capture it.
+     */
+    return this.capturePayPalOrder(payment.organizationId, orderId);
+  }
+
+  async handlePayPalCaptureCompletedWebhook(input: {
+    orderId: string;
+
+    captureId: string;
+
+    amount: string;
+
+    currency: string;
+
+    paidAt: Date;
+  }) {
+    const payment = await this.prisma.subscriptionPayment.findFirst({
+      where: {
+        provider: 'PAYPAL',
+
+        providerReference: input.orderId,
+      },
+
+      select: {
+        id: true,
+        amount: true,
+        currency: true,
+        status: true,
+      },
+    });
+
+    if (!payment) {
+      console.warn(
+        '[PayPal Webhook] Payment not found for completed capture:',
+        input.orderId,
+      );
+
+      return {
+        processed: false,
+        reason: 'payment_not_found',
+      };
+    }
+
+    if (payment.status === 'PAID') {
+      return {
+        processed: false,
+        reason: 'already_paid',
+        paymentId: payment.id,
+      };
+    }
+
+    /*
+     * Verify amount.
+     */
+    const expectedAmount = new Prisma.Decimal(payment.amount);
+
+    const receivedAmount = new Prisma.Decimal(input.amount);
+
+    if (!expectedAmount.equals(receivedAmount)) {
+      throw new BadGatewayException('PayPal webhook amount does not match.');
+    }
+
+    /*
+     * Verify currency.
+     */
+    if (payment.currency.toUpperCase() !== input.currency.toUpperCase()) {
+      throw new BadGatewayException('PayPal webhook currency does not match.');
+    }
+
+    const result = await this.finalizePaidSubscriptionPayment({
+      paymentId: payment.id,
+
+      paidAt: input.paidAt,
+    });
+
+    return {
+      ...result,
+
+      captureId: input.captureId,
+    };
+  }
+
+  async handlePayPalCaptureDeniedWebhook(orderId: string) {
+    const result = await this.prisma.subscriptionPayment.updateMany({
+      where: {
+        provider: 'PAYPAL',
+
+        providerReference: orderId,
+
+        status: 'PENDING',
+      },
+
+      data: {
+        status: 'FAILED',
+
+        failedAt: new Date(),
+      },
+    });
+
+    return {
+      processed: result.count > 0,
+    };
   }
 
   async getBillingSummary(tenant: TenantContext) {
@@ -206,6 +618,32 @@ export class SubscriptionsBillingService {
 
     const periodEnd = this.addMonths(periodStart, price.periodMonths);
 
+    const reusablePayment = await this.findReusablePendingCheckout({
+      organizationId: organization.id,
+
+      provider: dto.provider,
+
+      amount: price.amount,
+
+      currency: price.currency,
+
+      periodMonths: price.periodMonths,
+    });
+
+    if (reusablePayment) {
+      return {
+        message: 'Existing subscription checkout reused.',
+
+        reused: true,
+
+        payment: {
+          ...reusablePayment,
+
+          amount: reusablePayment.amount.toFixed(2),
+        },
+      };
+    }
+
     const payment = await this.prisma.subscriptionPayment.create({
       data: {
         organizationId: organization.id,
@@ -342,7 +780,65 @@ export class SubscriptionsBillingService {
     }
 
     if (dto.provider === 'PAYPAL') {
-      throw new BadRequestException('PayPal checkout is not available yet.');
+      if (price.currency !== 'USD') {
+        throw new BadRequestException(
+          'PayPal is only available for international USD subscription billing.',
+        );
+      }
+
+      try {
+        const webUrl = this.configService.getOrThrow<string>('WEB_URL');
+
+        const paypal = await this.payPalService.createOrder({
+          paymentId: payment.id,
+
+          organizationName: organization.name,
+
+          amount: payment.amount.toFixed(2),
+
+          currency: 'USD',
+
+          returnUrl: `${webUrl}/settings?tab=subscription&payment=paypal-return`,
+
+          cancelUrl: `${webUrl}/settings?tab=subscription&payment=cancelled`,
+        });
+
+        const updated = await this.prisma.subscriptionPayment.update({
+          where: {
+            id: payment.id,
+          },
+
+          data: {
+            providerReference: paypal.orderId,
+
+            checkoutUrl: paypal.approvalUrl,
+          },
+        });
+
+        return {
+          message: 'Subscription checkout created successfully.',
+
+          payment: {
+            ...updated,
+
+            amount: updated.amount.toFixed(2),
+          },
+        };
+      } catch (error) {
+        await this.prisma.subscriptionPayment.update({
+          where: {
+            id: payment.id,
+          },
+
+          data: {
+            status: 'FAILED',
+
+            failedAt: new Date(),
+          },
+        });
+
+        throw error;
+      }
     }
 
     return {
@@ -514,5 +1010,394 @@ export class SubscriptionsBillingService {
         amount: payment.amount.toFixed(2),
       })),
     };
+  }
+
+  async capturePayPalOrder(organizationId: string, orderId: string) {
+    /*
+     * --------------------------------------------------
+     * 1. Find the QUFO SubscriptionPayment
+     * --------------------------------------------------
+     */
+
+    const payment = await this.prisma.subscriptionPayment.findFirst({
+      where: {
+        organizationId,
+
+        provider: 'PAYPAL',
+
+        providerReference: orderId,
+      },
+
+      select: {
+        id: true,
+
+        subscriptionId: true,
+
+        organizationId: true,
+
+        provider: true,
+
+        providerReference: true,
+
+        amount: true,
+
+        currency: true,
+
+        status: true,
+
+        paidAt: true,
+      },
+    });
+
+    if (!payment) {
+      throw new NotFoundException('PayPal subscription payment not found.');
+    }
+
+    /*
+     * --------------------------------------------------
+     * 2. Idempotency
+     *
+     * If the browser refreshes after payment,
+     * do NOT capture / credit another month.
+     * --------------------------------------------------
+     */
+
+    if (payment.status === 'PAID') {
+      return {
+        processed: false,
+
+        reason: 'already_paid',
+
+        paymentId: payment.id,
+      };
+    }
+
+    if (payment.status !== 'PENDING') {
+      throw new BadRequestException(
+        'This subscription payment cannot be captured.',
+      );
+    }
+
+    /*
+     * --------------------------------------------------
+     * 3. Capture the approved PayPal order
+     * --------------------------------------------------
+     */
+
+    const capture = await this.payPalService.captureOrder(orderId, payment.id);
+
+    if (capture.status !== 'COMPLETED') {
+      throw new BadGatewayException(
+        `PayPal capture was not completed. Status: ${capture.status}`,
+      );
+    }
+
+    /*
+     * --------------------------------------------------
+     * 4. Find the completed capture
+     * --------------------------------------------------
+     */
+
+    const purchaseUnit = capture.purchase_units?.find(
+      (unit) => unit.reference_id === payment.id,
+    );
+
+    if (!purchaseUnit) {
+      throw new BadGatewayException(
+        'PayPal purchase unit does not match the subscription payment.',
+      );
+    }
+
+    const capturedPayment = purchaseUnit.payments?.captures?.find(
+      (item) => item.status === 'COMPLETED',
+    );
+
+    if (!capturedPayment) {
+      throw new BadGatewayException('Completed PayPal capture was not found.');
+    }
+
+    /*
+     * --------------------------------------------------
+     * 5. Verify captured amount + currency
+     *
+     * Never trust payment amount from browser.
+     * Compare PayPal against QUFO's stored record.
+     * --------------------------------------------------
+     */
+
+    const capturedAmount = capturedPayment.amount;
+
+    if (!capturedAmount) {
+      throw new BadGatewayException('PayPal capture amount is missing.');
+    }
+
+    if (
+      capturedAmount.currency_code.toUpperCase() !==
+      payment.currency.toUpperCase()
+    ) {
+      throw new BadGatewayException('PayPal capture currency does not match.');
+    }
+
+    const expectedAmount = new Prisma.Decimal(payment.amount);
+
+    const actualAmount = new Prisma.Decimal(capturedAmount.value);
+
+    if (!expectedAmount.equals(actualAmount)) {
+      throw new BadGatewayException('PayPal capture amount does not match.');
+    }
+
+    /*
+     * --------------------------------------------------
+     * 6. Resolve actual PayPal paid timestamp
+     * --------------------------------------------------
+     */
+
+    const paidAtValue =
+      capturedPayment.update_time ?? capturedPayment.create_time;
+
+    const paidAt = paidAtValue ? new Date(paidAtValue) : new Date();
+
+    /*
+     * --------------------------------------------------
+     * 7. Finalize payment + subscription
+     *
+     * IMPORTANT:
+     *
+     * We calculate the subscription period HERE,
+     * not when the checkout was created.
+     *
+     * Therefore:
+     *
+     * Payment #1
+     * Sep 25 → Oct 25
+     *
+     * Payment #2
+     * Oct 25 → Nov 25
+     *
+     * Payment #3
+     * Nov 25 → Dec 25
+     *
+     * even if those checkout rows were originally
+     * created with an older/stale period.
+     * --------------------------------------------------
+     */
+
+    const maxAttempts = 3;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      try {
+        return await this.prisma.$transaction(
+          async (tx) => {
+            /*
+             * Re-read payment INSIDE transaction.
+             *
+             * Another request may already have
+             * processed it after our initial query.
+             */
+            const latestPayment = await tx.subscriptionPayment.findUnique({
+              where: {
+                id: payment.id,
+              },
+
+              select: {
+                id: true,
+
+                subscriptionId: true,
+
+                status: true,
+              },
+            });
+
+            if (!latestPayment) {
+              throw new NotFoundException('Subscription payment not found.');
+            }
+
+            if (latestPayment.status === 'PAID') {
+              return {
+                processed: false,
+
+                reason: 'already_paid',
+
+                paymentId: latestPayment.id,
+              };
+            }
+
+            if (latestPayment.status !== 'PENDING') {
+              throw new BadRequestException(
+                'This subscription payment can no longer be processed.',
+              );
+            }
+
+            /*
+             * Read the LATEST subscription state.
+             *
+             * This is what fixes the multiple-renewal bug.
+             */
+            const subscription = await tx.subscription.findUnique({
+              where: {
+                id: latestPayment.subscriptionId,
+              },
+
+              select: {
+                id: true,
+
+                status: true,
+
+                trialEndsAt: true,
+
+                currentPeriodStart: true,
+
+                currentPeriodEnd: true,
+              },
+            });
+
+            if (!subscription) {
+              throw new NotFoundException('Subscription not found.');
+            }
+
+            /*
+             * Determine where THIS paid month
+             * should actually begin.
+             */
+            const { periodStart, periodEnd } =
+              this.resolveNextPaidPeriod(subscription);
+
+            /*
+             * Claim this payment.
+             *
+             * Only a PENDING row can become PAID.
+             */
+            const claimedPayment = await tx.subscriptionPayment.updateMany({
+              where: {
+                id: latestPayment.id,
+
+                status: 'PENDING',
+              },
+
+              data: {
+                status: 'PAID',
+
+                paidAt,
+
+                /*
+                 * Replace stale reserved period
+                 * with the ACTUAL credited period.
+                 */
+                periodStart,
+
+                periodEnd,
+
+                failedAt: null,
+
+                cancelledAt: null,
+              },
+            });
+
+            if (claimedPayment.count !== 1) {
+              return {
+                processed: false,
+
+                reason: 'already_processed',
+
+                paymentId: latestPayment.id,
+              };
+            }
+
+            /*
+             * Keep the ORIGINAL paid-period start
+             * if there is already an active paid
+             * subscription.
+             *
+             * Example:
+             *
+             * Existing:
+             * Sep 25 → Oct 25
+             *
+             * Renew:
+             * Oct 25 → Nov 25
+             *
+             * Subscription becomes:
+             * currentPeriodStart = Sep 25
+             * currentPeriodEnd   = Nov 25
+             *
+             * This is more accurate than changing
+             * currentPeriodStart to Oct 25.
+             */
+            const subscriptionPeriodStart =
+              subscription.currentPeriodStart ?? periodStart;
+
+            await tx.subscription.update({
+              where: {
+                id: latestPayment.subscriptionId,
+              },
+
+              data: {
+                status: 'ACTIVE',
+
+                currentPeriodStart: subscriptionPeriodStart,
+
+                currentPeriodEnd: periodEnd,
+
+                cancelAtPeriodEnd: false,
+
+                cancelledAt: null,
+              },
+            });
+
+            return {
+              processed: true,
+
+              paymentId: latestPayment.id,
+
+              status: 'PAID',
+
+              captureId: capturedPayment.id,
+
+              paidAt,
+
+              creditedPeriodStart: periodStart,
+
+              creditedPeriodEnd: periodEnd,
+
+              currentPeriodStart: subscriptionPeriodStart,
+
+              currentPeriodEnd: periodEnd,
+            };
+          },
+
+          /*
+           * Prevent two simultaneous successful
+           * renewals from reading the same
+           * currentPeriodEnd and crediting the
+           * same month.
+           */
+          {
+            isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          },
+        );
+      } catch (error) {
+        /*
+         * Prisma P2034 =
+         * transaction conflict / deadlock.
+         *
+         * Retry because another renewal may
+         * have extended the subscription first.
+         */
+        const shouldRetry =
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2034' &&
+          attempt < maxAttempts - 1;
+
+        if (shouldRetry) {
+          continue;
+        }
+
+        throw error;
+      }
+    }
+
+    throw new BadGatewayException(
+      'Unable to finalize PayPal subscription payment.',
+    );
   }
 }

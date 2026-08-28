@@ -14,6 +14,7 @@ import type { TenantContext } from '../auth/types/tenant-context.type';
 
 import { SubscriptionsBillingService } from './subscriptions-billing.service';
 import { CreateSubscriptionCheckoutDto } from './dto/create-subscription-checkout.dto';
+import { CapturePayPalOrderDto } from './dto/capture-paypal-order.dto';
 
 @Controller('subscriptions/billing')
 @UseGuards(AuthGuard, TenantGuard, RolesGuard)
@@ -47,5 +48,19 @@ export class SubscriptionsBillingController {
     tenant: TenantContext,
   ) {
     return this.billingService.getPaymentHistory(tenant.organizationId);
+  }
+
+  @Post('paypal/capture')
+  async capturePayPal(
+    @CurrentTenant()
+    tenant: TenantContext,
+
+    @Body()
+    dto: CapturePayPalOrderDto,
+  ) {
+    return this.billingService.capturePayPalOrder(
+      tenant.organizationId,
+      dto.orderId,
+    );
   }
 }

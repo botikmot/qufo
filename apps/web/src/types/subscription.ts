@@ -201,3 +201,14 @@ export type SubscriptionPaymentHistoryResponse = {
   payments:
     SubscriptionPaymentHistoryItem[];
 };
+
+export type CapturePayPalSubscriptionResponse = {
+  processed: boolean;
+  reason?: string;
+  paymentId: string;
+  status?: "PAID";
+  captureId?: string;
+  paidAt?: string;
+  currentPeriodStart?: string;
+  currentPeriodEnd?: string;
+};

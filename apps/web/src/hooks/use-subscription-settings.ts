@@ -50,6 +50,11 @@ export function useSubscriptionSettings() {
       "payment",
     );
 
+  const paypalOrderId =
+    searchParams.get(
+      "token",
+    );
+
   const [
     billing,
     setBilling,
@@ -91,6 +96,12 @@ export function useSubscriptionSettings() {
     useState<string | null>(
       null,
     );
+
+  const [
+    paypalCaptureDone,
+    setPaypalCaptureDone,
+  ] =
+    useState(false);
 
   /*
    * Silent refresh.
@@ -353,12 +364,122 @@ export function useSubscriptionSettings() {
     };
   }, [paymentResult]);
 
+  useEffect(() => {
+    if (
+      paymentResult !==
+        "paypal-return" ||
+      !paypalOrderId
+    ) {
+      return;
+    }
+
+    let cancelled =
+      false;
+
+    async function capturePayPal() {
+      try {
+        /*
+        * First async work happens before
+        * any state mutation, avoiding the
+        * set-state-in-effect lint issue.
+        */
+        await settingsService.capturePayPalSubscription(
+          paypalOrderId!,
+        );
+
+        if (cancelled) {
+          return;
+        }
+
+        const [
+          billingResponse,
+          paymentsResponse,
+        ] =
+          await Promise.all([
+            settingsService.getSubscriptionBilling(),
+
+            settingsService.getSubscriptionPayments(),
+          ]);
+
+        if (cancelled) {
+          return;
+        }
+
+        setBilling(
+          billingResponse,
+        );
+
+        setPayments(
+          paymentsResponse.payments,
+        );
+
+        setError(
+          null,
+        );
+
+        setPaypalCaptureDone(
+          true,
+        );
+
+        /*
+        * Remove PayPal token from URL.
+        * Prevents unnecessary capture
+        * attempt after page refresh.
+        */
+        window.history.replaceState(
+          null,
+          "",
+          "/settings?tab=subscription&payment=success",
+        );
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        setError(
+          getErrorMessage(
+            error,
+            "Unable to complete PayPal payment.",
+          ),
+        );
+
+        setPaypalCaptureDone(
+          true,
+        );
+      }
+    }
+
+    void capturePayPal();
+
+    return () => {
+      cancelled =
+        true;
+    };
+  }, [
+    paymentResult,
+    paypalOrderId,
+  ]);
+
+  const confirmingPayMongo =
+    paymentResult ===
+      "success" &&
+    !paymentCheckDone;
+
+  const confirmingPayPal =
+    paymentResult ===
+      "paypal-return" &&
+    !paypalCaptureDone;
+
   const confirmingPayment =
+    confirmingPayMongo ||
+    confirmingPayPal;
+
+  /* const confirmingPayment =
     paymentResult ===
       "success" &&
     !paymentCheckDone &&
     billing?.effectiveStatus !==
-      "ACTIVE";
+      "ACTIVE"; */
 
   return {
     billing,

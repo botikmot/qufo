@@ -14,7 +14,13 @@ import type {
   RemoveProfilePhotoResponse,
 } from "@/types/settings";
 
-import type { SubscriptionSettings, SubscriptionBillingSummary, SubscriptionCheckoutResponse, SubscriptionPaymentHistoryResponse } from "@/types/subscription";
+import type { 
+  SubscriptionSettings, 
+  SubscriptionBillingSummary, 
+  SubscriptionCheckoutResponse, 
+  SubscriptionPaymentHistoryResponse,
+  CapturePayPalSubscriptionResponse,
+} from "@/types/subscription";
 
 export const settingsService = {
   getBusiness() {
@@ -133,6 +139,21 @@ export const settingsService = {
   async getSubscriptionPayments() {
     return apiFetch<SubscriptionPaymentHistoryResponse>(
       "/subscriptions/billing/payments",
+    );
+  },
+
+  async capturePayPalSubscription(
+    orderId: string,
+  ) {
+    return apiFetch<CapturePayPalSubscriptionResponse>(
+      "/subscriptions/billing/paypal/capture",
+      {
+        method: "POST",
+
+        body: JSON.stringify({
+          orderId,
+        }),
+      },
     );
   },
 
