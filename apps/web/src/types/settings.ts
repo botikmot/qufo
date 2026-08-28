@@ -69,6 +69,11 @@ export type ProfileSettings = {
 
   createdAt?: string;
   updatedAt: string;
+
+  security: {
+    hasPassword: boolean;
+    googleLinked: boolean;
+  };
 };
 
 export type UpdateProfileSettingsData = {

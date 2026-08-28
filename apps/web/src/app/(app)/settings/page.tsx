@@ -312,7 +312,18 @@ export default function SettingsPage() {
                 />
               </div>
 
-              <ChangePasswordForm />
+              {profile.profile && (
+                <ChangePasswordForm
+                  hasPassword={
+                    profile.profile.security
+                      .hasPassword
+                  }
+                  googleLinked={
+                    profile.profile.security
+                      .googleLinked
+                  }
+                />
+              )}
             </div>
           ) : (
             <div className="rounded-2xl border border-red-400/15 bg-red-400/[0.05] p-5 text-sm text-red-300">

@@ -9,6 +9,7 @@ import { TenantGuard } from './guards/tenant.guard';
 import { SubscriptionGuard } from './guards/subscription.guard';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { PlatformAdminGuard } from './guards/platform-admin.guard';
+import { GoogleAuthService } from './google-auth.service';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { PlatformAdminGuard } from './guards/platform-admin.guard';
     RolesGuard,
     SubscriptionGuard,
     PlatformAdminGuard,
+    GoogleAuthService,
   ],
   exports: [
     AuthService,

@@ -6,7 +6,6 @@ import {
 } from "react";
 
 import {
-  Camera,
   LoaderCircle,
   Mail,
   Phone,

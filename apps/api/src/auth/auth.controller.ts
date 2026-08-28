@@ -23,6 +23,8 @@ import { RolesGuard } from './guards/roles.guard';
 import { TenantGuard } from './guards/tenant.guard';
 import type { TenantContext } from './types/tenant-context.type';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
+import { GoogleLoginDto } from './dto/google-login.dto';
+import { CompleteGoogleRegistrationDto } from './dto/complete-google-registration.dto';
 
 type AuthenticatedRequest = Request & {
   user: JwtPayload;
@@ -182,5 +184,21 @@ export class AuthController {
     return {
       message: 'Logged out successfully.',
     };
+  }
+
+  @Post('google')
+  googleLogin(
+    @Body()
+    dto: GoogleLoginDto,
+  ) {
+    return this.authService.googleLogin(dto);
+  }
+
+  @Post('google/complete')
+  completeGoogleRegistration(
+    @Body()
+    dto: CompleteGoogleRegistrationDto,
+  ) {
+    return this.authService.completeGoogleRegistration(dto);
   }
 }

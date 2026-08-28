@@ -151,10 +151,15 @@ export class SettingsService {
         phone: true,
         avatarUrl: true,
         status: true,
+
         emailVerifiedAt: true,
         lastLoginAt: true,
         createdAt: true,
         updatedAt: true,
+
+        // Internal use only.
+        passwordHash: true,
+        googleId: true,
       },
     });
 
@@ -162,11 +167,21 @@ export class SettingsService {
       throw new NotFoundException('User profile not found.');
     }
 
-    return profile;
+    const { passwordHash, googleId, ...safeProfile } = profile;
+
+    return {
+      ...safeProfile,
+
+      security: {
+        hasPassword: Boolean(passwordHash),
+
+        googleLinked: Boolean(googleId),
+      },
+    };
   }
 
   async updateProfileSettings(user: JwtPayload, dto: UpdateProfileSettingsDto) {
-    const profile = await this.prisma.user.update({
+    await this.prisma.user.update({
       where: {
         id: user.sub,
       },
@@ -184,19 +199,9 @@ export class SettingsService {
           avatarUrl: dto.avatarUrl.trim() || null,
         }),
       },
-
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        avatarUrl: true,
-        status: true,
-        emailVerifiedAt: true,
-        lastLoginAt: true,
-        updatedAt: true,
-      },
     });
+
+    const profile = await this.getProfileSettings(user);
 
     return {
       message: 'Profile updated successfully.',
@@ -252,7 +257,13 @@ export class SettingsService {
       throw new NotFoundException('User account not found.');
     }
 
-    const currentPasswordMatches = await bcrypt.compare(
+    if (!account.passwordHash) {
+      throw new BadRequestException(
+        'This account uses Google sign-in and does not have a password yet.',
+      );
+    }
+
+    const currentPasswordMatches: boolean = await bcrypt.compare(
       dto.currentPassword,
       account.passwordHash,
     );
@@ -261,7 +272,7 @@ export class SettingsService {
       throw new BadRequestException('Current password is incorrect.');
     }
 
-    const sameAsCurrentPassword = await bcrypt.compare(
+    const sameAsCurrentPassword: boolean = await bcrypt.compare(
       dto.newPassword,
       account.passwordHash,
     );

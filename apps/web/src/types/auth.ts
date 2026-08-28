@@ -52,3 +52,24 @@ export type AuthSession = {
   organization:
     LoginOrganization;
 };
+
+export type GoogleProfile = {
+  name: string;
+  email: string;
+  picture: string | null;
+};
+
+export type GoogleOnboardingResponse = {
+  requiresOnboarding: true;
+
+  profile: GoogleProfile;
+};
+
+export type GoogleSessionResponse =
+  LoginResponse & {
+    requiresOnboarding: false;
+  };
+
+export type GoogleAuthResponse =
+  | GoogleOnboardingResponse
+  | GoogleSessionResponse;

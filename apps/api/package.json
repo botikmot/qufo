@@ -39,6 +39,7 @@
     "class-validator": "^0.15.1",
     "cloudinary": "^2.10.1",
     "cookie-parser": "^1.4.7",
+    "google-auth-library": "^11.0.2",
     "nodemailer": "^9.0.5",
     "pg": "^8.23.0",
     "prisma": "^7.9.1",

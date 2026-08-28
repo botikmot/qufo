@@ -13,6 +13,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 import type { LoginResponse } from "@/types/auth";
+import { GoogleContinueButton } from "@/components/shared/google-continue-button";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -108,6 +109,20 @@ export default function LoginPage() {
             jobs, customers, tracking,
             and payments.
           </p>
+        </div>
+
+        <GoogleContinueButton
+          onError={setError}
+        />
+
+        <div className="my-6 flex items-center gap-4">
+          <div className="h-px flex-1 bg-white/[0.07]" />
+
+          <span className="text-xs uppercase tracking-[0.2em] text-slate-600">
+            or
+          </span>
+
+          <div className="h-px flex-1 bg-white/[0.07]" />
         </div>
 
         <form

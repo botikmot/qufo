@@ -34,6 +34,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { GoogleContinueButton } from "@/components/shared/google-continue-button";
+
 type RegisterResponse = {
   message: string;
 
@@ -282,6 +284,10 @@ export default function RegisterPage() {
               </p>
             </div>
           </div>
+
+          <GoogleContinueButton
+            onError={setError}
+          />
 
           <form
             onSubmit={handleSubmit}

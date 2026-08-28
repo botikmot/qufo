@@ -7,6 +7,8 @@ import type {
   AppShellUser,
 } from "@/types/app-shell";
 
+import { UserAvatar } from "@/components/ui/user-avatar";
+
 type AppUserSummaryProps = {
   user: AppShellUser;
 
@@ -22,17 +24,13 @@ export function AppUserSummary({
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3 rounded-xl border border-[var(--qufo-border)] bg-black/10 p-3">
-        {user.avatarUrl ? (
-          <img
-            src={user.avatarUrl}
-            alt={user.name}
-            className="size-9 rounded-xl object-cover"
-          />
-        ) : (
-          <div className="flex size-9 items-center justify-center rounded-xl bg-cyan-400/[0.08] text-cyan-300">
-            <UserRound size={16} />
-          </div>
-        )}
+
+        <UserAvatar
+          name={user.name}
+          email={user.email}
+          avatarUrl={user.avatarUrl}
+          size="md"
+        />
 
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-slate-300">

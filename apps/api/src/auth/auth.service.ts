@@ -15,12 +15,16 @@ import { createHash, randomBytes } from 'node:crypto';
 import { LegalConsentType } from '../generated/prisma/enums';
 
 import { LEGAL_VERSIONS } from '../common/constants/legal.constants';
+import { GoogleAuthService } from './google-auth.service';
+import { GoogleLoginDto } from './dto/google-login.dto';
+import { CompleteGoogleRegistrationDto } from './dto/complete-google-registration.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly googleAuthService: GoogleAuthService,
   ) {}
 
   private readonly REFRESH_TOKEN_DAYS = 30;
@@ -55,6 +59,97 @@ export class AuthService {
     });
 
     return refreshToken;
+  }
+
+  private async createLoginSession(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+
+      include: {
+        memberships: {
+          where: {
+            isActive: true,
+          },
+
+          include: {
+            organization: {
+              include: {
+                subscription: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Account not found.');
+    }
+
+    if (user.status !== 'ACTIVE') {
+      throw new UnauthorizedException('Your account is currently unavailable.');
+    }
+
+    const payload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+    };
+
+    const accessToken = await this.jwtService.signAsync(payload);
+
+    const refreshToken = await this.createRefreshSession(user.id);
+
+    await this.prisma.user.update({
+      where: {
+        id: user.id,
+      },
+
+      data: {
+        lastLoginAt: new Date(),
+      },
+    });
+
+    return {
+      accessToken,
+      refreshToken,
+
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        avatarUrl: user.avatarUrl,
+        platformRole: user.platformRole,
+      },
+
+      organizations: user.memberships.map((membership) => ({
+        id: membership.organization.id,
+
+        name: membership.organization.name,
+
+        slug: membership.organization.slug,
+
+        countryCode: membership.organization.countryCode,
+
+        currency: membership.organization.currency,
+
+        role: membership.role,
+
+        subscription: membership.organization.subscription
+          ? {
+              plan: membership.organization.subscription.plan,
+
+              status: membership.organization.subscription.status,
+
+              trialEndsAt: membership.organization.subscription.trialEndsAt,
+
+              currentPeriodEnd:
+                membership.organization.subscription.currentPeriodEnd,
+            }
+          : null,
+      })),
+    };
   }
 
   async register(dto: RegisterDto) {
@@ -210,24 +305,13 @@ export class AuthService {
         email,
       },
 
-      include: {
-        memberships: {
-          where: {
-            isActive: true,
-          },
-
-          include: {
-            organization: {
-              include: {
-                subscription: true,
-              },
-            },
-          },
-        },
+      select: {
+        id: true,
+        passwordHash: true,
       },
     });
 
-    if (!user) {
+    if (!user || !user.passwordHash) {
       throw new UnauthorizedException('Invalid email or password.');
     }
 
@@ -240,65 +324,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password.');
     }
 
-    if (user.status !== 'ACTIVE') {
-      throw new UnauthorizedException('Your account is currently unavailable.');
-    }
-
-    const payload: JwtPayload = {
-      sub: user.id,
-      email: user.email,
-    };
-
-    const accessToken = await this.jwtService.signAsync(payload);
-
-    const refreshToken = await this.createRefreshSession(user.id);
-
-    await this.prisma.user.update({
-      where: {
-        id: user.id,
-      },
-
-      data: {
-        lastLoginAt: new Date(),
-      },
-    });
-
-    return {
-      accessToken,
-      refreshToken,
-
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        avatarUrl: user.avatarUrl,
-        platformRole: user.platformRole,
-      },
-
-      organizations: user.memberships.map((membership) => ({
-        id: membership.organization.id,
-        name: membership.organization.name,
-        slug: membership.organization.slug,
-
-        countryCode: membership.organization.countryCode,
-        currency: membership.organization.currency,
-
-        role: membership.role,
-
-        subscription: membership.organization.subscription
-          ? {
-              plan: membership.organization.subscription.plan,
-
-              status: membership.organization.subscription.status,
-
-              trialEndsAt: membership.organization.subscription.trialEndsAt,
-
-              currentPeriodEnd:
-                membership.organization.subscription.currentPeriodEnd,
-            }
-          : null,
-      })),
-    };
+    return this.createLoginSession(user.id);
   }
 
   private async generateUniqueOrganizationSlug(businessName: string) {
@@ -414,5 +440,273 @@ export class AuthService {
         revokedAt: new Date(),
       },
     });
+  }
+
+  async googleLogin(dto: GoogleLoginDto) {
+    const google = await this.googleAuthService.verifyCredential(
+      dto.credential,
+    );
+
+    /*
+     * First try the permanent
+     * Google subject identifier.
+     */
+    let user = await this.prisma.user.findUnique({
+      where: {
+        googleId: google.googleId,
+      },
+      select: {
+        id: true,
+        googleId: true,
+        email: true,
+        avatarUrl: true,
+        status: true,
+      },
+    });
+
+    /*
+     * If Google was never linked,
+     * look for an existing QUFO
+     * account with the verified
+     * Google email.
+     */
+    if (!user) {
+      const existingByEmail = await this.prisma.user.findUnique({
+        where: {
+          email: google.email,
+        },
+
+        select: {
+          id: true,
+          googleId: true,
+          email: true,
+          avatarUrl: true,
+          status: true,
+        },
+      });
+
+      if (existingByEmail) {
+        /*
+         * Don't silently replace an
+         * existing different Google ID.
+         */
+        if (
+          existingByEmail.googleId &&
+          existingByEmail.googleId !== google.googleId
+        ) {
+          throw new ConflictException(
+            'This account is already linked to another Google account.',
+          );
+        }
+
+        user = await this.prisma.user.update({
+          where: {
+            id: existingByEmail.id,
+          },
+
+          data: {
+            googleId: google.googleId,
+
+            emailVerifiedAt: new Date(),
+
+            avatarUrl: existingByEmail.avatarUrl ?? google.picture,
+          },
+
+          select: {
+            id: true,
+            googleId: true,
+            email: true,
+            avatarUrl: true,
+            status: true,
+          },
+        });
+      }
+    }
+
+    /*
+     * Brand-new Google user:
+     * do NOT create anything yet.
+     *
+     * Send them to workspace
+     * onboarding first.
+     */
+    if (!user) {
+      return {
+        requiresOnboarding: true,
+
+        profile: {
+          name: google.name,
+
+          email: google.email,
+
+          picture: google.picture,
+        },
+      };
+    }
+
+    if (user.status !== 'ACTIVE') {
+      throw new UnauthorizedException('Your account is currently unavailable.');
+    }
+
+    const session = await this.createLoginSession(user.id);
+
+    return {
+      requiresOnboarding: false,
+
+      ...session,
+    };
+  }
+
+  async completeGoogleRegistration(dto: CompleteGoogleRegistrationDto) {
+    const google = await this.googleAuthService.verifyCredential(
+      dto.credential,
+    );
+
+    if (!dto.acceptedTerms) {
+      throw new BadRequestException(
+        'You must accept the Terms of Service and acknowledge the Privacy Policy.',
+      );
+    }
+
+    const businessName = dto.businessName.trim();
+
+    const countryCode = dto.countryCode.trim().toUpperCase();
+
+    const currency = dto.currency.trim().toUpperCase();
+
+    /*
+     * Protect against duplicate /
+     * double submission.
+     */
+    const existingUser = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          {
+            googleId: google.googleId,
+          },
+          {
+            email: google.email,
+          },
+        ],
+      },
+
+      select: {
+        id: true,
+      },
+    });
+
+    if (existingUser) {
+      /*
+       * Useful if user double-clicked
+       * or request was retried.
+       */
+      return {
+        requiresOnboarding: false,
+
+        ...(await this.createLoginSession(existingUser.id)),
+      };
+    }
+
+    const slug = await this.generateUniqueOrganizationSlug(businessName);
+
+    const trialStartedAt = new Date();
+
+    const trialEndsAt = new Date(
+      trialStartedAt.getTime() + 30 * 24 * 60 * 60 * 1000,
+    );
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          name: google.name,
+
+          email: google.email,
+
+          googleId: google.googleId,
+
+          emailVerifiedAt: new Date(),
+
+          avatarUrl: google.picture,
+        },
+
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      });
+
+      const organization = await tx.organization.create({
+        data: {
+          name: businessName,
+
+          slug,
+
+          businessType: dto.businessType?.trim() || null,
+
+          countryCode,
+          currency,
+
+          sequence: {
+            create: {},
+          },
+
+          memberships: {
+            create: {
+              userId: user.id,
+
+              role: 'OWNER',
+            },
+          },
+
+          subscription: {
+            create: {
+              plan: 'STANDARD',
+
+              status: 'TRIALING',
+
+              trialStartedAt,
+              trialEndsAt,
+            },
+          },
+        },
+
+        select: {
+          id: true,
+        },
+      });
+
+      await tx.legalConsent.createMany({
+        data: [
+          {
+            userId: user.id,
+
+            type: LegalConsentType.TERMS_OF_SERVICE,
+
+            version: LEGAL_VERSIONS.TERMS_OF_SERVICE,
+          },
+          {
+            userId: user.id,
+
+            type: LegalConsentType.PRIVACY_POLICY,
+
+            version: LEGAL_VERSIONS.PRIVACY_POLICY,
+          },
+        ],
+      });
+
+      return {
+        user,
+        organization,
+      };
+    });
+
+    const session = await this.createLoginSession(result.user.id);
+
+    return {
+      requiresOnboarding: false,
+
+      ...session,
+    };
   }
 }

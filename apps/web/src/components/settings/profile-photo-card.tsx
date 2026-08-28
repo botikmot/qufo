@@ -22,6 +22,8 @@ import {
   settingsService,
 } from "@/services/settings.service";
 
+import { UserAvatar } from "@/components/ui/user-avatar";
+
 type ProfilePhotoCardProps = {
   profile: ProfileSettings;
 };
@@ -161,18 +163,13 @@ export function ProfilePhotoCard({
 
       <div className="flex flex-col items-center p-6 text-center">
         <div className="flex size-32 items-center justify-center overflow-hidden rounded-3xl border border-[var(--qufo-border)] bg-slate-950/40">
-          {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt={profile.name}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <UserRound
-              size={40}
-              className="text-slate-600"
-            />
-          )}
+
+           <UserAvatar
+            name={profile.name}
+            email={profile.email}
+            avatarUrl={avatarUrl}
+            size="xl"
+          />
         </div>
 
         <input
