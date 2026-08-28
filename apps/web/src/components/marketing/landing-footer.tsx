@@ -1,6 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
 
+import { FazierBadge } from "@/components/marketing/fazier-badge";
+
 export function LandingFooter() {
   return (
     <footer className="border-t border-white/[0.06] bg-[#040b14]">
@@ -127,6 +129,7 @@ export function LandingFooter() {
           <p>© {new Date().getFullYear()} QUFO. All rights reserved.</p>
 
           <p>Quick Flow for your business.</p>
+          <FazierBadge />
         </div>
       </div>
     </footer>
