@@ -132,8 +132,6 @@ export class PayMongoWebhookController {
       throw new UnauthorizedException('Invalid PayMongo webhook signature.');
     }
 
-    console.log('[PayMongo Webhook] Signature valid.');
-
     /*
      * --------------------------------------------
      * 4. Parse payload
@@ -149,11 +147,6 @@ export class PayMongoWebhookController {
 
       throw new BadRequestException('Invalid PayMongo webhook payload.');
     }
-
-    console.log(
-      '[PayMongo Webhook] Payload:',
-      JSON.stringify(payload, null, 2),
-    );
 
     /*
      * --------------------------------------------
@@ -175,8 +168,6 @@ export class PayMongoWebhookController {
 
     const checkout = payload.data?.attributes?.data ?? null;
 
-    console.log('[PayMongo Webhook] Event type:', eventType);
-
     /*
      * --------------------------------------------
      * 6. Ignore unsupported events
@@ -184,8 +175,6 @@ export class PayMongoWebhookController {
      */
 
     if (eventType !== 'checkout_session.payment.paid') {
-      console.log('[PayMongo Webhook] Event ignored:', eventType);
-
       return {
         received: true,
         ignored: true,
@@ -206,17 +195,6 @@ export class PayMongoWebhookController {
      */
 
     const attributes = checkout.attributes;
-
-    console.log('[PayMongo Webhook] Checkout session:', checkout.id);
-
-    console.log(
-      '[PayMongo Webhook] Reference number:',
-      attributes.reference_number,
-    );
-
-    console.log('[PayMongo Webhook] Metadata:', attributes.metadata);
-
-    console.log('[PayMongo Webhook] paid_at:', attributes.paid_at);
 
     /*
      * --------------------------------------------
@@ -239,11 +217,6 @@ export class PayMongoWebhookController {
         'Subscription payment reference is missing.',
       );
     }
-
-    console.log(
-      '[PayMongo Webhook] SubscriptionPayment ID:',
-      subscriptionPaymentId,
-    );
 
     /*
      * --------------------------------------------
@@ -280,15 +253,11 @@ export class PayMongoWebhookController {
 
     const paidAt = paidAtUnix ? new Date(paidAtUnix * 1000) : new Date();
 
-    console.log('[PayMongo Webhook] Paid at:', paidAt.toISOString());
-
     /*
      * --------------------------------------------
      * 11. Update QUFO subscription
      * --------------------------------------------
      */
-
-    console.log('[PayMongo Webhook] Processing payment...');
 
     const result =
       await this.subscriptionsBillingService.handlePayMongoPaidWebhook({
@@ -298,8 +267,6 @@ export class PayMongoWebhookController {
 
         paidAt,
       });
-
-    console.log('[PayMongo Webhook] Successfully processed:', result);
 
     /*
      * --------------------------------------------

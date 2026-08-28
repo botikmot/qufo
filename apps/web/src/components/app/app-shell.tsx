@@ -100,7 +100,6 @@ export function AppShell({
     );
   }
 
-  console.log('session::', session)
 
   const shellUser = {
     name:

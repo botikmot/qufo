@@ -125,7 +125,6 @@ export function SubscriptionSettingsCard({
       .join(" ");
   }
 
-  console.log('daysRemaining:', billing)
 
   return (
     <div className="space-y-4">

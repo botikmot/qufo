@@ -18,8 +18,7 @@ export function AppUserSummary({
   onLogout,
 }: AppUserSummaryProps) {
 
-  console.log('user::', user)
-
+ 
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3 rounded-xl border border-[var(--qufo-border)] bg-black/10 p-3">

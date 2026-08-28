@@ -45,11 +45,6 @@ export function useDashboard() {
           return;
         }
 
-        console.log(
-          "QUFO DASHBOARD RESPONSE:",
-          data,
-        );
-
         setDashboard(data);
       })
       .catch(
