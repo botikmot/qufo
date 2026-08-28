@@ -10,6 +10,8 @@ export type BusinessSettings = {
   phone: string | null;
   address: string | null;
   logoUrl: string | null;
+  quotationTerms: string | null;
+  quotationFooterNote: string | null;
 
   countryCode: string | null;
 
@@ -29,6 +31,8 @@ export type UpdateBusinessSettingsData = {
   email?: string;
   phone?: string;
   address?: string;
+  quotationTerms?: string | null;
+  quotationFooterNote?: string | null;
 
   countryCode?: string;
   currency?: string;

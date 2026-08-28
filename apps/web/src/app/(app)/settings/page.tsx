@@ -247,6 +247,12 @@ export default function SettingsPage() {
               saving={
                 business.saving
               }
+              uploadingLogo={
+                business.uploadingLogo
+              }
+              removingLogo={
+                business.removingLogo
+              }
               error={
                 business.error
               }
@@ -255,6 +261,12 @@ export default function SettingsPage() {
               }
               onSave={
                 business.update
+              }
+              onUploadLogo={
+                business.uploadLogo
+              }
+              onRemoveLogo={
+                business.removeLogo
               }
             />
           ) : (

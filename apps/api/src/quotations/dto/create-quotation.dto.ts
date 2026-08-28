@@ -54,6 +54,11 @@ export class CreateQuotationDto {
   @MaxLength(5000)
   terms?: string;
 
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  footerNote?: string;
+
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({

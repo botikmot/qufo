@@ -157,4 +157,25 @@ export const settingsService = {
     );
   },
 
+  async uploadBusinessLogo(file: File) {
+    const formData = new FormData();
+
+    formData.append("file", file);
+
+    return apiFetch<{
+      logoUrl: string | null;
+    }>("/settings/business/logo", {
+      method: "PATCH",
+      body: formData,
+    });
+  },
+
+  async removeBusinessLogo() {
+    return apiFetch<{
+      removed: boolean;
+    }>("/settings/business/logo", {
+      method: "DELETE",
+    });
+  },
+
 };

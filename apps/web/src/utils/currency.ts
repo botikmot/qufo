@@ -40,3 +40,22 @@ export function formatCurrency(
       : 0,
   );
 }
+
+export function formatPdfCurrency(
+  amount: string | number,
+  currency: string,
+) {
+  const numericAmount =
+    typeof amount === "number"
+      ? amount
+      : Number(amount);
+
+  const safeAmount = Number.isFinite(numericAmount)
+    ? numericAmount
+    : 0;
+
+  return `${currency} ${safeAmount.toLocaleString("en-PH", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}

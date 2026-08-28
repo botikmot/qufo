@@ -29,6 +29,10 @@ import {
 } from "@/components/quotations/quotation-notes-terms";
 
 import {
+  QuotationPdfActions,
+} from "@/components/quotations/pdf/quotation-pdf-actions";
+
+import {
   QuotationSendResult,
 } from "@/components/quotations/quotation-send-result";
 
@@ -37,11 +41,11 @@ import {
 } from "@/components/ui/qufo-modal";
 
 import type {
-  Quotation,
+  QuotationDetail,
 } from "@/types/quotation";
 
 type QuotationDetailModalProps = {
-  quotation: Quotation;
+  quotation: QuotationDetail;
 
   loading?: boolean;
 
@@ -130,26 +134,23 @@ export function QuotationDetailModal({
           />
         )}
 
-        <QuotationActions
-          quotation={
-            quotation
-          }
-          loading={
-            loading
-          }
-          onEdit={
-            onEdit
-          }
-          onSend={
-            onSend
-          }
-          onCreateRevision={
-            onCreateRevision
-          }
-          onConvertToJob={
-            onConvertToJob
-          }
-        />
+        <div className="flex flex-col gap-3 border-t border-[var(--qufo-border)] pt-5 sm:flex-row sm:items-center sm:justify-between">
+          {/* Document action - left */}
+          <QuotationPdfActions
+            quotation={quotation}
+          />
+
+          {/* Workflow actions - right */}
+          <QuotationActions
+            quotation={quotation}
+            loading={loading}
+            onEdit={onEdit}
+            onSend={onSend}
+            onCreateRevision={onCreateRevision}
+            onConvertToJob={onConvertToJob}
+          />
+        </div>
+        
       </div>
     </QufoModal>
   );

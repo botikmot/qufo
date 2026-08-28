@@ -52,4 +52,14 @@ export class UpdateOrganizationDto {
   @IsOptional()
   @IsIn(SUPPORTED_CURRENCIES)
   currency?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(5000)
+  quotationTerms?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  quotationFooterNote?: string;
 }

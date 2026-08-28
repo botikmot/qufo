@@ -30,4 +30,14 @@ export class UpdateBusinessSettingsDto {
   @IsString()
   @MaxLength(500)
   logoUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(5000)
+  quotationTerms?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  quotationFooterNote?: string;
 }

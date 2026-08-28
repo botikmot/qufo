@@ -54,6 +54,11 @@ export class UpdateQuotationDto {
   terms?: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  footerNote?: string;
+
+  @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({

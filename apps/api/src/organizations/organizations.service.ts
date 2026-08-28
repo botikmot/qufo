@@ -30,6 +30,8 @@ export class OrganizationsService {
         phone: true,
         address: true,
         logoUrl: true,
+        quotationTerms: true,
+        quotationFooterNote: true,
 
         countryCode: true,
         currency: true,
@@ -60,6 +62,8 @@ export class OrganizationsService {
       phone: organization.phone,
       address: organization.address,
       logoUrl: organization.logoUrl,
+      quotationTerms: organization.quotationTerms,
+      quotationFooterNote: organization.quotationFooterNote,
 
       countryCode: organization.countryCode,
       currency: organization.currency,
@@ -137,6 +141,14 @@ export class OrganizationsService {
           countryCode: dto.countryCode.trim().toUpperCase() || null,
         }),
 
+        ...(dto.quotationTerms !== undefined && {
+          quotationTerms: dto.quotationTerms.trim() || null,
+        }),
+
+        ...(dto.quotationFooterNote !== undefined && {
+          quotationFooterNote: dto.quotationFooterNote.trim() || null,
+        }),
+
         ...(requestedCurrency !== undefined && {
           currency: requestedCurrency,
         }),
@@ -152,6 +164,8 @@ export class OrganizationsService {
         phone: true,
         address: true,
         logoUrl: true,
+        quotationTerms: true,
+        quotationFooterNote: true,
 
         countryCode: true,
         currency: true,

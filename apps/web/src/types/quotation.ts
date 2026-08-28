@@ -16,10 +16,24 @@ export type DiscountType =
 
 export type QuotationCustomer = {
   id: string;
+
   name: string;
-  companyName: string | null;
-  email?: string | null;
-  phone?: string | null;
+
+  companyName:
+    | string
+    | null;
+
+  email?:
+    | string
+    | null;
+
+  phone?:
+    | string
+    | null;
+
+  address?:
+    | string
+    | null;
 };
 
 export type QuotationItem = {
@@ -31,51 +45,92 @@ export type QuotationItem = {
   unitPrice: string;
   total: string;
   sortOrder?: number;
-  currency: string;
+  currency?: string;
 };
 
 export type Quotation = {
   id: string;
 
   quotationNumber: string;
-  status: QuotationStatus;
+
+  status:
+    QuotationStatus;
 
   issueDate: string;
-  validUntil: string | null;
+
+  validUntil:
+    | string
+    | null;
 
   subtotal: string;
 
-  discountType?: DiscountType;
+  discountType?:
+    DiscountType;
+
   discountValue?: string;
-  discountAmount: string;
+
+  discountAmount:
+    string;
 
   revisionNumber?: number;
-  sourceQuotationId?: string | null;
 
-  customerResponseNote?: string | null;
-  changesRequestedAt?: string | null;
-  rejectedAt?: string | null;
+  sourceQuotationId?:
+    | string
+    | null;
+
+  customerResponseNote?:
+    | string
+    | null;
+
+  changesRequestedAt?:
+    | string
+    | null;
+
+  rejectedAt?:
+    | string
+    | null;
 
   taxRate?: string;
+
   taxAmount: string;
 
   total: string;
+
   currency: string;
 
-  notes?: string | null;
-  terms?: string | null;
+  notes?:
+    | string
+    | null;
 
-  customer: QuotationCustomer;
+  terms?:
+    | string
+    | null;
 
-  items?: QuotationItem[];
+  footerNote?:
+    | string
+    | null;
+
+  organization?:
+    QuotationOrganization;
+
+  customer:
+    QuotationCustomer;
+
+  createdBy?:
+    QuotationCreatedBy;
+
+  items?:
+    QuotationItem[];
 
   _count?: {
     items: number;
   };
 
-  revisionInfo?: QuotationRevisionInfo;
+  revisionInfo?:
+    QuotationRevisionInfo;
 
   createdAt?: string;
+
   updatedAt?: string;
 };
 
@@ -101,17 +156,24 @@ export type QuotationFormItem = {
 
 export type QuotationFormData = {
   customerId: string;
+
   validUntil: string;
 
-  discountType: DiscountType;
+  discountType:
+    DiscountType;
+
   discountValue: string;
 
   taxRate: string;
 
   notes: string;
+
   terms: string;
 
-  items: QuotationFormItem[];
+  footerNote: string;
+
+  items:
+    QuotationFormItem[];
 };
 
 export type PublicQuotation = {
@@ -162,6 +224,9 @@ export type PublicQuotation = {
 
   notes: string | null;
   terms: string | null;
+  footerNote:
+    | string
+    | null;
 
   customerResponseNote:
     | string
@@ -201,3 +266,42 @@ export type PublicQuotationRevisionInfo = {
   latestQuotationNumber: string;
   latestRevisionNumber: number;
 };
+
+export type QuotationOrganization = {
+  id: string;
+
+  name: string;
+
+  logoUrl:
+    | string
+    | null;
+
+  email:
+    | string
+    | null;
+
+  phone:
+    | string
+    | null;
+
+  address:
+    | string
+    | null;
+};
+
+export type QuotationCreatedBy = {
+  id: string;
+  name: string;
+};
+
+export type QuotationDetail =
+  Quotation & {
+    organization:
+      QuotationOrganization;
+
+    createdBy:
+      QuotationCreatedBy;
+
+    items:
+      QuotationItem[];
+  };

@@ -35,10 +35,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import {
+  BusinessLogoUpload,
+} from "./business-logo-upload";
+
 type BusinessSettingsFormProps = {
   settings: BusinessSettings;
 
   saving: boolean;
+
+  uploadingLogo: boolean;
+
+  removingLogo: boolean;
 
   error: string | null;
 
@@ -47,14 +55,25 @@ type BusinessSettingsFormProps = {
   onSave: (
     data: UpdateBusinessSettingsData,
   ) => Promise<boolean>;
+
+  onUploadLogo: (
+    file: File,
+  ) => Promise<boolean>;
+
+  onRemoveLogo: () =>
+    Promise<boolean>;
 };
 
 export function BusinessSettingsForm({
   settings,
   saving,
+  uploadingLogo,
+  removingLogo,
   error,
   success,
   onSave,
+  onUploadLogo,
+  onRemoveLogo,
 }: BusinessSettingsFormProps) {
   const [
     name,
@@ -106,6 +125,23 @@ export function BusinessSettingsForm({
     settings.currency ?? "PHP",
   );
 
+  const [
+    quotationTerms,
+    setQuotationTerms,
+  ] = useState(
+    settings.quotationTerms ??
+      "",
+  );
+
+  const [
+    quotationFooterNote,
+    setQuotationFooterNote,
+  ] = useState(
+    settings.quotationFooterNote ??
+      "",
+  );
+
+
   function handleCountryChange(
     value: string,
   ) {
@@ -143,6 +179,8 @@ export function BusinessSettingsForm({
 
       countryCode,
       currency,
+      quotationTerms,
+      quotationFooterNote,
     });
   }
 
@@ -174,6 +212,26 @@ export function BusinessSettingsForm({
       </div>
 
       <div className="space-y-6 p-6">
+        <BusinessLogoUpload
+            businessName={
+              name
+            }
+            logoUrl={
+              settings.logoUrl
+            }
+            uploading={
+              uploadingLogo
+            }
+            removing={
+              removingLogo
+            }
+            onUpload={
+              onUploadLogo
+            }
+            onRemove={
+              onRemoveLogo
+            }
+          />
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label
@@ -463,6 +521,109 @@ export function BusinessSettingsForm({
             cannot be changed here.
           </p>
         </div>
+
+        <div className="border-t border-[var(--qufo-border)] pt-6">
+          <div className="mb-5">
+            <h3 className="text-sm font-medium text-white">
+              Quotation defaults
+            </h3>
+
+            <p className="mt-1 text-xs leading-5 text-slate-500">
+              Default terms and closing
+              content used in printable
+              quotation documents.
+            </p>
+          </div>
+
+          <div className="space-y-5">
+            <div>
+              <label
+                htmlFor="quotation-terms"
+                className="mb-2 block text-sm text-slate-400"
+              >
+                Terms & Conditions
+              </label>
+
+              <textarea
+                id="quotation-terms"
+                rows={7}
+                maxLength={5000}
+                value={
+                  quotationTerms
+                }
+                onChange={(
+                  event,
+                ) =>
+                  setQuotationTerms(
+                    event.target.value,
+                  )
+                }
+                className="qufo-input min-h-40 resize-y"
+                placeholder={`Quotation validity: 30 days.
+        50% downpayment upon approval.
+        Balance payable upon completion.
+        Lead time is subject to material availability.`}
+              />
+
+              <div className="mt-2 flex items-center justify-between gap-4">
+                <p className="text-xs text-slate-600">
+                  Appears below the
+                  quotation totals.
+                </p>
+
+                <span className="text-xs text-slate-700">
+                  {
+                    quotationTerms.length
+                  }
+                  /5000
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="quotation-footer-note"
+                className="mb-2 block text-sm text-slate-400"
+              >
+                Footer note
+              </label>
+
+              <textarea
+                id="quotation-footer-note"
+                rows={3}
+                maxLength={1000}
+                value={
+                  quotationFooterNote
+                }
+                onChange={(
+                  event,
+                ) =>
+                  setQuotationFooterNote(
+                    event.target.value,
+                  )
+                }
+                className="qufo-input resize-y"
+                placeholder="Thank you for your business. We look forward to working with you."
+              />
+
+              <div className="mt-2 flex items-center justify-between gap-4">
+                <p className="text-xs text-slate-600">
+                  Short closing message
+                  shown near the bottom
+                  of printed quotations.
+                </p>
+
+                <span className="text-xs text-slate-700">
+                  {
+                    quotationFooterNote.length
+                  }
+                  /1000
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
 
         {error && (
           <div className="rounded-xl border border-red-400/15 bg-red-400/[0.05] px-4 py-3 text-sm text-red-300">

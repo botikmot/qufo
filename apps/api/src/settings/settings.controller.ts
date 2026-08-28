@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  UseGuards,
+  Delete,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
 
 import { CurrentTenant } from '../auth/decorators/current-tenant.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -15,6 +24,7 @@ import { UpdateProfileSettingsDto } from './dto/update-profile-settings.dto';
 import { SettingsService } from './settings.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtPayload } from '../auth/types/jwt-payload.type';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('settings')
 @UseGuards(AuthGuard, TenantGuard, SubscriptionGuard, RolesGuard)
@@ -69,5 +79,31 @@ export class SettingsController {
     tenant: TenantContext,
   ) {
     return this.settingsService.getSubscriptionSettings(tenant);
+  }
+
+  @Patch('business/logo')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: {
+        fileSize: 5 * 1024 * 1024,
+      },
+    }),
+  )
+  async uploadBusinessLogo(
+    @CurrentTenant()
+    tenant: TenantContext,
+
+    @UploadedFile()
+    file: Express.Multer.File,
+  ) {
+    return this.settingsService.uploadBusinessLogo(tenant.organizationId, file);
+  }
+
+  @Delete('business/logo')
+  async removeBusinessLogo(
+    @CurrentTenant()
+    tenant: TenantContext,
+  ) {
+    return this.settingsService.removeBusinessLogo(tenant.organizationId);
   }
 }

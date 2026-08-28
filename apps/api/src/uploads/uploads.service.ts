@@ -77,8 +77,77 @@ export class UploadsService {
   }
 
   async deleteImage(publicId: string) {
+    if (!publicId) {
+      return;
+    }
+
     await cloudinary.uploader.destroy(publicId, {
+      invalidate: true,
       resource_type: 'image',
     });
+  }
+
+  async uploadBusinessLogo(file: Express.Multer.File, organizationId: string) {
+    if (!file) {
+      throw new BadRequestException('Business logo file is required');
+    }
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) {
+      throw new BadRequestException(
+        'Only JPG, PNG, and WEBP images are allowed',
+      );
+    }
+
+    const result = await new Promise<{
+      secure_url: string;
+      public_id: string;
+    }>((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: 'qufo/business-logos',
+
+          public_id: organizationId,
+
+          overwrite: true,
+
+          invalidate: true,
+
+          resource_type: 'image',
+
+          transformation: [
+            {
+              width: 1000,
+              height: 1000,
+              crop: 'limit',
+              quality: 'auto',
+            },
+          ],
+        },
+        (error, uploadResult) => {
+          if (error) {
+            return reject(
+              new Error(error.message || 'Business logo upload failed'),
+            );
+          }
+
+          if (!uploadResult) {
+            return reject(new Error('Business logo upload failed'));
+          }
+
+          resolve({
+            secure_url: uploadResult.secure_url,
+
+            public_id: uploadResult.public_id,
+          });
+        },
+      );
+
+      stream.end(file.buffer);
+    });
+
+    return {
+      url: result.secure_url,
+      publicId: result.public_id,
+    };
   }
 }

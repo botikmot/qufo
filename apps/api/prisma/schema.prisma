@@ -183,6 +183,11 @@ model Organization {
   address String?
   logoUrl String?
 
+  logoPublicId String?
+
+  quotationTerms      String? @db.Text
+  quotationFooterNote String? @db.Text
+
   countryCode String? @db.VarChar(2)
   currency    String  @default("PHP") @db.VarChar(3)
 
@@ -402,9 +407,11 @@ model Quotation {
   taxAmount      Decimal      @default(0) @db.Decimal(14, 2)
   total          Decimal      @default(0) @db.Decimal(14, 2)
 
-  notes String?
-  terms String?
-  job   Job?
+  notes      String?
+  terms      String?
+  footerNote String? @db.Text
+
+  job Job?
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   customer     Customer     @relation(fields: [customerId], references: [id], onDelete: Restrict)

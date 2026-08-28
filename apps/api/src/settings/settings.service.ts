@@ -37,6 +37,8 @@ export class SettingsService {
         phone: true,
         address: true,
         logoUrl: true,
+        quotationTerms: true,
+        quotationFooterNote: true,
         status: true,
         createdAt: true,
         updatedAt: true,
@@ -103,6 +105,14 @@ export class SettingsService {
         ...(dto.logoUrl !== undefined && {
           logoUrl: dto.logoUrl.trim() || null,
         }),
+
+        ...(dto.quotationTerms !== undefined && {
+          quotationTerms: dto.quotationTerms.trim() || null,
+        }),
+
+        ...(dto.quotationFooterNote !== undefined && {
+          quotationFooterNote: dto.quotationFooterNote.trim() || null,
+        }),
       },
 
       select: {
@@ -114,6 +124,8 @@ export class SettingsService {
         phone: true,
         address: true,
         logoUrl: true,
+        quotationTerms: true,
+        quotationFooterNote: true,
         status: true,
         updatedAt: true,
       },
@@ -375,6 +387,80 @@ export class SettingsService {
 
     return {
       message: 'Profile photo removed successfully.',
+    };
+  }
+
+  async uploadBusinessLogo(organizationId: string, file: Express.Multer.File) {
+    const organization = await this.prisma.organization.findUnique({
+      where: {
+        id: organizationId,
+      },
+
+      select: {
+        id: true,
+        logoPublicId: true,
+      },
+    });
+
+    if (!organization) {
+      throw new NotFoundException('Organization not found');
+    }
+
+    const uploaded = await this.uploadsService.uploadBusinessLogo(
+      file,
+      organizationId,
+    );
+
+    return this.prisma.organization.update({
+      where: {
+        id: organizationId,
+      },
+
+      data: {
+        logoUrl: uploaded.url,
+
+        logoPublicId: uploaded.publicId,
+      },
+
+      select: {
+        logoUrl: true,
+        logoPublicId: true,
+      },
+    });
+  }
+
+  async removeBusinessLogo(organizationId: string) {
+    const organization = await this.prisma.organization.findUnique({
+      where: {
+        id: organizationId,
+      },
+
+      select: {
+        logoPublicId: true,
+      },
+    });
+
+    if (!organization) {
+      throw new NotFoundException('Organization not found');
+    }
+
+    if (organization.logoPublicId) {
+      await this.uploadsService.deleteImage(organization.logoPublicId);
+    }
+
+    await this.prisma.organization.update({
+      where: {
+        id: organizationId,
+      },
+
+      data: {
+        logoUrl: null,
+        logoPublicId: null,
+      },
+    });
+
+    return {
+      removed: true,
     };
   }
 }

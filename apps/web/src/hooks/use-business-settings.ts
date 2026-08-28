@@ -34,6 +34,16 @@ export function useBusinessSettings() {
   ] = useState(false);
 
   const [
+    uploadingLogo,
+    setUploadingLogo,
+  ] = useState(false);
+
+  const [
+    removingLogo,
+    setRemovingLogo,
+  ] = useState(false);
+
+  const [
     error,
     setError,
   ] =
@@ -120,12 +130,98 @@ export function useBusinessSettings() {
     }
   }
 
+  async function uploadLogo(
+    file: File,
+  ) {
+    setUploadingLogo(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response =
+        await settingsService.uploadBusinessLogo(
+          file,
+        );
+
+      setSettings(
+        (current) =>
+          current
+            ? {
+                ...current,
+                logoUrl:
+                  response.logoUrl,
+              }
+            : current,
+      );
+
+      setSuccess(
+        "Business logo updated successfully.",
+      );
+
+      return true;
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to upload business logo.",
+      );
+
+      return false;
+    } finally {
+      setUploadingLogo(false);
+    }
+  }
+
+  async function removeLogo() {
+    setRemovingLogo(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      await settingsService.removeBusinessLogo();
+
+      setSettings(
+        (current) =>
+          current
+            ? {
+                ...current,
+                logoUrl: null,
+              }
+            : current,
+      );
+
+      setSuccess(
+        "Business logo removed successfully.",
+      );
+
+      return true;
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to remove business logo.",
+      );
+
+      return false;
+    } finally {
+      setRemovingLogo(false);
+    }
+  }
+
   return {
     settings,
+
     loading,
     saving,
+
+    uploadingLogo,
+    removingLogo,
+
     error,
     success,
+
     update,
+    uploadLogo,
+    removeLogo,
   };
 }

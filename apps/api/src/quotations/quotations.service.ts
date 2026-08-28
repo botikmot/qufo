@@ -149,6 +149,8 @@ export class QuotationsService {
         select: {
           id: true,
           currency: true,
+          quotationTerms: true,
+          quotationFooterNote: true,
         },
       });
 
@@ -212,7 +214,13 @@ export class QuotationsService {
 
           notes: dto.notes?.trim() || null,
 
-          terms: dto.terms?.trim() || null,
+          terms:
+            dto.terms?.trim() || organization.quotationTerms?.trim() || null,
+
+          footerNote:
+            dto.footerNote?.trim() ||
+            organization.quotationFooterNote?.trim() ||
+            null,
 
           items: {
             create: dto.items.map((item, index) => {
@@ -392,11 +400,21 @@ export class QuotationsService {
     const quotation = await this.prisma.quotation.findFirst({
       where: {
         id,
-
         organizationId: tenant.organizationId,
       },
 
       include: {
+        organization: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            address: true,
+            logoUrl: true,
+          },
+        },
+
         customer: true,
 
         items: {
@@ -447,11 +465,8 @@ export class QuotationsService {
 
       select: {
         id: true,
-
         quotationNumber: true,
-
         revisionNumber: true,
-
         status: true,
       },
     });
@@ -572,6 +587,11 @@ export class QuotationsService {
           ...(dto.terms !== undefined && {
             terms: dto.terms.trim() || null,
           }),
+
+          footerNote:
+            dto.footerNote !== undefined
+              ? dto.footerNote.trim() || null
+              : undefined,
 
           ...(dto.items
             ? {
@@ -1527,6 +1547,8 @@ export class QuotationsService {
           notes: quotation.notes,
 
           terms: quotation.terms,
+
+          footerNote: quotation.footerNote,
 
           items: {
             create: quotation.items.map((item) => ({

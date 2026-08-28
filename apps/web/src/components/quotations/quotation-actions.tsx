@@ -74,7 +74,7 @@ export function QuotationActions({
   }
 
   return (
-    <div className="flex flex-wrap justify-end gap-3 border-t border-[var(--qufo-border)] pt-5">
+    <div className="flex flex-wrap justify-end gap-3">
       {canEdit && (
         <button
           type="button"
