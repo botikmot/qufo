@@ -134,9 +134,9 @@ enum SubscriptionPaymentStatus {
 // ======================================================
 
 model User {
-  id           String @id @default(cuid())
+  id           String  @id @default(cuid())
   name         String
-  email        String @unique
+  email        String  @unique
   passwordHash String?
 
   googleId String? @unique
@@ -161,7 +161,8 @@ model User {
   createdPayments Payment[]      @relation("PaymentCreatedBy")
   legalConsents   LegalConsent[]
 
-  refreshSessions RefreshSession[]
+  refreshSessions     RefreshSession[]
+  passwordResetTokens PasswordResetToken[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -633,4 +634,17 @@ model LegalConsent {
 
   @@index([userId])
   @@index([userId, type])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }

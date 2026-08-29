@@ -25,6 +25,8 @@ import type { TenantContext } from './types/tenant-context.type';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { GoogleLoginDto } from './dto/google-login.dto';
 import { CompleteGoogleRegistrationDto } from './dto/complete-google-registration.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 type AuthenticatedRequest = Request & {
   user: JwtPayload;
@@ -200,5 +202,15 @@ export class AuthController {
     dto: CompleteGoogleRegistrationDto,
   ) {
     return this.authService.completeGoogleRegistration(dto);
+  }
+
+  @Post('forgot-password')
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto);
+  }
+
+  @Post('reset-password')
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
   }
 }

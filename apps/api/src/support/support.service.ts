@@ -6,8 +6,6 @@ import {
 
 import { ConfigService } from '@nestjs/config';
 
-//import nodemailer from 'nodemailer';
-
 import type { JwtPayload } from '../auth/types/jwt-payload.type';
 import type { TenantContext } from '../auth/types/tenant-context.type';
 
@@ -49,10 +47,6 @@ export class SupportService {
 
     const smtpHost = this.configService.get<string>('SMTP_HOST');
 
-    //const smtpPort = Number(this.configService.get<string>('SMTP_PORT') ?? 587);
-
-    //const smtpSecure = this.configService.get<string>('SMTP_SECURE') === 'true';
-
     const smtpUser = this.configService.get<string>('SMTP_USER');
 
     const smtpPassword = this.configService.get<string>('SMTP_PASSWORD');
@@ -66,17 +60,6 @@ export class SupportService {
         'Support email is not configured.',
       );
     }
-
-    /* const transporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: smtpPort,
-      secure: smtpSecure,
-
-      auth: {
-        user: smtpUser,
-        pass: smtpPassword,
-      },
-    }); */
 
     const resend = new Resend(
       this.configService.getOrThrow<string>('RESEND_API_KEY'),
@@ -135,77 +118,6 @@ export class SupportService {
         'Unable to send your message right now.',
       );
     }
-
-    /* try {
-      await transporter.sendMail({
-        from,
-
-        to: supportEmail,
-
-        replyTo: currentUser.email,
-
-        subject: `[QUFO ${typeLabel}] ${dto.subject.trim()}`,
-
-        text: [
-          `QUFO ${typeLabel}`,
-          '',
-          `From: ${currentUser.name}`,
-          `Email: ${currentUser.email}`,
-          `Business: ${tenant.organizationName}`,
-          `Organization ID: ${tenant.organizationId}`,
-          '',
-          `Subject: ${dto.subject.trim()}`,
-          '',
-          'Message:',
-          dto.message.trim(),
-        ].join('\n'),
-
-        html: `
-          <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-            <h2>QUFO ${typeLabel}</h2>
-
-            <p>
-              <strong>From:</strong>
-              ${this.escapeHtml(currentUser.name)}
-            </p>
-
-            <p>
-              <strong>Email:</strong>
-              ${this.escapeHtml(currentUser.email)}
-            </p>
-
-            <p>
-              <strong>Business:</strong>
-              ${this.escapeHtml(tenant.organizationName)}
-            </p>
-
-            <p>
-              <strong>Organization ID:</strong>
-              ${this.escapeHtml(tenant.organizationId)}
-            </p>
-
-            <hr />
-
-            <p>
-              <strong>Subject:</strong>
-              ${this.escapeHtml(dto.subject.trim())}
-            </p>
-
-            <p>
-              <strong>Message:</strong>
-            </p>
-
-            <p style="white-space: pre-wrap;">
-              ${this.escapeHtml(dto.message.trim())}
-            </p>
-          </div>
-        `,
-      });
-    } catch {
-      throw new InternalServerErrorException(
-        'Unable to send your message right now.',
-      );
-    } */
 
     return {
       message: 'Your message has been sent successfully.',

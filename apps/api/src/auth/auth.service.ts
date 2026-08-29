@@ -19,12 +19,19 @@ import { GoogleAuthService } from './google-auth.service';
 import { GoogleLoginDto } from './dto/google-login.dto';
 import { CompleteGoogleRegistrationDto } from './dto/complete-google-registration.dto';
 
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ConfigService } from '@nestjs/config';
+import { EmailService } from '../email/email.service';
+
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly googleAuthService: GoogleAuthService,
+    private readonly configService: ConfigService,
+    private readonly emailService: EmailService,
   ) {}
 
   private readonly REFRESH_TOKEN_DAYS = 30;
@@ -707,6 +714,129 @@ export class AuthService {
       requiresOnboarding: false,
 
       ...session,
+    };
+  }
+
+  async forgotPassword(dto: ForgotPasswordDto) {
+    const email = dto.email.trim().toLowerCase();
+
+    const genericResponse = {
+      message:
+        'If an account exists for that email, a password reset link has been sent.',
+    };
+
+    const user = await this.prisma.user.findUnique({
+      where: {
+        email,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        status: true,
+      },
+    });
+
+    // Always return the same response.
+    // Do not reveal whether an email exists.
+    if (!user || user.status !== 'ACTIVE') {
+      return genericResponse;
+    }
+
+    const rawToken = randomBytes(32).toString('hex');
+
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+
+    await this.prisma.$transaction([
+      // Invalidate all previous reset links
+      this.prisma.passwordResetToken.deleteMany({
+        where: {
+          userId: user.id,
+        },
+      }),
+
+      this.prisma.passwordResetToken.create({
+        data: {
+          userId: user.id,
+          tokenHash,
+          expiresAt,
+        },
+      }),
+    ]);
+
+    const webUrl =
+      this.configService.get<string>('WEB_URL') ?? 'https://qufo.im';
+
+    const resetUrl = `${webUrl}/reset-password?token=${encodeURIComponent(rawToken)}`;
+
+    await this.emailService.sendPasswordReset({
+      to: user.email,
+      name: user.name,
+      resetUrl,
+    });
+
+    return genericResponse;
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const tokenHash = createHash('sha256').update(dto.token).digest('hex');
+
+    const resetToken = await this.prisma.passwordResetToken.findUnique({
+      where: {
+        tokenHash,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            status: true,
+          },
+        },
+      },
+    });
+
+    if (
+      !resetToken ||
+      resetToken.expiresAt.getTime() < Date.now() ||
+      resetToken.user.status !== 'ACTIVE'
+    ) {
+      throw new BadRequestException(
+        'This password reset link is invalid or has expired.',
+      );
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 12);
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: {
+          id: resetToken.userId,
+        },
+        data: {
+          passwordHash,
+        },
+      }),
+
+      // Invalidate ALL password reset links for this user
+      this.prisma.passwordResetToken.deleteMany({
+        where: {
+          userId: resetToken.userId,
+        },
+      }),
+
+      // Force all devices to sign in again
+      this.prisma.refreshSession.deleteMany({
+        where: {
+          userId: resetToken.userId,
+        },
+      }),
+    ]);
+
+    return {
+      message:
+        'Your password has been reset successfully. You can now sign in with your new password.',
     };
   }
 }
