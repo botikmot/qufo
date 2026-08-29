@@ -341,8 +341,8 @@ export default function TermsPage() {
           </a>
           <br />
           Email:{" "}
-          <a href="mailto:support@nxtasq.site">
-            support@nxtasq.site
+          <a href="mailto:support@qufo.im">
+            support@qufo.im
           </a>
         </p>
       </section>

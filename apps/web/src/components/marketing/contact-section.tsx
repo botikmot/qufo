@@ -42,7 +42,7 @@ export function ContactSection() {
 
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <a
-                href="mailto:support@nxtasq.site?subject=QUFO%20Inquiry"
+                href="mailto:support@qufo.im?subject=QUFO%20Inquiry"
                 className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-3.5 text-sm font-semibold text-white transition duration-300 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.07] sm:w-auto"
               >
                 <Mail className="size-4 text-emerald-300" />
@@ -64,10 +64,10 @@ export function ContactSection() {
               </p>
 
               <a
-                href="mailto:support@nxtasq.site"
+                href="mailto:support@qufo.im"
                 className="mt-1 inline-block text-sm font-medium text-emerald-300 transition hover:text-emerald-200"
               >
-                support@nxtasq.site
+                support@qufo.im
               </a>
             </div>
           </div>

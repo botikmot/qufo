@@ -116,7 +116,7 @@ export function LandingFooter() {
               </a>
 
               <a
-                href="mailto:support@nxtasq.site"
+                href="mailto:support@qufo.im"
                 className="block text-slate-400 transition hover:text-white"
               >
                 Email Support
