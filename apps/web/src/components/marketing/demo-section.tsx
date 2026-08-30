@@ -78,7 +78,7 @@ export function DemoSection() {
                 controls
                 playsInline
                 preload="metadata"
-                poster="/images/qufo-dashboard.png"
+                poster="/images/qufo-dashboard2.png"
                 className="aspect-video w-full bg-black object-contain"
               >
                 <source src="/videos/qufo-demo.mp4" type="video/mp4" />

@@ -93,7 +93,7 @@ export function HeroSection() {
 
               <div className="relative overflow-hidden bg-[#07111f]">
                 <Image
-                  src="/images/qufo-dashboard.png"
+                  src="/images/qufo-dashboard2.png"
                   alt="QUFO business management dashboard showing customers, quotations, jobs, payments, workflow status, and financial overview"
                   width={1741}
                   height={864}
@@ -125,7 +125,7 @@ export function HeroSection() {
               Outstanding
             </div>
 
-            <div className="mt-1 text-xl font-semibold text-white">₱14,781</div>
+            <div className="mt-1 text-xl font-semibold text-white">₱20,311.50</div>
 
             <div className="mt-1 text-xs text-emerald-300">
               Payments tracked automatically
