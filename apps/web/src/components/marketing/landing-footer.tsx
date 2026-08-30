@@ -126,12 +126,38 @@ export function LandingFooter() {
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col gap-3 border-t border-white/[0.05] pt-6 text-xs text-slate-700 sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} QUFO. All rights reserved.</p>
+        <div className="mt-10 border-t border-white/[0.05] pt-6">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1 text-xs text-slate-700">
+              <p>
+                © {new Date().getFullYear()} QUFO. All rights reserved.
+              </p>
 
-          <p>Quick Flow for your business.</p>
-          <FazierBadge />
-          <StartupBaseBadge />
+              <p>
+                Quick Flow for your business.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <FazierBadge />
+
+              <StartupBaseBadge />
+
+              <a
+                href="https://sellwithboost.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="QUFO is listed on Sell With Boost"
+                className="inline-flex opacity-70 transition hover:opacity-100"
+              >
+                <img
+                  src="https://sellwithboost.com/badge/listing-dark.svg"
+                  alt="Listed on Sell With Boost"
+                  className="h-10 w-auto"
+                />
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </footer>
