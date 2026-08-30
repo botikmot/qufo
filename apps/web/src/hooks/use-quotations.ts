@@ -135,6 +135,30 @@ export function useQuotations() {
       null,
     );
 
+  const [
+    sendFlowQuotation,
+    setSendFlowQuotation,
+  ] = useState<Quotation | null>(
+    null,
+  );
+
+  const [
+    sendFlowUrl,
+    setSendFlowUrl,
+  ] = useState<string | null>(
+    null,
+  );
+
+  const [
+    sendFlowLoading,
+    setSendFlowLoading,
+  ] = useState(false);
+
+  const [
+    sendFlowCopied,
+    setSendFlowCopied,
+  ] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -695,27 +719,83 @@ export function useQuotations() {
     setError(null);
 
     try {
-      if (
-        editingQuotation
-      ) {
-        await quotationsService.update(
-          editingQuotation.id,
-          data,
-        );
-      } else {
+      if (editingQuotation) {
+        const isRevision =
+          Boolean(
+            editingQuotation.sourceQuotationId,
+          ) ||
+          (editingQuotation.revisionNumber ?? 1) > 1;
+
+        const updated =
+          await quotationsService.update(
+            editingQuotation.id,
+            data,
+          );
+
+        setShowForm(false);
+        setEditingQuotation(null);
+        setSelectedQuotation(null);
+
+        /*
+        * A revised quotation normally needs
+        * to be sent back to the customer.
+        */
+        if (isRevision) {
+          setSendFlowQuotation(
+            updated,
+          );
+
+          setSendFlowUrl(
+            null,
+          );
+
+          setSendFlowCopied(
+            false,
+          );
+        }
+
+        await loadQuotations({
+          page,
+        });
+
+        return;
+      }
+
+      /*
+      * New quotation.
+      */
+      const created =
         await quotationsService.create(
           data,
         );
-      }
 
       setShowForm(false);
-      setEditingQuotation(null);
-      setSelectedQuotation(null);
+
+      setEditingQuotation(
+        null,
+      );
+
+      setSelectedQuotation(
+        null,
+      );
+
+      /*
+      * Start guided send flow.
+      */
+      setSendFlowQuotation(
+        created,
+      );
+
+      setSendFlowUrl(
+        null,
+      );
+
+      setSendFlowCopied(
+        false,
+      );
 
       await loadQuotations({
-        page: editingQuotation
-          ? page
-          : 1,
+        page: 1,
       });
     } catch (error) {
       setError(
@@ -829,6 +909,126 @@ export function useQuotations() {
     }
   }
 
+  async function sendFlowQuotationNow() {
+    if (!sendFlowQuotation) {
+      return;
+    }
+
+    setSendFlowLoading(true);
+
+    setSendFlowCopied(
+      false,
+    );
+
+    setError(null);
+
+    try {
+      const result =
+        await quotationsService.send(
+          sendFlowQuotation.id,
+        );
+
+      const url =
+        result.publicUrl ??
+        result.quotationUrl ??
+        result.url ??
+        null;
+
+      if (!url) {
+        throw new Error(
+          "Quotation was sent, but the customer link was not returned.",
+        );
+      }
+
+      setSendFlowUrl(
+        url,
+      );
+
+      /*
+      * Keep our existing detail-modal
+      * state compatible too.
+      */
+      setSentQuotationUrl(
+        url,
+      );
+
+      await loadQuotations({
+        page:
+          page || 1,
+        silent: true,
+      });
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to send quotation.",
+      );
+    } finally {
+      setSendFlowLoading(
+        false,
+      );
+    }
+  }
+
+  async function copySendFlowLink() {
+    if (!sendFlowUrl) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(
+        sendFlowUrl,
+      );
+
+      setSendFlowCopied(
+        true,
+      );
+
+      window.setTimeout(
+        () => {
+          setSendFlowCopied(
+            false,
+          );
+        },
+        2000,
+      );
+    } catch {
+      setError(
+        "Unable to copy customer link.",
+      );
+    }
+  }
+
+  function openSendFlowCustomerView() {
+    if (!sendFlowUrl) {
+      return;
+    }
+
+    window.open(
+      sendFlowUrl,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  }
+
+  function closeSendFlow() {
+    if (sendFlowLoading) {
+      return;
+    }
+
+    setSendFlowQuotation(
+      null,
+    );
+
+    setSendFlowUrl(
+      null,
+    );
+
+    setSendFlowCopied(
+      false,
+    );
+  }
+
 
   return {
     quotations,
@@ -852,6 +1052,16 @@ export function useQuotations() {
     editingQuotation,
     saving,
     sentQuotationUrl,
+
+    sendFlowQuotation,
+    sendFlowUrl,
+    sendFlowLoading,
+    sendFlowCopied,
+
+    sendFlowQuotationNow,
+    copySendFlowLink,
+    openSendFlowCustomerView,
+    closeSendFlow,
 
     openCreateForm,
     openEditForm,

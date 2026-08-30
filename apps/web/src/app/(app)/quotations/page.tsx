@@ -32,6 +32,10 @@ import {
   useWorkspaceAccess,
 } from "@/hooks/use-workspace-access";
 
+import {
+  QuotationSendModal,
+} from "@/components/quotations/quotation-send-modal";
+
 export default function QuotationsPage() {
   const quotations =
     useQuotations();
@@ -117,6 +121,35 @@ export default function QuotationsPage() {
           void quotations.nextPage()
         }
       />
+
+      {quotations.sendFlowQuotation && (
+        <QuotationSendModal
+          quotation={
+            quotations.sendFlowQuotation
+          }
+          url={
+            quotations.sendFlowUrl
+          }
+          loading={
+            quotations.sendFlowLoading
+          }
+          copied={
+            quotations.sendFlowCopied
+          }
+          onClose={
+            quotations.closeSendFlow
+          }
+          onSend={() => {
+            void quotations.sendFlowQuotationNow();
+          }}
+          onCopy={() => {
+            void quotations.copySendFlowLink();
+          }}
+          onOpen={
+            quotations.openSendFlowCustomerView
+          }
+        />
+      )}
 
       {quotations.selectedQuotation && (
         <QuotationDetailModal
