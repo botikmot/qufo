@@ -142,6 +142,22 @@ export function useQuotationForm({
                 String(
                   item.unitPrice,
                 ),
+              imageUrl:
+                item.imageUrl ?? "",
+
+              imageKey:
+                item.imageKey ?? "",
+
+              warrantyDuration:
+                item.warrantyDuration != null
+                  ? String(item.warrantyDuration)
+                  : "",
+
+              warrantyUnit:
+                item.warrantyUnit ?? "",
+
+              warrantyTerms:
+                item.warrantyTerms ?? "",
               currency: item.currency ?? 'PHP',
             }),
           )
@@ -252,6 +268,45 @@ export function useQuotationForm({
           ) >= 0,
       );
 
+    for (const item of validItems) {
+      const hasWarranty =
+        Boolean(
+          item.warrantyDuration ||
+          item.warrantyUnit ||
+          item.warrantyTerms?.trim(),
+        );
+
+      if (!hasWarranty) {
+        continue;
+      }
+
+      const warrantyDuration =
+        Number(
+          item.warrantyDuration,
+        );
+
+      if (
+        !Number.isInteger(
+          warrantyDuration,
+        ) ||
+        warrantyDuration < 1
+      ) {
+        setError(
+          `Enter a valid warranty duration for "${item.name}".`,
+        );
+
+        return;
+      }
+
+      if (!item.warrantyUnit) {
+        setError(
+          `Select a warranty period for "${item.name}".`,
+        );
+
+        return;
+      }
+    }
+
     if (
       validItems.length === 0
     ) {
@@ -322,28 +377,65 @@ export function useQuotationForm({
 
         items:
           validItems.map(
-            (item) => ({
-              name:
-                item.name.trim(),
+            (item) => {
+              const hasWarranty =
+                Boolean(
+                  item.warrantyDuration ||
+                  item.warrantyUnit ||
+                  item.warrantyTerms?.trim(),
+                );
 
-              description:
-                item.description
-                  .trim() ||
-                undefined,
+              return {
+                name:
+                  item.name.trim(),
 
-              quantity:
-                Number(
-                  item.quantity,
-                ),
+                description:
+                  item.description
+                    .trim() ||
+                  undefined,
 
-              unit:
-                item.unit.trim(),
+                quantity:
+                  Number(
+                    item.quantity,
+                  ),
 
-              unitPrice:
-                Number(
-                  item.unitPrice,
-                ),
-            }),
+                unit:
+                  item.unit.trim(),
+
+                unitPrice:
+                  Number(
+                    item.unitPrice,
+                  ),
+
+                imageUrl:
+                  item.imageUrl ||
+                  undefined,
+
+                imageKey:
+                  item.imageKey ||
+                  undefined,
+
+                warrantyDuration:
+                  hasWarranty
+                    ? Number(
+                        item.warrantyDuration,
+                      )
+                    : undefined,
+
+                warrantyUnit:
+                  hasWarranty
+                    ? item.warrantyUnit ||
+                      undefined
+                    : undefined,
+
+                warrantyTerms:
+                  hasWarranty
+                    ? item.warrantyTerms
+                        ?.trim() ||
+                      undefined
+                    : undefined,
+              };
+            },
           ),
       });
     } catch (error) {
@@ -370,6 +462,7 @@ export function useQuotationForm({
 
     totals,
     error,
+    setError,
 
     setCustomerId,
     setIssueDate,

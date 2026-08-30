@@ -2,6 +2,10 @@ import {
   formatCurrency,
 } from "@/utils/currency";
 
+import {
+  formatWarranty,
+} from "@/utils/warranty";
+
 import type {
   PublicQuotation,
 } from "@/types/quotation";
@@ -9,6 +13,7 @@ import type {
 type PublicQuotationItemsProps = {
   items:
     PublicQuotation["items"];
+
   currency: string;
 };
 
@@ -46,53 +51,115 @@ export function PublicQuotationItems({
 
       <div>
         {items.map(
-          (item) => (
-            <div
-              key={
-                item.id
-              }
-              className="border-b border-[var(--qufo-border)] p-5 last:border-0 sm:grid sm:grid-cols-[1fr_100px_120px_140px] sm:items-center"
-            >
-              <div>
-                <p className="text-sm font-medium text-slate-200">
-                  {
-                    item.name
-                  }
-                </p>
+          (item) => {
+            const warranty =
+              formatWarranty(
+                item.warrantyDuration,
+                item.warrantyUnit,
+              );
 
-                {item.description && (
-                  <p className="mt-1 max-w-xl text-xs leading-5 text-slate-600">
-                    {
-                      item.description
-                    }
-                  </p>
-                )}
-              </div>
+            return (
+              <div
+                key={
+                  item.id
+                }
+                className="border-b border-[var(--qufo-border)] p-5 last:border-0 sm:grid sm:grid-cols-[1fr_100px_120px_140px] sm:items-center"
+              >
+                <div className="flex min-w-0 items-start gap-3">
+                  {item.imageUrl && (
+                    <a
+                      href={
+                        item.imageUrl
+                      }
+                      target="_blank"
+                      rel="noreferrer"
+                      className="
+                        size-14
+                        shrink-0
+                        overflow-hidden
+                        rounded-xl
+                        border
+                        border-[var(--qufo-border)]
+                        bg-black/20
+                      "
+                    >
+                      <img
+                        src={
+                          item.imageUrl
+                        }
+                        alt={
+                          item.name
+                        }
+                        className="
+                          h-full
+                          w-full
+                          object-cover
+                        "
+                      />
+                    </a>
+                  )}
 
-              <div className="mt-3 text-sm text-slate-400 sm:mt-0">
-                {quantityFormatter.format(
-                  Number(
-                    item.quantity,
-                  ),
-                )}{" "}
-                {item.unit}
-              </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-slate-200">
+                      {
+                        item.name
+                      }
+                    </p>
 
-              <div className="mt-2 text-sm text-slate-400 sm:mt-0">
-                {formatCurrency(
-                  item.unitPrice,
-                  currency
-                )}
-              </div>
+                    {item.description && (
+                      <p className="mt-1 max-w-xl text-xs leading-5 text-slate-600">
+                        {
+                          item.description
+                        }
+                      </p>
+                    )}
 
-              <div className="mt-2 text-sm font-medium text-slate-200 sm:mt-0 sm:text-right">
-                {formatCurrency(
-                  item.total,
-                  currency
-                )}
+                    {warranty && (
+                      <div className="mt-2">
+                        <p className="text-xs text-slate-500">
+                          <span className="font-medium text-slate-400">
+                            Warranty:
+                          </span>{" "}
+                          {warranty}
+                        </p>
+
+                        {item.warrantyTerms && (
+                          <p className="mt-1 max-w-xl text-xs leading-5 text-slate-600">
+                            {
+                              item.warrantyTerms
+                            }
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-3 text-sm text-slate-400 sm:mt-0">
+                  {quantityFormatter.format(
+                    Number(
+                      item.quantity,
+                    ),
+                  )}{" "}
+                  {item.unit}
+                </div>
+
+                <div className="mt-2 text-sm text-slate-400 sm:mt-0">
+                  {formatCurrency(
+                    item.unitPrice,
+                    currency,
+                  )}
+                </div>
+
+                <div className="mt-2 text-sm font-medium text-slate-200 sm:mt-0 sm:text-right">
+                  {formatCurrency(
+                    item.total,
+                    currency,
+                  )}
+                </div>
               </div>
-            </div>
-          ),
+            );
+          },
         )}
       </div>
     </div>

@@ -15,7 +15,12 @@ import { CreateQuotationDto } from './dto/create-quotation.dto';
 import { QuotationQueryDto } from './dto/quotation-query.dto';
 import { UpdateQuotationDto } from './dto/update-quotation.dto';
 import { ConfigService } from '@nestjs/config';
-import { createHash, randomBytes } from 'node:crypto';
+import {
+  createHash,
+  randomBytes,
+  createCipheriv,
+  createDecipheriv,
+} from 'node:crypto';
 import { RespondQuotationDto } from './dto/respond-quotation.dto';
 import { ConvertQuotationToJobDto } from './dto/convert-quotation-to-job.dto';
 import { CustomerQuotationFeedbackDto } from './dto/customer-quotation-feedback.dto';
@@ -31,6 +36,67 @@ export class QuotationsService {
 
   private hashPublicToken(token: string) {
     return createHash('sha256').update(token).digest('hex');
+  }
+
+  private getPublicLinkEncryptionKey() {
+    const encodedKey = this.configService.getOrThrow<string>(
+      'PUBLIC_LINK_ENCRYPTION_KEY',
+    );
+
+    const key = Buffer.from(encodedKey, 'base64');
+
+    if (key.length !== 32) {
+      throw new Error(
+        'PUBLIC_LINK_ENCRYPTION_KEY must decode to exactly 32 bytes.',
+      );
+    }
+
+    return key;
+  }
+
+  private encryptPublicToken(token: string) {
+    const key = this.getPublicLinkEncryptionKey();
+
+    const iv = randomBytes(12);
+
+    const cipher = createCipheriv('aes-256-gcm', key, iv);
+
+    const encrypted = Buffer.concat([
+      cipher.update(token, 'utf8'),
+      cipher.final(),
+    ]);
+
+    const authTag = cipher.getAuthTag();
+
+    return [
+      iv.toString('base64url'),
+      authTag.toString('base64url'),
+      encrypted.toString('base64url'),
+    ].join('.');
+  }
+
+  private decryptPublicToken(value: string) {
+    const [ivValue, authTagValue, encryptedValue] = value.split('.');
+
+    if (!ivValue || !authTagValue || !encryptedValue) {
+      throw new Error('Invalid encrypted public token.');
+    }
+
+    const decipher = createDecipheriv(
+      'aes-256-gcm',
+      this.getPublicLinkEncryptionKey(),
+      Buffer.from(ivValue, 'base64url'),
+    );
+
+    decipher.setAuthTag(Buffer.from(authTagValue, 'base64url'));
+
+    const decrypted = Buffer.concat([
+      decipher.update(Buffer.from(encryptedValue, 'base64url')),
+
+      decipher.final(),
+    ]);
+
+    return decrypted.toString('utf8');
   }
 
   private async getRespondableQuotation(token: string) {
@@ -225,22 +291,20 @@ export class QuotationsService {
           items: {
             create: dto.items.map((item, index) => {
               const quantity = new Prisma.Decimal(item.quantity);
-
               const unitPrice = new Prisma.Decimal(item.unitPrice);
 
               return {
                 name: item.name.trim(),
-
                 description: item.description?.trim() || null,
-
                 quantity,
-
                 unit: item.unit.trim(),
-
                 unitPrice,
-
                 total: quantity.mul(unitPrice).toDecimalPlaces(2),
-
+                imageUrl: item.imageUrl?.trim() || null,
+                imageKey: item.imageKey?.trim() || null,
+                warrantyDuration: item.warrantyDuration ?? null,
+                warrantyUnit: item.warrantyUnit ?? null,
+                warrantyTerms: item.warrantyTerms?.trim() || null,
                 sortOrder: index,
               };
             }),
@@ -525,6 +589,15 @@ export class QuotationsService {
         unit: item.unit,
 
         unitPrice: item.unitPrice.toNumber(),
+        imageUrl: item.imageUrl ?? undefined,
+
+        imageKey: item.imageKey ?? undefined,
+
+        warrantyDuration: item.warrantyDuration ?? undefined,
+
+        warrantyUnit: item.warrantyUnit ?? undefined,
+
+        warrantyTerms: item.warrantyTerms ?? undefined,
       }));
 
     const discountType = dto.discountType ?? quotation.discountType;
@@ -613,6 +686,15 @@ export class QuotationsService {
                       unitPrice,
 
                       total: quantity.mul(unitPrice).toDecimalPlaces(2),
+                      imageUrl: item.imageUrl?.trim() || null,
+
+                      imageKey: item.imageKey?.trim() || null,
+
+                      warrantyDuration: item.warrantyDuration ?? null,
+
+                      warrantyUnit: item.warrantyUnit ?? null,
+
+                      warrantyTerms: item.warrantyTerms?.trim() || null,
 
                       sortOrder: index,
                     };
@@ -750,6 +832,8 @@ export class QuotationsService {
 
     const tokenHash = this.hashPublicToken(token);
 
+    const tokenEncrypted = this.encryptPublicToken(token);
+
     const sentAt = new Date();
 
     const updated = await this.prisma.quotation.update({
@@ -760,6 +844,7 @@ export class QuotationsService {
       data: {
         status: 'SENT',
         publicTokenHash: tokenHash,
+        publicTokenEncrypted: tokenEncrypted,
         sentAt,
       },
 
@@ -1235,6 +1320,16 @@ export class QuotationsService {
 
               total: item.total,
 
+              imageUrl: item.imageUrl,
+
+              imageKey: item.imageKey,
+
+              warrantyDuration: item.warrantyDuration,
+
+              warrantyUnit: item.warrantyUnit,
+
+              warrantyTerms: item.warrantyTerms,
+
               sortOrder: item.sortOrder,
             })),
           },
@@ -1563,6 +1658,15 @@ export class QuotationsService {
               unitPrice: item.unitPrice,
 
               total: item.total,
+              imageUrl: item.imageUrl,
+
+              imageKey: item.imageKey,
+
+              warrantyDuration: item.warrantyDuration,
+
+              warrantyUnit: item.warrantyUnit,
+
+              warrantyTerms: item.warrantyTerms,
 
               sortOrder: item.sortOrder,
             })),
@@ -1592,5 +1696,103 @@ export class QuotationsService {
         },
       };
     });
+  }
+
+  async getPublicLink(tenant: TenantContext, id: string) {
+    const quotation = await this.prisma.quotation.findFirst({
+      where: {
+        id,
+        organizationId: tenant.organizationId,
+      },
+
+      select: {
+        id: true,
+        status: true,
+        publicTokenHash: true,
+        publicTokenEncrypted: true,
+      },
+    });
+
+    if (!quotation) {
+      throw new NotFoundException('Quotation not found.');
+    }
+
+    if (quotation.status === 'DRAFT') {
+      throw new BadRequestException('This quotation has not been sent yet.');
+    }
+
+    if (!quotation.publicTokenHash) {
+      throw new BadRequestException(
+        'This quotation does not have a public link.',
+      );
+    }
+
+    /*
+     * Legacy quotations created before
+     * encrypted token storage cannot be
+     * recovered from the hash alone.
+     */
+    if (!quotation.publicTokenEncrypted) {
+      throw new BadRequestException(
+        'The original public link cannot be recovered for this quotation. Generate a new public link.',
+      );
+    }
+
+    const token = this.decryptPublicToken(quotation.publicTokenEncrypted);
+
+    const webUrl =
+      this.configService.get<string>('WEB_URL') ?? 'http://localhost:3000';
+
+    return {
+      publicUrl: `${webUrl}/quote/${token}`,
+    };
+  }
+
+  async regeneratePublicLink(tenant: TenantContext, id: string) {
+    const quotation = await this.prisma.quotation.findFirst({
+      where: {
+        id,
+
+        organizationId: tenant.organizationId,
+      },
+
+      select: {
+        id: true,
+        status: true,
+      },
+    });
+
+    if (!quotation) {
+      throw new NotFoundException('Quotation not found.');
+    }
+
+    if (quotation.status === 'DRAFT') {
+      throw new BadRequestException('Send the quotation first.');
+    }
+
+    const token = randomBytes(32).toString('base64url');
+
+    const tokenHash = this.hashPublicToken(token);
+
+    const tokenEncrypted = this.encryptPublicToken(token);
+
+    await this.prisma.quotation.update({
+      where: {
+        id,
+      },
+
+      data: {
+        publicTokenHash: tokenHash,
+
+        publicTokenEncrypted: tokenEncrypted,
+      },
+    });
+
+    const webUrl =
+      this.configService.get<string>('WEB_URL') ?? 'http://localhost:3000';
+
+    return {
+      publicUrl: `${webUrl}/quote/${token}`,
+    };
   }
 }

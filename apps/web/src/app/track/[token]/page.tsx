@@ -101,6 +101,9 @@ export default function PublicJobTrackingPage() {
     job.status ===
     "COMPLETED";
 
+
+  console.log('job-->>', job)
+
   return (
     <main className="qufo-background min-h-screen px-4 py-8 text-slate-100 sm:px-6 lg:py-12">
       <div className="mx-auto max-w-4xl">

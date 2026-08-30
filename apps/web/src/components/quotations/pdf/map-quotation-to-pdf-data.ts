@@ -103,6 +103,17 @@ export function mapQuotationToPdfData(
             Number(
               item.total,
             ),
+          imageUrl: item.imageUrl,
+          imageKey: item.imageKey,
+
+          warrantyDuration:
+            item.warrantyDuration,
+
+          warrantyUnit:
+            item.warrantyUnit,
+
+          warrantyTerms:
+            item.warrantyTerms,
         }),
       ),
 

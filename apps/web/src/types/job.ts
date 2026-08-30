@@ -22,6 +22,12 @@ export type JobCustomer = {
   email?: string | null;
 };
 
+export type WarrantyUnit =
+  | "DAYS"
+  | "WEEKS"
+  | "MONTHS"
+  | "YEARS";
+
 export type JobItem = {
   id: string;
   name: string;
@@ -30,6 +36,12 @@ export type JobItem = {
   unit: string;
   unitPrice: string;
   total: string;
+  imageUrl?: string | null;
+  imageKey?: string | null;
+
+  warrantyDuration?: number | null;
+  warrantyUnit?: WarrantyUnit | null;
+  warrantyTerms?: string | null;
   sortOrder: number;
 };
 
@@ -134,6 +146,12 @@ export type PublicJob = {
     description: string | null;
     quantity: string;
     unit: string;
+    imageUrl?: string | null;
+    imageKey?: string | null;
+
+    warrantyDuration?: number | null;
+    warrantyUnit?: WarrantyUnit | null;
+    warrantyTerms?: string | null;
   }[];
 
   timeline: PublicJobTimelineEntry[];

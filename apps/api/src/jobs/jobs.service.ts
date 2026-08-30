@@ -665,6 +665,11 @@ export class JobsService {
             description: true,
             quantity: true,
             unit: true,
+            imageUrl: true,
+
+            warrantyDuration: true,
+            warrantyUnit: true,
+            warrantyTerms: true,
           },
         },
 

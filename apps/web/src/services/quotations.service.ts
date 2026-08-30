@@ -150,4 +150,27 @@ export const quotationsService = {
     );
   },
 
+  getPublicLink(
+    id: string,
+  ) {
+    return apiFetch<{
+      publicUrl: string;
+    }>(
+      `/quotations/${id}/public-link`,
+    );
+  },
+
+  regeneratePublicLink(
+    id: string,
+  ) {
+    return apiFetch<{
+      publicUrl: string;
+    }>(
+      `/quotations/${id}/public-link/regenerate`,
+      {
+        method: "POST",
+      },
+    );
+  },
+
 };

@@ -269,6 +269,174 @@ export function useQuotations() {
     }
   }
 
+  function isLegacyPublicLinkError(
+    error: unknown,
+  ) {
+    return (
+      error instanceof Error &&
+      error.message
+        .toLowerCase()
+        .includes(
+          "cannot be recovered",
+        )
+    );
+  }
+
+  async function resolveCustomerLink() {
+    if (!selectedQuotation) {
+      return null;
+    }
+
+    try {
+      const result =
+        await quotationsService.getPublicLink(
+          selectedQuotation.id,
+        );
+
+      setSentQuotationUrl(
+        result.publicUrl,
+      );
+
+      return result.publicUrl;
+    } catch (error) {
+      /*
+      * Quotations sent before encrypted
+      * token storage only have the hash.
+      * Their original raw token cannot
+      * be recovered.
+      */
+      if (
+        !isLegacyPublicLinkError(
+          error,
+        )
+      ) {
+        throw error;
+      }
+
+      const confirmed =
+        await confirm({
+          title:
+            "Generate a new customer link?",
+
+          description:
+            "The original customer link cannot be recovered. Generating a new one will make the previous link stop working.",
+
+          confirmText:
+            "Generate new link",
+        });
+
+      if (!confirmed) {
+        return null;
+      }
+
+      const result =
+        await quotationsService.regeneratePublicLink(
+          selectedQuotation.id,
+        );
+
+      setSentQuotationUrl(
+        result.publicUrl,
+      );
+
+      return result.publicUrl;
+    }
+  }
+
+  async function copyCustomerLink() {
+    if (!selectedQuotation) {
+      return;
+    }
+
+    setActionLoading(true);
+    setError(null);
+
+    try {
+      const url =
+        await resolveCustomerLink();
+
+      if (!url) {
+        return;
+      }
+
+      await navigator.clipboard.writeText(
+        url,
+      );
+
+      /*
+      * Keep displaying the URL inside
+      * the quotation modal as well.
+      */
+      setSentQuotationUrl(
+        url,
+      );
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to copy customer link.",
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function openCustomerView() {
+    if (!selectedQuotation) {
+      return;
+    }
+
+    /*
+    * Open the tab while still inside
+    * the user's click event so popup
+    * blockers don't reject it later.
+    */
+    const customerWindow =
+      window.open(
+        "",
+        "_blank",
+      );
+
+    if (customerWindow) {
+      customerWindow.opener =
+        null;
+    }
+
+    setActionLoading(true);
+    setError(null);
+
+    try {
+      const url =
+        await resolveCustomerLink();
+
+      if (!url) {
+        customerWindow?.close();
+
+        return;
+      }
+
+      if (!customerWindow) {
+        setError(
+          "The customer view was blocked by your browser. Allow pop-ups for QUFO and try again.",
+        );
+
+        return;
+      }
+
+      customerWindow.location.href =
+        url;
+    } catch (error) {
+      customerWindow?.close();
+
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to open customer view.",
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
   async function convertToJob() {
     if (!selectedQuotation) {
       return;
@@ -693,6 +861,9 @@ export function useQuotations() {
     createRevision,
 
     sendQuotation,
+
+    copyCustomerLink,
+    openCustomerView,
     convertToJob,
 
     setSearch,

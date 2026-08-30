@@ -10,6 +10,14 @@ export type QuotationFormItem = {
   quantity: string;
   unit: string;
   unitPrice: string;
+
+  imageUrl: string;
+  imageKey: string;
+
+  warrantyDuration: string;
+  warrantyUnit: WarrantyUnit | "";
+  warrantyTerms: string;
+  
   currency: string;
 };
 
@@ -26,6 +34,19 @@ export type QuotationFormPayload = {
   notes?: string;
   terms?: string;
 
+  imageUrl?: string;
+  imageKey?: string;
+
+  warrantyDuration?: number;
+
+  warrantyUnit?:
+    | "DAYS"
+    | "WEEKS"
+    | "MONTHS"
+    | "YEARS";
+
+  warrantyTerms?: string;
+
   items: {
     name: string;
     description?: string;
@@ -34,3 +55,9 @@ export type QuotationFormPayload = {
     unitPrice: number;
   }[];
 };
+
+export type WarrantyUnit =
+  | "DAYS"
+  | "WEEKS"
+  | "MONTHS"
+  | "YEARS";

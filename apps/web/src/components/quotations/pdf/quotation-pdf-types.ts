@@ -14,6 +14,21 @@ export type QuotationPdfItem = {
   unitPrice: number;
 
   total: number;
+
+  imageUrl?: string | null;
+  imageKey?: string | null;
+
+  warrantyDuration?: number | null;
+
+  warrantyUnit?:
+    | "DAYS"
+    | "WEEKS"
+    | "MONTHS"
+    | "YEARS"
+    | null;
+
+  warrantyTerms?: string | null;
+
 };
 
 export type QuotationPdfData = {

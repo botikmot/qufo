@@ -1,4 +1,5 @@
 import {
+  Image,
   StyleSheet,
   Text,
   View,
@@ -11,6 +12,10 @@ import type {
 import {
   formatPdfCurrency,
 } from "@/utils/currency";
+
+import {
+  formatWarranty,
+} from "@/utils/warranty";
 
 const styles =
   StyleSheet.create({
@@ -113,6 +118,33 @@ const styles =
         "right",
     },
 
+    itemContent: {
+      flexDirection:
+        "row",
+
+      alignItems:
+        "flex-start",
+    },
+
+    itemImage: {
+      width: 34,
+
+      height: 34,
+
+      marginRight: 7,
+
+      borderRadius: 3,
+
+      objectFit:
+        "cover",
+    },
+
+    itemText: {
+      flexGrow: 1,
+
+      flexShrink: 1,
+    },
+
     itemName: {
       fontSize: 8.5,
 
@@ -129,6 +161,32 @@ const styles =
       fontSize: 7.5,
 
       color: "#6B7280",
+
+      lineHeight: 1.4,
+    },
+
+    warranty: {
+      marginTop: 4,
+
+      fontSize: 7.3,
+
+      color: "#475569",
+
+      lineHeight: 1.4,
+    },
+
+    warrantyLabel: {
+      fontWeight: 700,
+
+      color: "#334155",
+    },
+
+    warrantyTerms: {
+      marginTop: 2,
+
+      fontSize: 7,
+
+      color: "#64748B",
 
       lineHeight: 1.4,
     },
@@ -222,105 +280,169 @@ export function QuotationPdfItems({
         (
           item,
           index,
-        ) => (
-          <View
-            key={
-              item.id
-            }
-            style={[
-              styles.row,
+        ) => {
+          const warranty =
+            formatWarranty(
+              item.warrantyDuration,
+              item.warrantyUnit,
+            );
 
-              index ===
-                data.items.length -
-                  1
-                ? styles.lastRow
-                : {},
-            ]}
-            wrap={false}
-          >
-            {/* Number */}
-            <Text
-              style={[
-                styles.cell,
-                styles.number,
-              ]}
-            >
-              {index + 1}
-            </Text>
-
-            {/* Item name + description */}
+          return (
             <View
+              key={
+                item.id
+              }
               style={[
-                styles.cell,
-                styles.description,
+                styles.row,
+
+                index ===
+                  data.items.length -
+                    1
+                  ? styles.lastRow
+                  : {},
               ]}
+              wrap={false}
             >
+              {/* Number */}
               <Text
-                style={
-                  styles.itemName
-                }
+                style={[
+                  styles.cell,
+                  styles.number,
+                ]}
               >
-                {item.name}
+                {index + 1}
               </Text>
 
-              {item.description?.trim() && (
-                <Text
+              {/* Item */}
+              <View
+                style={[
+                  styles.cell,
+                  styles.description,
+                ]}
+              >
+                <View
                   style={
-                    styles.itemDescription
+                    styles.itemContent
                   }
                 >
-                  {item.description.trim()}
-                </Text>
-              )}
+                  {item.imageUrl && (
+                    <Image
+                      src={
+                        item.imageUrl
+                      }
+                      style={
+                        styles.itemImage
+                      }
+                    />
+                  )}
+
+                  <View
+                    style={
+                      styles.itemText
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.itemName
+                      }
+                    >
+                      {item.name}
+                    </Text>
+
+                    {item.description?.trim() && (
+                      <Text
+                        style={
+                          styles.itemDescription
+                        }
+                      >
+                        {
+                          item.description.trim()
+                        }
+                      </Text>
+                    )}
+
+                    {warranty && (
+                      <Text
+                        style={
+                          styles.warranty
+                        }
+                      >
+                        <Text
+                          style={
+                            styles.warrantyLabel
+                          }
+                        >
+                          Warranty:{" "}
+                        </Text>
+
+                        {warranty}
+                      </Text>
+                    )}
+
+                    {warranty &&
+                      item.warrantyTerms?.trim() && (
+                        <Text
+                          style={
+                            styles.warrantyTerms
+                          }
+                        >
+                          {
+                            item.warrantyTerms.trim()
+                          }
+                        </Text>
+                      )}
+                  </View>
+                </View>
+              </View>
+
+              {/* Quantity */}
+              <Text
+                style={[
+                  styles.cell,
+                  styles.qty,
+                ]}
+              >
+                {item.quantity}
+              </Text>
+
+              {/* Unit */}
+              <Text
+                style={[
+                  styles.cell,
+                  styles.unit,
+                ]}
+              >
+                {item.unit || "-"}
+              </Text>
+
+              {/* Unit price */}
+              <Text
+                style={[
+                  styles.cell,
+                  styles.price,
+                ]}
+              >
+                {formatPdfCurrency(
+                  item.unitPrice,
+                  data.currency,
+                )}
+              </Text>
+
+              {/* Total */}
+              <Text
+                style={[
+                  styles.cell,
+                  styles.amount,
+                ]}
+              >
+                {formatPdfCurrency(
+                  item.total,
+                  data.currency,
+                )}
+              </Text>
             </View>
-
-            {/* Quantity */}
-            <Text
-              style={[
-                styles.cell,
-                styles.qty,
-              ]}
-            >
-              {item.quantity}
-            </Text>
-
-            {/* Unit */}
-            <Text
-              style={[
-                styles.cell,
-                styles.unit,
-              ]}
-            >
-              {item.unit || "-"}
-            </Text>
-
-            {/* Unit price */}
-            <Text
-              style={[
-                styles.cell,
-                styles.price,
-              ]}
-            >
-              {formatPdfCurrency(
-                item.unitPrice,
-                data.currency,
-              )}
-            </Text>
-
-            {/* Total */}
-            <Text
-              style={[
-                styles.cell,
-                styles.amount,
-              ]}
-            >
-              {formatPdfCurrency(
-                item.total,
-                data.currency,
-              )}
-            </Text>
-          </View>
-        ),
+          );
+        },
       )}
     </View>
   );

@@ -160,6 +160,13 @@ export default function QuotationsPage() {
               void quotations.convertToJob()
             }
           }
+          onCopyCustomerLink={() => {
+            void quotations.copyCustomerLink();
+          }}
+
+          onOpenCustomerView={() => {
+            void quotations.openCustomerView();
+          }}
         />
       )}
 

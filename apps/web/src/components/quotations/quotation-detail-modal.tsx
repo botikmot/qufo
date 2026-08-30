@@ -60,6 +60,9 @@ type QuotationDetailModalProps = {
   onCreateRevision: () => void;
 
   onConvertToJob: () => void;
+
+  onCopyCustomerLink: () => void;
+  onOpenCustomerView: () => void;
 };
 
 export function QuotationDetailModal({
@@ -71,9 +74,9 @@ export function QuotationDetailModal({
   onSend,
   onCreateRevision,
   onConvertToJob,
+  onCopyCustomerLink,
+  onOpenCustomerView,
 }: QuotationDetailModalProps) {
-
-  console.log('quotation::', quotation)
 
   return (
     <QufoModal
@@ -148,6 +151,8 @@ export function QuotationDetailModal({
             onSend={onSend}
             onCreateRevision={onCreateRevision}
             onConvertToJob={onConvertToJob}
+            onCopyCustomerLink={onCopyCustomerLink}
+            onOpenCustomerView={onOpenCustomerView}
           />
         </div>
         

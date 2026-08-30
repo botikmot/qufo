@@ -58,6 +58,30 @@ export class QuotationsController {
     return this.quotationsService.findAll(tenant, query);
   }
 
+  @Roles('OWNER', 'ADMIN', 'MANAGER')
+  @Get(':id/public-link')
+  getPublicLink(
+    @CurrentTenant()
+    tenant: TenantContext,
+
+    @Param('id')
+    id: string,
+  ) {
+    return this.quotationsService.getPublicLink(tenant, id);
+  }
+
+  @Roles('OWNER', 'ADMIN', 'MANAGER')
+  @Post(':id/public-link/regenerate')
+  regeneratePublicLink(
+    @CurrentTenant()
+    tenant: TenantContext,
+
+    @Param('id')
+    id: string,
+  ) {
+    return this.quotationsService.regeneratePublicLink(tenant, id);
+  }
+
   @Get(':id')
   findOne(
     @CurrentTenant()

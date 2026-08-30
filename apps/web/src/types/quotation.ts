@@ -44,6 +44,14 @@ export type QuotationItem = {
   unit: string;
   unitPrice: string;
   total: string;
+
+  imageUrl?: string | null;
+  imageKey?: string | null;
+
+  warrantyDuration?: number | null;
+  warrantyUnit?: WarrantyUnit | null;
+  warrantyTerms?: string | null;
+  
   sortOrder?: number;
   currency?: string;
 };
@@ -206,6 +214,12 @@ export type PublicQuotation = {
     unit: string;
     unitPrice: string;
     total: string;
+    imageUrl?: string | null;
+    imageKey?: string | null;
+
+    warrantyDuration?: number | null;
+    warrantyUnit?: WarrantyUnit | null;
+    warrantyTerms?: string | null;
     sortOrder: number;
   }[];
 
@@ -305,3 +319,9 @@ export type QuotationDetail =
     items:
       QuotationItem[];
   };
+
+export type WarrantyUnit =
+  | "DAYS"
+  | "WEEKS"
+  | "MONTHS"
+  | "YEARS";

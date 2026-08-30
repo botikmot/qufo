@@ -52,6 +52,8 @@ import type {
 import { settingsService } from "@/services/settings.service";
 import { useEffect, useState } from "react";
 
+import { uploadsService } from "@/services/uploads.service";
+
 type QuotationFormModalProps = {
   customers: Customer[];
 
@@ -81,6 +83,11 @@ export function QuotationFormModal({
 
   const editing =
     Boolean(quotation);
+
+  const [
+    uploadingImageKey,
+    setUploadingImageKey,
+  ] = useState<string | null>(null);
 
   const [
     organizationCurrency,
@@ -131,6 +138,48 @@ export function QuotationFormModal({
 
   const currency = quotation?.currency ?? organizationCurrency;
 
+
+  async function handleItemImageUpload(
+    key: string,
+    file: File,
+  ) {
+    if (
+      ![
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+      ].includes(file.type)
+    ) {
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      return;
+    }
+
+    try {
+      setUploadingImageKey(key);
+
+      const uploaded =
+        await uploadsService.uploadQuotationItemImage(
+          file,
+        );
+
+      form.updateItem(key, {
+        imageUrl: uploaded.url,
+        imageKey: uploaded.imageKey,
+      });
+    } catch (error) {
+      console.error(
+        "Failed to upload quotation item image:",
+        error,
+      );
+    } finally {
+      setUploadingImageKey(null);
+    }
+  }
+
+
   return (
     <QufoModal
       title={
@@ -147,7 +196,10 @@ export function QuotationFormModal({
         <FileText size={18} />
       }
       onClose={onClose}
-      closeDisabled={loading}
+      closeDisabled={
+        loading ||
+        Boolean(uploadingImageKey)
+      }
       size="6xl"
       footer={
         <div
@@ -164,7 +216,10 @@ export function QuotationFormModal({
           <button
             type="button"
             onClick={onClose}
-            disabled={loading}
+            disabled={
+              loading ||
+              Boolean(uploadingImageKey)
+            }
             className="
               w-full
               rounded-xl
@@ -187,7 +242,10 @@ export function QuotationFormModal({
           <button
             type="submit"
             form="quotation-form"
-            disabled={loading}
+            disabled={
+              loading ||
+              Boolean(uploadingImageKey)
+            }
             className="
               flex
               w-full
@@ -209,16 +267,29 @@ export function QuotationFormModal({
               sm:w-auto
             "
           >
-            {loading && (
-              <LoaderCircle
-                size={16}
-                className="animate-spin"
-              />
-            )}
+            {uploadingImageKey ? (
+              <>
+                <LoaderCircle
+                  size={16}
+                  className="animate-spin"
+                />
 
-            {editing
-              ? "Save changes"
-              : "Create quotation"}
+                Uploading image...
+              </>
+            ) : (
+              <>
+                {loading && (
+                  <LoaderCircle
+                    size={16}
+                    className="animate-spin"
+                  />
+                )}
+
+                {editing
+                  ? "Save changes"
+                  : "Create quotation"}
+              </>
+            )}
           </button>
         </div>
       }
@@ -265,6 +336,12 @@ export function QuotationFormModal({
           }
           onChange={
             form.updateItem
+          }
+          onImageSelect={
+            handleItemImageUpload
+          }
+          uploadingImageKey={
+            uploadingImageKey
           }
           currency={currency}
         />

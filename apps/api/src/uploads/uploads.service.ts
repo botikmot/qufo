@@ -150,4 +150,79 @@ export class UploadsService {
       publicId: result.public_id,
     };
   }
+
+  async uploadQuotationItemImage(
+    file: Express.Multer.File,
+    organizationId: string,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Quotation item image is required.');
+    }
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) {
+      throw new BadRequestException(
+        'Only JPG, PNG, and WEBP images are allowed.',
+      );
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+
+    if (file.size > maxSize) {
+      throw new BadRequestException(
+        'Quotation item image must not exceed 5 MB.',
+      );
+    }
+
+    const result = await new Promise<{
+      secure_url: string;
+      public_id: string;
+    }>((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: `qufo/quotation-items/${organizationId}`,
+
+          resource_type: 'image',
+
+          transformation: [
+            {
+              width: 1600,
+              height: 1600,
+              crop: 'limit',
+            },
+
+            {
+              quality: 'auto',
+              fetch_format: 'auto',
+            },
+          ],
+        },
+
+        (error, uploadResult) => {
+          if (error) {
+            return reject(
+              new Error(error.message || 'Quotation item image upload failed.'),
+            );
+          }
+
+          if (!uploadResult) {
+            return reject(new Error('Quotation item image upload failed.'));
+          }
+
+          resolve({
+            secure_url: uploadResult.secure_url,
+            public_id: uploadResult.public_id,
+          });
+        },
+      );
+
+      stream.end(file.buffer);
+    });
+
+    return {
+      url: result.secure_url,
+
+      // Cloudinary public_id stored as our provider-neutral imageKey
+      imageKey: result.public_id,
+    };
+  }
 }

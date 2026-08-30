@@ -129,6 +129,13 @@ enum SubscriptionPaymentStatus {
   REFUNDED
 }
 
+enum WarrantyUnit {
+  DAYS
+  WEEKS
+  MONTHS
+  YEARS
+}
+
 // ======================================================
 // USER
 // ======================================================
@@ -390,7 +397,8 @@ model Quotation {
 
   status QuotationStatus @default(DRAFT)
 
-  publicTokenHash String? @unique
+  publicTokenHash      String? @unique
+  publicTokenEncrypted String? @db.Text
 
   issueDate  DateTime  @default(now())
   validUntil DateTime?
@@ -453,6 +461,15 @@ model QuotationItem {
   unit      String
   unitPrice Decimal @db.Decimal(14, 2)
   total     Decimal @db.Decimal(14, 2)
+
+  // Optional reference/product image
+  imageUrl String?
+  imageKey String?
+
+  // Optional warranty
+  warrantyDuration Int?
+  warrantyUnit     WarrantyUnit?
+  warrantyTerms    String?       @db.Text
 
   sortOrder Int @default(0)
 
@@ -526,6 +543,15 @@ model JobItem {
   unit      String
   unitPrice Decimal @db.Decimal(14, 2)
   total     Decimal @db.Decimal(14, 2)
+
+  // Copied from approved quotation item
+  imageUrl String?
+  imageKey String?
+
+  // Warranty commitment from quotation
+  warrantyDuration Int?
+  warrantyUnit     WarrantyUnit?
+  warrantyTerms    String?       @db.Text
 
   sortOrder Int @default(0)
 

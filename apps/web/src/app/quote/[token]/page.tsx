@@ -97,8 +97,6 @@ export default function PublicQuotationPage() {
   const quotation =
     quote.quotation;
 
-  console.log('public qout:', quotation)
-
   return (
     <main className="qufo-background min-h-screen px-4 py-8 text-slate-100 sm:px-6 lg:py-12">
       <div className="mx-auto max-w-5xl">

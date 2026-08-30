@@ -2,6 +2,10 @@ import {
   formatQuantity,
 } from "@/utils/number";
 
+import {
+  formatWarranty,
+} from "@/utils/warranty";
+
 import type {
   JobItem,
 } from "@/types/job";
@@ -24,8 +28,14 @@ export function JobItemsList({
       </h3>
 
       <div className="min-w-0 overflow-hidden rounded-2xl border border-[var(--qufo-border)]">
-        {items.map(
-          (item) => (
+        {items.map((item) => {
+          const warranty =
+            formatWarranty(
+              item.warrantyDuration,
+              item.warrantyUnit,
+            );
+
+          return (
             <div
               key={item.id}
               className="
@@ -46,18 +56,67 @@ export function JobItemsList({
                 sm:px-5
               "
             >
-              <div className="min-w-0 flex-1">
-                <p className="break-words text-sm font-medium text-slate-300">
-                  {item.name}
-                </p>
-
-                {item.description && (
-                  <p className="mt-1 break-words text-xs leading-5 text-slate-600">
-                    {item.description}
-                  </p>
+              <div className="flex min-w-0 flex-1 items-start gap-3">
+                {/* Item image */}
+                {item.imageUrl && (
+                  <a
+                    href={item.imageUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="
+                      size-14
+                      shrink-0
+                      overflow-hidden
+                      rounded-xl
+                      border
+                      border-[var(--qufo-border)]
+                      bg-black/20
+                    "
+                  >
+                    <img
+                      src={item.imageUrl}
+                      alt={item.name}
+                      className="
+                        h-full
+                        w-full
+                        object-cover
+                      "
+                    />
+                  </a>
                 )}
+
+                {/* Item details */}
+                <div className="min-w-0 flex-1">
+                  <p className="break-words text-sm font-medium text-slate-300">
+                    {item.name}
+                  </p>
+
+                  {item.description && (
+                    <p className="mt-1 break-words text-xs leading-5 text-slate-600">
+                      {item.description}
+                    </p>
+                  )}
+
+                  {warranty && (
+                    <div className="mt-2">
+                      <p className="text-xs text-slate-500">
+                        <span className="font-medium text-slate-400">
+                          Warranty:
+                        </span>{" "}
+                        {warranty}
+                      </p>
+
+                      {item.warrantyTerms && (
+                        <p className="mt-1 max-w-xl break-words text-xs leading-5 text-slate-600">
+                          {item.warrantyTerms}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
+              {/* Quantity */}
               <p className="shrink-0 text-sm text-slate-500">
                 {formatQuantity(
                   item.quantity,
@@ -65,8 +124,8 @@ export function JobItemsList({
                 {item.unit}
               </p>
             </div>
-          ),
-        )}
+          );
+        })}
       </div>
     </div>
   );

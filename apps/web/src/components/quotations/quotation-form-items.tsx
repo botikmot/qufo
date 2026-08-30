@@ -12,6 +12,7 @@ import type {
 
 type QuotationFormItemsProps = {
   items: QuotationFormItem[];
+
   onAdd: () => void;
 
   onRemove: (
@@ -22,6 +23,14 @@ type QuotationFormItemsProps = {
     key: string,
     patch: Partial<QuotationFormItem>,
   ) => void;
+
+  onImageSelect: (
+    key: string,
+    file: File,
+  ) => void | Promise<void>;
+
+  uploadingImageKey?: string | null;
+
   currency: string;
 };
 
@@ -30,7 +39,9 @@ export function QuotationFormItems({
   onAdd,
   onRemove,
   onChange,
-   currency,
+  onImageSelect,
+  uploadingImageKey,
+  currency,
 }: QuotationFormItemsProps) {
   return (
     <div className="min-w-0">
@@ -86,31 +97,37 @@ export function QuotationFormItems({
       </div>
 
       <div className="min-w-0 space-y-3">
-        {items.map(
-          (item) => (
-            <QuotationFormItemRow
-              key={item.key}
-              item={item}
-              canRemove={
-                items.length > 1
-              }
-              onChange={(
+        {items.map((item) => (
+          <QuotationFormItemRow
+            key={item.key}
+            item={item}
+            canRemove={
+              items.length > 1
+            }
+            onChange={(patch) =>
+              onChange(
+                item.key,
                 patch,
-              ) =>
-                onChange(
-                  item.key,
-                  patch,
-                )
-              }
-              onRemove={() =>
-                onRemove(
-                  item.key,
-                )
-              }
-              currency={currency}
-            />
-          ),
-        )}
+              )
+            }
+            onRemove={() =>
+              onRemove(
+                item.key,
+              )
+            }
+            onImageSelect={(file) =>
+              onImageSelect(
+                item.key,
+                file,
+              )
+            }
+            isUploadingImage={
+              uploadingImageKey ===
+              item.key
+            }
+            currency={currency}
+          />
+        ))}
       </div>
     </div>
   );

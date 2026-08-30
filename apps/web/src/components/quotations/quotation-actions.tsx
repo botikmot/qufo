@@ -6,6 +6,8 @@ import {
   Pencil,
   RefreshCcw,
   Send,
+  Copy,
+  ExternalLink,
 } from "lucide-react";
 
 import {
@@ -31,6 +33,12 @@ type QuotationActionsProps = {
   onCreateRevision: () => void;
 
   onConvertToJob: () => void;
+
+  onCopyCustomerLink:
+    () => void | Promise<void>;
+
+  onOpenCustomerView:
+    () => void | Promise<void>;
 };
 
 export function QuotationActions({
@@ -40,6 +48,8 @@ export function QuotationActions({
   onSend,
   onCreateRevision,
   onConvertToJob,
+  onCopyCustomerLink,
+  onOpenCustomerView,
 }: QuotationActionsProps) {
   const canEdit =
     canEditQuotation(
@@ -64,11 +74,14 @@ export function QuotationActions({
       quotation.status,
     );
 
+  const canAccessPublicLink = quotation.status !== "DRAFT";
+
   if (
     !canEdit &&
     !canSend &&
     !canRevise &&
-    !canConvert
+    !canConvert &&
+    !canAccessPublicLink
   ) {
     return null;
   }
@@ -106,6 +119,62 @@ export function QuotationActions({
 
           Send quotation
         </button>
+      )}
+
+      {canAccessPublicLink && (
+        <>
+          <button
+            type="button"
+            onClick={onCopyCustomerLink}
+            disabled={loading}
+            className="
+              flex
+              items-center
+              gap-2
+              rounded-xl
+              border
+              border-[var(--qufo-border)]
+              px-4
+              py-2.5
+              text-sm
+              text-slate-300
+              transition
+              hover:bg-white/[0.04]
+              disabled:pointer-events-none
+              disabled:opacity-50
+            "
+          >
+            <Copy size={15} />
+
+            Copy customer link
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenCustomerView}
+            disabled={loading}
+            className="
+              flex
+              items-center
+              gap-2
+              rounded-xl
+              border
+              border-[var(--qufo-border)]
+              px-4
+              py-2.5
+              text-sm
+              text-slate-300
+              transition
+              hover:bg-white/[0.04]
+              disabled:pointer-events-none
+              disabled:opacity-50
+            "
+          >
+            <ExternalLink size={15} />
+
+            Open customer view
+          </button>
+        </>
       )}
 
       {canRevise && (

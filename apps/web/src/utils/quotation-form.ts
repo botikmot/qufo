@@ -10,6 +10,12 @@ export function createQuotationFormItem(): QuotationFormItem {
     quantity: "1",
     unit: "pc",
     unitPrice: "",
+    imageUrl: "",
+    imageKey: "",
+
+    warrantyDuration: "",
+    warrantyUnit: "",
+    warrantyTerms: "",
     currency: "",
   };
 }
