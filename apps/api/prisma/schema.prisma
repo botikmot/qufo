@@ -503,6 +503,7 @@ model Job {
   completedAt DateTime?
 
   trackingTokenHash String?   @unique
+  trackingTokenEncrypted String? @db.Text
   trackingEnabled   Boolean   @default(false)
   trackingCreatedAt DateTime?
 

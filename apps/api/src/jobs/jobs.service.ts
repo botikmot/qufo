@@ -1,11 +1,17 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { createHash, randomBytes } from 'node:crypto';
+import {
+  createHash,
+  randomBytes,
+  createCipheriv,
+  createDecipheriv,
+} from 'node:crypto';
 
 import { Prisma } from '../generated/prisma/client';
 
@@ -17,6 +23,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { JobQueryDto } from './dto/job-query.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
 import { UpdateJobStatusDto } from './dto/update-job-status.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 type JobStatus =
   | 'PENDING'
@@ -33,11 +40,14 @@ export class JobsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   private hashTrackingToken(token: string) {
     return createHash('sha256').update(token).digest('hex');
   }
+
+  private readonly logger = new Logger(JobsService.name);
 
   private getPublicProgress(status: JobStatus) {
     switch (status) {
@@ -93,6 +103,153 @@ export class JobsService {
       case 'CANCELLED':
         return 'This job has been cancelled.';
     }
+  }
+
+  private shouldNotifyCustomerOfJobStatus(status: JobStatus) {
+    return ['IN_PROGRESS', 'COMPLETED', 'DELIVERED', 'CANCELLED'].includes(
+      status,
+    );
+  }
+
+  private encryptTrackingToken(token: string) {
+    const keyBase64 = this.configService.getOrThrow<string>(
+      'PUBLIC_LINK_ENCRYPTION_KEY',
+    );
+
+    const key = Buffer.from(keyBase64, 'base64');
+
+    if (key.length !== 32) {
+      throw new Error('PUBLIC_LINK_ENCRYPTION_KEY must decode to 32 bytes.');
+    }
+
+    const iv = randomBytes(12);
+
+    const cipher = createCipheriv('aes-256-gcm', key, iv);
+
+    const encrypted = Buffer.concat([
+      cipher.update(token, 'utf8'),
+      cipher.final(),
+    ]);
+
+    const authTag = cipher.getAuthTag();
+
+    return [
+      iv.toString('base64url'),
+      authTag.toString('base64url'),
+      encrypted.toString('base64url'),
+    ].join('.');
+  }
+
+  private decryptTrackingToken(encryptedValue: string) {
+    const keyBase64 = this.configService.getOrThrow<string>(
+      'PUBLIC_LINK_ENCRYPTION_KEY',
+    );
+
+    const key = Buffer.from(keyBase64, 'base64');
+
+    if (key.length !== 32) {
+      throw new Error('PUBLIC_LINK_ENCRYPTION_KEY must decode to 32 bytes.');
+    }
+
+    const [ivPart, authTagPart, encryptedPart] = encryptedValue.split('.');
+
+    if (!ivPart || !authTagPart || !encryptedPart) {
+      throw new Error('Invalid encrypted tracking token.');
+    }
+
+    const iv = Buffer.from(ivPart, 'base64url');
+
+    const authTag = Buffer.from(authTagPart, 'base64url');
+
+    const encrypted = Buffer.from(encryptedPart, 'base64url');
+
+    const decipher = createDecipheriv('aes-256-gcm', key, iv);
+
+    decipher.setAuthTag(authTag);
+
+    const decrypted = Buffer.concat([
+      decipher.update(encrypted),
+      decipher.final(),
+    ]);
+
+    return decrypted.toString('utf8');
+  }
+
+  private async ensureTrackingLinkForNotification(
+    jobId: string,
+  ): Promise<string | null> {
+    const job = await this.prisma.job.findUnique({
+      where: {
+        id: jobId,
+      },
+
+      select: {
+        id: true,
+        trackingEnabled: true,
+        trackingTokenEncrypted: true,
+        trackingCreatedAt: true,
+      },
+    });
+
+    if (!job) {
+      return null;
+    }
+
+    const webUrl = (
+      this.configService.get<string>('WEB_URL') ?? 'http://localhost:3000'
+    ).replace(/\/$/, '');
+
+    /*
+     * Existing active tracking link:
+     * recover and return it.
+     */
+    if (job.trackingEnabled && job.trackingTokenEncrypted) {
+      try {
+        const token = this.decryptTrackingToken(job.trackingTokenEncrypted);
+
+        return `${webUrl}/track/${token}`;
+      } catch (error) {
+        this.logger.error(
+          `Failed to decrypt tracking token for job ${job.id}`,
+          error instanceof Error ? error.stack : String(error),
+        );
+
+        return null;
+      }
+    }
+
+    /*
+     * Tracking existed before but was disabled intentionally.
+     * Do not automatically re-enable it.
+     */
+    if (!job.trackingEnabled && job.trackingCreatedAt) {
+      return null;
+    }
+
+    /*
+     * Tracking has never been generated.
+     * Create it automatically.
+     */
+    const token = randomBytes(32).toString('base64url');
+
+    const trackingTokenHash = this.hashTrackingToken(token);
+
+    const trackingTokenEncrypted = this.encryptTrackingToken(token);
+
+    await this.prisma.job.update({
+      where: {
+        id: job.id,
+      },
+
+      data: {
+        trackingTokenHash,
+        trackingTokenEncrypted,
+        trackingEnabled: true,
+        trackingCreatedAt: new Date(),
+      },
+    });
+
+    return `${webUrl}/track/${token}`;
   }
 
   async findAll(tenant: TenantContext, query: JobQueryDto) {
@@ -355,7 +512,7 @@ export class JobsService {
     id: string,
     dto: UpdateJobStatusDto,
   ) {
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const job = await tx.job.findFirst({
         where: {
           id,
@@ -396,8 +553,8 @@ export class JobsService {
       const completedAt = nextStatus === 'COMPLETED' ? new Date() : null;
 
       /*
-       * Conditional update prevents two concurrent
-       * requests from changing the same old status.
+       * Conditional update prevents two concurrent requests
+       * from changing the same old status.
        */
       const updateResult = await tx.job.updateMany({
         where: {
@@ -429,22 +586,32 @@ export class JobsService {
         dto.message?.trim() ||
         this.getDefaultStatusMessage(currentStatus, nextStatus);
 
+      const publicMessage =
+        dto.publicMessage?.trim() ||
+        this.getDefaultPublicStatusMessage(nextStatus);
+
       await tx.jobUpdate.create({
         data: {
           jobId: job.id,
+
           createdById: user.sub,
 
           status: nextStatus,
 
           message,
 
-          publicMessage:
-            dto.publicMessage?.trim() ||
-            this.getDefaultPublicStatusMessage(nextStatus),
+          publicMessage,
         },
       });
 
-      return tx.job.findUnique({
+      /*
+       * Get the updated job while still inside the transaction.
+       *
+       * We include the customer's email and the encrypted
+       * tracking token because they'll be needed after the
+       * transaction commits.
+       */
+      const updatedJob = await tx.job.findUniqueOrThrow({
         where: {
           id: job.id,
         },
@@ -455,6 +622,13 @@ export class JobsService {
               id: true,
               name: true,
               companyName: true,
+              email: true,
+            },
+          },
+
+          organization: {
+            select: {
+              name: true,
             },
           },
 
@@ -474,7 +648,70 @@ export class JobsService {
           },
         },
       });
+
+      return {
+        job: updatedJob,
+
+        notification: {
+          previousStatus: currentStatus,
+
+          status: nextStatus,
+
+          publicMessage,
+        },
+      };
     });
+
+    /*
+     * IMPORTANT:
+     *
+     * Everything below happens AFTER the database transaction
+     * has committed successfully.
+     *
+     * We don't want to send an email for a status update that
+     * could still be rolled back.
+     */
+
+    let trackingUrl: string | null = null;
+
+    if (
+      result.job.customer?.email &&
+      this.shouldNotifyCustomerOfJobStatus(result.notification.status)
+    ) {
+      trackingUrl = await this.ensureTrackingLinkForNotification(result.job.id);
+    }
+
+    /*
+     * Send an email only when:
+     *
+     * 1. The customer has an email address.
+     * 2. The status is meaningful enough to notify them.
+     */
+    if (
+      result.job.customer?.email &&
+      this.shouldNotifyCustomerOfJobStatus(result.notification.status)
+    ) {
+      void this.notificationsService.sendJobStatusUpdated({
+        recipientEmail: result.job.customer.email,
+
+        customerName:
+          result.job.customer.companyName ??
+          result.job.customer.name ??
+          'Customer',
+
+        businessName: result.job.organization?.name ?? 'QUFO',
+
+        jobNumber: result.job.jobNumber,
+
+        status: result.notification.status,
+
+        message: result.notification.publicMessage,
+
+        trackingUrl,
+      });
+    }
+
+    return result.job;
   }
 
   private async getJob(organizationId: string, id: string) {
@@ -576,6 +813,8 @@ export class JobsService {
 
     const trackingTokenHash = this.hashTrackingToken(token);
 
+    const trackingTokenEncrypted = this.encryptTrackingToken(token);
+
     await this.prisma.job.update({
       where: {
         id: job.id,
@@ -583,6 +822,7 @@ export class JobsService {
 
       data: {
         trackingTokenHash,
+        trackingTokenEncrypted,
         trackingEnabled: true,
         trackingCreatedAt: new Date(),
       },

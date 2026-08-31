@@ -6,9 +6,10 @@ import { QuotationsController } from './quotations.controller';
 import { QuotationsService } from './quotations.service';
 import { PublicQuotationsController } from './public-quotations.controller';
 import { RealtimeModule } from '../realtime/realtime.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [AuthModule, RealtimeModule],
+  imports: [AuthModule, RealtimeModule, NotificationsModule],
 
   controllers: [QuotationsController, PublicQuotationsController],
 

@@ -25,6 +25,7 @@ import { RespondQuotationDto } from './dto/respond-quotation.dto';
 import { ConvertQuotationToJobDto } from './dto/convert-quotation-to-job.dto';
 import { CustomerQuotationFeedbackDto } from './dto/customer-quotation-feedback.dto';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class QuotationsService {
@@ -32,6 +33,7 @@ export class QuotationsService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly realtimeGateway: RealtimeGateway,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   private hashPublicToken(token: string) {
@@ -333,6 +335,7 @@ export class QuotationsService {
             select: {
               id: true,
               name: true,
+              email: true,
             },
           },
         },
@@ -491,6 +494,7 @@ export class QuotationsService {
           select: {
             id: true,
             name: true,
+            email: true,
           },
         },
       },
@@ -813,6 +817,19 @@ export class QuotationsService {
         id: true,
         status: true,
         validUntil: true,
+
+        customer: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+
+        organization: {
+          select: {
+            name: true,
+          },
+        },
       },
     });
 
@@ -859,10 +876,38 @@ export class QuotationsService {
     const webUrl =
       this.configService.get<string>('WEB_URL') ?? 'http://localhost:3000';
 
+    const publicUrl = `${webUrl}/quote/${token}`;
+
+    let emailSent = false;
+
+    if (quotation.customer?.email) {
+      emailSent = await this.notificationsService.sendQuotationToCustomer({
+        recipientEmail: quotation.customer.email,
+
+        customerName: quotation.customer.name ?? 'Customer',
+
+        businessName: quotation.organization?.name ?? 'QUFO',
+
+        quotationNumber: updated.quotationNumber,
+
+        publicUrl,
+
+        validUntil: quotation.validUntil,
+      });
+    }
+
     return {
       ...updated,
 
-      publicUrl: `${webUrl}/quote/${token}`,
+      publicUrl,
+
+      email: {
+        attempted: Boolean(quotation.customer?.email),
+
+        sent: emailSent,
+
+        recipient: quotation.customer?.email ?? null,
+      },
     };
   }
 
@@ -1072,9 +1117,27 @@ export class QuotationsService {
       },
 
       select: {
+        id: true,
+
         quotationNumber: true,
+
         status: true,
+
         approvedAt: true,
+
+        customerResponseNote: true,
+
+        customer: {
+          select: {
+            name: true,
+          },
+        },
+
+        createdBy: {
+          select: {
+            email: true,
+          },
+        },
       },
     });
 
@@ -1086,10 +1149,24 @@ export class QuotationsService {
 
         status: updated.status,
 
-        customerResponseNote: dto.note?.trim() || null,
+        customerResponseNote: updated.customerResponseNote,
 
         respondedAt: updated.approvedAt,
       });
+
+      if (updated.createdBy?.email) {
+        void this.notificationsService.sendQuotationApproved({
+          recipientEmail: updated.createdBy.email,
+
+          quotationId: updated.id,
+
+          quotationNumber: updated.quotationNumber,
+
+          customerName: updated.customer?.name ?? 'Customer',
+
+          note: updated.customerResponseNote,
+        });
+      }
     }
 
     return {
@@ -1137,6 +1214,8 @@ export class QuotationsService {
       },
 
       select: {
+        id: true,
+
         quotationNumber: true,
 
         status: true,
@@ -1144,6 +1223,18 @@ export class QuotationsService {
         rejectedAt: true,
 
         customerResponseNote: true,
+
+        customer: {
+          select: {
+            name: true,
+          },
+        },
+
+        createdBy: {
+          select: {
+            email: true,
+          },
+        },
       },
     });
 
@@ -1159,6 +1250,20 @@ export class QuotationsService {
 
         respondedAt: updated.rejectedAt,
       });
+
+      if (updated.createdBy?.email) {
+        void this.notificationsService.sendQuotationDeclined({
+          recipientEmail: updated.createdBy.email,
+
+          quotationId: updated.id,
+
+          quotationNumber: updated.quotationNumber,
+
+          customerName: updated.customer?.name ?? 'Customer',
+
+          message: updated.customerResponseNote,
+        });
+      }
     }
 
     return {
@@ -1427,6 +1532,8 @@ export class QuotationsService {
       },
 
       select: {
+        id: true,
+
         quotationNumber: true,
 
         status: true,
@@ -1434,6 +1541,18 @@ export class QuotationsService {
         changesRequestedAt: true,
 
         customerResponseNote: true,
+
+        customer: {
+          select: {
+            name: true,
+          },
+        },
+
+        createdBy: {
+          select: {
+            email: true,
+          },
+        },
       },
     });
 
@@ -1449,6 +1568,20 @@ export class QuotationsService {
 
         respondedAt: updated.changesRequestedAt,
       });
+
+      if (updated.createdBy?.email) {
+        void this.notificationsService.sendQuotationRevisionRequested({
+          recipientEmail: updated.createdBy.email,
+
+          quotationId: updated.id,
+
+          quotationNumber: updated.quotationNumber,
+
+          customerName: updated.customer?.name ?? 'Customer',
+
+          message: updated.customerResponseNote,
+        });
+      }
     }
 
     return {
