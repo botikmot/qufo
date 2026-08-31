@@ -77,8 +77,12 @@ export class NotificationsService {
     );
   }
 
-  private getQuotationUrl(quotationId: string) {
+  /* private getQuotationUrl(quotationId: string) {
     return `${this.appUrl}/quotations/${quotationId}`;
+  } */
+
+  private getQuotationUrl() {
+    return `${this.appUrl}/quotations`;
   }
 
   private formatJobStatus(status: JobStatus) {
@@ -138,7 +142,7 @@ export class NotificationsService {
 
     const message = data.note ? this.escapeHtml(data.note) : null;
 
-    const quotationUrl = this.getQuotationUrl(data.quotationId);
+    const quotationUrl = this.getQuotationUrl();
 
     const html = buildQufoEmail({
       title: 'Quotation approved',
@@ -217,7 +221,7 @@ export class NotificationsService {
 
     const message = data.message ? this.escapeHtml(data.message) : null;
 
-    const quotationUrl = this.getQuotationUrl(data.quotationId);
+    const quotationUrl = this.getQuotationUrl();
 
     const html = buildQufoEmail({
       title: 'Customer requested changes',
@@ -296,7 +300,7 @@ export class NotificationsService {
 
     const message = data.message ? this.escapeHtml(data.message) : null;
 
-    const quotationUrl = this.getQuotationUrl(data.quotationId);
+    const quotationUrl = this.getQuotationUrl();
 
     const html = buildQufoEmail({
       title: 'Quotation declined',
@@ -388,7 +392,7 @@ export class NotificationsService {
         }
 
         <p>
-          <a href="${this.getQuotationUrl(data.quotationId)}">
+          <a href="${this.getQuotationUrl()}">
             Open quotation
           </a>
         </p>
