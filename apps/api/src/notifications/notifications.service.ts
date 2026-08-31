@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
 import { JobStatus } from '../generated/prisma/enums';
+import { buildQufoEmail } from './templates/qufo-email-layout';
 
 type QuotationNotificationData = {
   recipientEmail: string;
@@ -77,7 +78,7 @@ export class NotificationsService {
   }
 
   private getQuotationUrl(quotationId: string) {
-    return `${this.appUrl}/dashboard/quotations/${quotationId}`;
+    return `${this.appUrl}/quotations/${quotationId}`;
   }
 
   private formatJobStatus(status: JobStatus) {
@@ -128,98 +129,82 @@ export class NotificationsService {
     }
   }
 
-  async sendQuotationApproved(data: QuotationApprovedNotification) {
-    const quotationUrl = `${this.appUrl}/quotations`;
-
+  async sendQuotationApproved(
+    data: QuotationApprovedNotification,
+  ): Promise<boolean> {
     const customerName = this.escapeHtml(data.customerName);
 
     const quotationNumber = this.escapeHtml(data.quotationNumber);
 
-    const note = data.note ? this.escapeHtml(data.note) : null;
+    const message = data.note ? this.escapeHtml(data.note) : null;
 
-    await this.sendSafely({
+    const quotationUrl = this.getQuotationUrl(data.quotationId);
+
+    const html = buildQufoEmail({
+      title: 'Quotation approved',
+
+      preheader: `${data.customerName} approved quotation ${data.quotationNumber}.`,
+
+      content: `
+      <p
+        style="
+          margin: 0 0 14px;
+        "
+      >
+        <strong>${customerName}</strong>
+        approved quotation
+        <strong>${quotationNumber}</strong>.
+      </p>
+
+      <p
+        style="
+          margin: 0;
+          color: #475467;
+        "
+      >
+        The quotation is ready for the next step in your workflow.
+      </p>
+    `,
+
+      infoCard: message
+        ? `
+          <div
+            style="
+              font-size: 11px;
+              line-height: 16px;
+              font-weight: 700;
+              letter-spacing: .06em;
+              text-transform: uppercase;
+              color: #667085;
+            "
+          >
+            Customer note
+          </div>
+
+          <div
+            style="
+              margin-top: 8px;
+              font-size: 14px;
+              line-height: 22px;
+              color: #475467;
+            "
+          >
+            ${message}
+          </div>
+        `
+        : null,
+
+      actionLabel: 'View quotation',
+
+      actionUrl: quotationUrl,
+    });
+
+    return this.sendSafely({
       to: data.recipientEmail,
 
       subject: `${data.quotationNumber} was approved`,
 
-      html: `
-      <div
-        style="
-          font-family: Arial, sans-serif;
-          max-width: 600px;
-          margin: 0 auto;
-          color: #172033;
-        "
-      >
-        <h2 style="margin-bottom: 8px;">
-          Quotation approved
-        </h2>
-
-        <p style="line-height: 1.6;">
-          <strong>${customerName}</strong>
-          approved quotation
-          <strong>${quotationNumber}</strong>.
-        </p>
-
-        ${
-          note
-            ? `
-              <div
-                style="
-                  margin: 24px 0;
-                  padding: 16px;
-                  border-radius: 10px;
-                  background: #f6f8fa;
-                "
-              >
-                <div
-                  style="
-                    margin-bottom: 6px;
-                    font-size: 12px;
-                    font-weight: 700;
-                    text-transform: uppercase;
-                    color: #667085;
-                  "
-                >
-                  Customer note
-                </div>
-
-                <div style="line-height: 1.6;">
-                  ${note}
-                </div>
-              </div>
-            `
-            : ''
-        }
-
-        <p style="margin-top: 24px;">
-          <a
-            href="${quotationUrl}"
-            style="
-              display: inline-block;
-              padding: 12px 18px;
-              border-radius: 8px;
-              background: #0f172a;
-              color: #ffffff;
-              text-decoration: none;
-              font-weight: 600;
-            "
-          >
-            View quotation
-          </a>
-        </p>
-
-        <p
-          style="
-            margin-top: 32px;
-            font-size: 12px;
-            color: #98a2b3;
-          "
-        >
-          This notification was sent by QUFO.
-        </p>
-      </div>
-    `,
+      html,
     });
   }
 
@@ -232,92 +217,73 @@ export class NotificationsService {
 
     const message = data.message ? this.escapeHtml(data.message) : null;
 
-    const quotationUrl = `${this.appUrl}/quotations`;
+    const quotationUrl = this.getQuotationUrl(data.quotationId);
+
+    const html = buildQufoEmail({
+      title: 'Customer requested changes',
+
+      preheader: `${data.customerName} requested changes to quotation ${data.quotationNumber}.`,
+
+      content: `
+      <p
+        style="
+          margin: 0 0 14px;
+        "
+      >
+        <strong>${customerName}</strong>
+        requested changes to quotation
+        <strong>${quotationNumber}</strong>.
+      </p>
+
+      <p
+        style="
+          margin: 0;
+          color: #475467;
+        "
+      >
+        Review the customer's request before preparing the next revision.
+      </p>
+    `,
+
+      infoCard: message
+        ? `
+          <div
+            style="
+              font-size: 11px;
+              line-height: 16px;
+              font-weight: 700;
+              letter-spacing: .06em;
+              text-transform: uppercase;
+              color: #667085;
+            "
+          >
+            Requested changes
+          </div>
+
+          <div
+            style="
+              margin-top: 8px;
+              font-size: 14px;
+              line-height: 22px;
+              color: #475467;
+            "
+          >
+            ${message}
+          </div>
+        `
+        : null,
+
+      actionLabel: 'Review request',
+
+      actionUrl: quotationUrl,
+    });
 
     return this.sendSafely({
       to: data.recipientEmail,
 
       subject: `Changes requested for ${data.quotationNumber}`,
 
-      html: `
-      <div
-        style="
-          font-family: Arial, Helvetica, sans-serif;
-          max-width: 600px;
-          margin: 0 auto;
-          padding: 32px 20px;
-          color: #172033;
-        "
-      >
-        <h2>
-          Customer requested changes
-        </h2>
-
-        <p style="line-height: 1.7;">
-          <strong>${customerName}</strong>
-          requested changes to quotation
-          <strong>${quotationNumber}</strong>.
-        </p>
-
-        ${
-          message
-            ? `
-              <div
-                style="
-                  margin: 24px 0;
-                  padding: 16px;
-                  border-radius: 10px;
-                  background: #f6f8fa;
-                "
-              >
-                <div
-                  style="
-                    margin-bottom: 6px;
-                    font-size: 12px;
-                    font-weight: 700;
-                    text-transform: uppercase;
-                    color: #667085;
-                  "
-                >
-                  Customer request
-                </div>
-
-                <div style="line-height: 1.6;">
-                  ${message}
-                </div>
-              </div>
-            `
-            : ''
-        }
-
-        <p style="margin-top: 24px;">
-          <a
-            href="${quotationUrl}"
-            style="
-              display: inline-block;
-              padding: 12px 18px;
-              border-radius: 8px;
-              background: #0f172a;
-              color: #ffffff;
-              text-decoration: none;
-              font-weight: 600;
-            "
-          >
-            Review request
-          </a>
-        </p>
-
-        <p
-          style="
-            margin-top: 32px;
-            font-size: 12px;
-            color: #98a2b3;
-          "
-        >
-          This notification was sent by QUFO.
-        </p>
-      </div>
-    `,
+      html,
     });
   }
 
@@ -330,92 +296,73 @@ export class NotificationsService {
 
     const message = data.message ? this.escapeHtml(data.message) : null;
 
-    const quotationUrl = `${this.appUrl}/quotations`;
+    const quotationUrl = this.getQuotationUrl(data.quotationId);
+
+    const html = buildQufoEmail({
+      title: 'Quotation declined',
+
+      preheader: `${data.customerName} declined quotation ${data.quotationNumber}.`,
+
+      content: `
+      <p
+        style="
+          margin: 0 0 14px;
+        "
+      >
+        <strong>${customerName}</strong>
+        declined quotation
+        <strong>${quotationNumber}</strong>.
+      </p>
+
+      <p
+        style="
+          margin: 0;
+          color: #475467;
+        "
+      >
+        You can review the quotation and the customer's response below.
+      </p>
+    `,
+
+      infoCard: message
+        ? `
+          <div
+            style="
+              font-size: 11px;
+              line-height: 16px;
+              font-weight: 700;
+              letter-spacing: .06em;
+              text-transform: uppercase;
+              color: #667085;
+            "
+          >
+            Customer reason
+          </div>
+
+          <div
+            style="
+              margin-top: 8px;
+              font-size: 14px;
+              line-height: 22px;
+              color: #475467;
+            "
+          >
+            ${message}
+          </div>
+        `
+        : null,
+
+      actionLabel: 'View quotation',
+
+      actionUrl: quotationUrl,
+    });
 
     return this.sendSafely({
       to: data.recipientEmail,
 
       subject: `${data.quotationNumber} was declined`,
 
-      html: `
-      <div
-        style="
-          font-family: Arial, Helvetica, sans-serif;
-          max-width: 600px;
-          margin: 0 auto;
-          padding: 32px 20px;
-          color: #172033;
-        "
-      >
-        <h2>
-          Quotation declined
-        </h2>
-
-        <p style="line-height: 1.7;">
-          <strong>${customerName}</strong>
-          declined quotation
-          <strong>${quotationNumber}</strong>.
-        </p>
-
-        ${
-          message
-            ? `
-              <div
-                style="
-                  margin: 24px 0;
-                  padding: 16px;
-                  border-radius: 10px;
-                  background: #f6f8fa;
-                "
-              >
-                <div
-                  style="
-                    margin-bottom: 6px;
-                    font-size: 12px;
-                    font-weight: 700;
-                    text-transform: uppercase;
-                    color: #667085;
-                  "
-                >
-                  Customer reason
-                </div>
-
-                <div style="line-height: 1.6;">
-                  ${message}
-                </div>
-              </div>
-            `
-            : ''
-        }
-
-        <p style="margin-top: 24px;">
-          <a
-            href="${quotationUrl}"
-            style="
-              display: inline-block;
-              padding: 12px 18px;
-              border-radius: 8px;
-              background: #0f172a;
-              color: #ffffff;
-              text-decoration: none;
-              font-weight: 600;
-            "
-          >
-            View quotation
-          </a>
-        </p>
-
-        <p
-          style="
-            margin-top: 32px;
-            font-size: 12px;
-            color: #98a2b3;
-          "
-        >
-          This notification was sent by QUFO.
-        </p>
-      </div>
-    `,
+      html,
     });
   }
 
@@ -509,119 +456,68 @@ export class NotificationsService {
         }).format(data.validUntil)
       : null;
 
+    const html = buildQufoEmail({
+      title: 'Your quotation is ready',
+
+      preheader: `${data.businessName} sent you quotation ${data.quotationNumber}.`,
+
+      businessName,
+
+      content: `
+      <p
+        style="
+          margin: 0 0 14px;
+        "
+      >
+        Hi ${customerName},
+      </p>
+
+      <p
+        style="
+          margin: 0 0 14px;
+        "
+      >
+        ${businessName} has prepared quotation
+        <strong>${quotationNumber}</strong>
+        for you.
+      </p>
+
+      <p
+        style="
+          margin: 0;
+        "
+      >
+        You can securely review the quotation,
+        approve it, request changes, or decline it.
+      </p>
+    `,
+
+      infoCard: validUntil
+        ? `
+          <div
+            style="
+              font-size: 14px;
+              line-height: 22px;
+              color: #475467;
+            "
+          >
+            <strong>Valid until:</strong>
+            ${validUntil}
+          </div>
+        `
+        : null,
+
+      actionLabel: 'Review quotation',
+
+      actionUrl: data.publicUrl,
+    });
+
     return this.sendSafely({
       to: data.recipientEmail,
 
       subject: `${data.quotationNumber} from ${data.businessName}`,
 
-      html: `
-      <div
-        style="
-          font-family: Arial, Helvetica, sans-serif;
-          max-width: 600px;
-          margin: 0 auto;
-          padding: 32px 20px;
-          color: #172033;
-        "
-      >
-        <div
-          style="
-            margin-bottom: 28px;
-            font-size: 20px;
-            font-weight: 700;
-          "
-        >
-          ${businessName}
-        </div>
-
-        <h2
-          style="
-            margin: 0 0 16px;
-            font-size: 24px;
-          "
-        >
-          Your quotation is ready
-        </h2>
-
-        <p
-          style="
-            margin: 0 0 16px;
-            line-height: 1.7;
-          "
-        >
-          Hi ${customerName},
-        </p>
-
-        <p
-          style="
-            margin: 0 0 20px;
-            line-height: 1.7;
-          "
-        >
-          ${businessName} has prepared quotation
-          <strong>${quotationNumber}</strong>
-          for you.
-        </p>
-
-        <p
-          style="
-            margin: 0 0 24px;
-            line-height: 1.7;
-          "
-        >
-          You can securely review the quotation,
-          approve it, request changes, or decline it
-          using the link below.
-        </p>
-
-        ${
-          validUntil
-            ? `
-              <div
-                style="
-                  margin: 0 0 24px;
-                  padding: 14px 16px;
-                  border-radius: 10px;
-                  background: #f6f8fa;
-                  font-size: 14px;
-                "
-              >
-                <strong>Valid until:</strong>
-                ${validUntil}
-              </div>
-            `
-            : ''
-        }
-
-        <p style="margin: 0 0 28px;">
-          <a
-            href="${data.publicUrl}"
-            style="
-              display: inline-block;
-              padding: 13px 20px;
-              border-radius: 9px;
-              background: #0f172a;
-              color: #ffffff;
-              text-decoration: none;
-              font-weight: 600;
-            "
-          >
-            Review quotation
-          </a>
-        </p>
-
-        <p
-          style="
-            margin: 0;
-            font-size: 13px;
-            line-height: 1.6;
-            color: #98a2b3;
-          "
-        >
-          This secure quotation was sent through QUFO.
-        </p>
-      </div>
-    `,
+      html,
     });
   }
 
@@ -638,130 +534,89 @@ export class NotificationsService {
 
     const statusLabel = this.formatJobStatus(data.status);
 
-    return this.sendSafely({
-      to: data.recipientEmail,
+    const subject = this.getJobStatusEmailSubject(data.jobNumber, data.status);
 
-      subject: this.getJobStatusEmailSubject(data.jobNumber, data.status),
+    const html = buildQufoEmail({
+      title: 'Your job has been updated',
 
-      html: `
+      preheader: `${data.jobNumber} is now ${statusLabel}.`,
+
+      businessName,
+
+      content: `
+      <p
+        style="
+          margin: 0 0 14px;
+        "
+      >
+        Hi ${customerName},
+      </p>
+
+      <p
+        style="
+          margin: 0;
+        "
+      >
+        There's an update on job
+        <strong>${jobNumber}</strong>.
+      </p>
+    `,
+
+      infoCard: `
       <div
         style="
-          font-family: Arial, Helvetica, sans-serif;
-          max-width: 600px;
-          margin: 0 auto;
-          padding: 32px 20px;
+          font-size: 11px;
+          line-height: 16px;
+          font-weight: 700;
+          letter-spacing: .06em;
+          text-transform: uppercase;
+          color: #667085;
+        "
+      >
+        New status
+      </div>
+
+      <div
+        style="
+          margin-top: 6px;
+          font-size: 18px;
+          line-height: 24px;
+          font-weight: 700;
           color: #172033;
         "
       >
-        <div
-          style="
-            margin-bottom: 28px;
-            font-size: 20px;
-            font-weight: 700;
-          "
-        >
-          ${businessName}
-        </div>
-
-        <h2
-          style="
-            margin: 0 0 16px;
-            font-size: 24px;
-          "
-        >
-          Your job has been updated
-        </h2>
-
-        <p style="line-height: 1.7;">
-          Hi ${customerName},
-        </p>
-
-        <p style="line-height: 1.7;">
-          There's an update on job
-          <strong>${jobNumber}</strong>.
-        </p>
-
-        <div
-          style="
-            margin: 24px 0;
-            padding: 16px;
-            border-radius: 10px;
-            background: #f6f8fa;
-          "
-        >
-          <div
-            style="
-              margin-bottom: 6px;
-              font-size: 12px;
-              font-weight: 700;
-              text-transform: uppercase;
-              color: #667085;
-            "
-          >
-            New status
-          </div>
-
-          <div
-            style="
-              font-size: 18px;
-              font-weight: 700;
-            "
-          >
-            ${statusLabel}
-          </div>
-
-          ${
-            message
-              ? `
-                <div
-                  style="
-                    margin-top: 12px;
-                    line-height: 1.6;
-                    color: #475467;
-                  "
-                >
-                  ${message}
-                </div>
-              `
-              : ''
-          }
-        </div>
-
-        ${
-          data.trackingUrl
-            ? `
-              <div style="margin-top: 24px;">
-                <a
-                  href="${data.trackingUrl}"
-                  target="_blank"
-                  style="
-                    display: inline-block;
-                    padding: 13px 20px;
-                    border-radius: 9px;
-                    background: #0f172a;
-                    color: #ffffff;
-                    text-decoration: none;
-                    font-weight: 600;
-                  "
-                >
-                  Track your job
-                </a>
-              </div>
-            `
-            : ''
-        }
-
-        <p
-          style="
-            margin-top: 32px;
-            font-size: 12px;
-            color: #98a2b3;
-          "
-        >
-          This update was sent through QUFO.
-        </p>
+        ${statusLabel}
       </div>
+
+      ${
+        message
+          ? `
+            <div
+              style="
+                margin-top: 10px;
+                font-size: 14px;
+                line-height: 22px;
+                color: #475467;
+              "
+            >
+              ${message}
+            </div>
+          `
+          : ''
+      }
     `,
+
+      actionLabel: data.trackingUrl ? 'Track your job' : null,
+
+      actionUrl: data.trackingUrl ?? null,
+    });
+
+    return this.sendSafely({
+      to: data.recipientEmail,
+
+      subject,
+
+      html,
     });
   }
 }
