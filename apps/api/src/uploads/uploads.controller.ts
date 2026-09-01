@@ -43,4 +43,25 @@ export class UploadsController {
       tenant.organizationId,
     );
   }
+
+  @Post('quotation-signature')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: {
+        fileSize: 2 * 1024 * 1024,
+      },
+    }),
+  )
+  uploadQuotationSignature(
+    @CurrentTenant()
+    tenant: TenantContext,
+
+    @UploadedFile()
+    file: Express.Multer.File,
+  ) {
+    return this.uploadsService.uploadQuotationSignature(
+      file,
+      tenant.organizationId,
+    );
+  }
 }

@@ -272,6 +272,31 @@ export default function SettingsPage() {
               onRemoveLogo={
                 business.removeLogo
               }
+
+              uploadingSignature={
+                business.uploadingSignature
+              }
+
+              removingSignature={
+                business.removingSignature
+              }
+
+              savingSignature={
+                business.savingSignature
+              }
+
+              onUploadSignature={
+                business.uploadSignature
+              }
+
+              onRemoveSignature={
+                business.removeSignature
+              }
+
+              onSaveSignature={
+                business.updateSignature
+              }
+
             />
           ) : (
             <div className="rounded-2xl border border-red-400/15 bg-red-400/[0.05] p-5 text-sm text-red-300">

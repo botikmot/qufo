@@ -479,6 +479,10 @@ export class QuotationsService {
             phone: true,
             address: true,
             logoUrl: true,
+            quotationSignatureUrl: true,
+            quotationSignatoryName: true,
+            quotationSignatoryTitle: true,
+            showQuotationSignature: true,
           },
         },
 

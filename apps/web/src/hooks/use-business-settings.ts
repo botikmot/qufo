@@ -12,6 +12,7 @@ import {
 import type {
   BusinessSettings,
   UpdateBusinessSettingsData,
+   UpdateQuotationSignatureSettingsData,
 } from "@/types/settings";
 
 export function useBusinessSettings() {
@@ -41,6 +42,21 @@ export function useBusinessSettings() {
   const [
     removingLogo,
     setRemovingLogo,
+  ] = useState(false);
+
+  const [
+    uploadingSignature,
+    setUploadingSignature,
+  ] = useState(false);
+
+  const [
+    removingSignature,
+    setRemovingSignature,
+  ] = useState(false);
+
+  const [
+    savingSignature,
+    setSavingSignature,
   ] = useState(false);
 
   const [
@@ -208,6 +224,168 @@ export function useBusinessSettings() {
     }
   }
 
+  async function uploadSignature(
+    file: File,
+  ) {
+    setUploadingSignature(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response =
+        await settingsService
+          .uploadQuotationSignature(
+            file,
+          );
+
+      setSettings(
+        (current) =>
+          current
+            ? {
+                ...current,
+
+                quotationSignatureUrl:
+                  response
+                    .quotationSignatureUrl,
+
+                quotationSignatoryName:
+                  response
+                    .quotationSignatoryName,
+
+                quotationSignatoryTitle:
+                  response
+                    .quotationSignatoryTitle,
+
+                showQuotationSignature:
+                  response
+                    .showQuotationSignature,
+              }
+            : current,
+      );
+
+      setSuccess(
+        "Quotation signature uploaded successfully.",
+      );
+
+      return true;
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to upload quotation signature.",
+      );
+
+      return false;
+    } finally {
+      setUploadingSignature(
+        false,
+      );
+    }
+  }
+
+  async function updateSignature(
+    data: UpdateQuotationSignatureSettingsData,
+  ) {
+    setSavingSignature(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response =
+        await settingsService
+          .updateQuotationSignature(
+            data,
+          );
+
+      setSettings(
+        (current) =>
+          current
+            ? {
+                ...current,
+
+                quotationSignatoryName:
+                  response
+                    .quotationSignatoryName,
+
+                quotationSignatoryTitle:
+                  response
+                    .quotationSignatoryTitle,
+
+                showQuotationSignature:
+                  response
+                    .showQuotationSignature,
+
+                quotationSignatureUrl:
+                  response
+                    .quotationSignatureUrl,
+              }
+            : current,
+      );
+
+      setSuccess(
+        "Quotation signature settings updated successfully.",
+      );
+
+      return true;
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to update quotation signature settings.",
+      );
+
+      return false;
+    } finally {
+      setSavingSignature(
+        false,
+      );
+    }
+  }
+
+  async function removeSignature() {
+    setRemovingSignature(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      await settingsService
+        .removeQuotationSignature();
+
+      setSettings(
+        (current) =>
+          current
+            ? {
+                ...current,
+
+                quotationSignatureUrl:
+                  null,
+
+                showQuotationSignature:
+                  false,
+              }
+            : current,
+      );
+
+      setSuccess(
+        "Quotation signature removed successfully.",
+      );
+
+      return true;
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to remove quotation signature.",
+      );
+
+      return false;
+    } finally {
+      setRemovingSignature(
+        false,
+      );
+    }
+  }
+
   return {
     settings,
 
@@ -217,11 +395,18 @@ export function useBusinessSettings() {
     uploadingLogo,
     removingLogo,
 
+    uploadingSignature,
+    removingSignature,
+    savingSignature,
+
     error,
     success,
 
     update,
     uploadLogo,
     removeLogo,
+    uploadSignature,
+    updateSignature,
+    removeSignature,
   };
 }

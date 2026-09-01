@@ -149,6 +149,26 @@ export function mapQuotationToPdfData(
       quotation.footerNote ??
       null,
 
+    authorizedSignatureUrl:
+      quotation.organization
+        .quotationSignatureUrl ??
+      null,
+
+    authorizedSignatoryName:
+      quotation.organization
+        .quotationSignatoryName ??
+      null,
+
+    authorizedSignatoryTitle:
+      quotation.organization
+        .quotationSignatoryTitle ??
+      null,
+
+    showQuotationSignature:
+      quotation.organization
+        .showQuotationSignature ??
+      false,
+
     preparedBy:
       quotation.createdBy.name,
   };

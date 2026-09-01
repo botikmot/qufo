@@ -1,4 +1,5 @@
 import {
+  Image,
   StyleSheet,
   Text,
   View,
@@ -34,7 +35,26 @@ const styles =
 
       letterSpacing: 0.6,
 
-      marginBottom: 34,
+      marginBottom: 8,
+    },
+
+    signatureArea: {
+      height: 38,
+
+      justifyContent:
+        "flex-end",
+
+      alignItems:
+        "flex-start",
+    },
+
+    signatureImage: {
+      width: 100,
+
+      height: 36,
+
+      objectFit:
+        "contain",
     },
 
     line: {
@@ -79,6 +99,24 @@ type Props = {
 export function QuotationPdfSignatures({
   data,
 }: Props) {
+  const showSignature =
+    data.showQuotationSignature &&
+    Boolean(
+      data.authorizedSignatureUrl,
+    );
+
+  const signatoryName =
+    data.authorizedSignatoryName
+      ?.trim() ||
+    data.preparedBy;
+
+  const signatoryTitle =
+    data.authorizedSignatoryTitle
+      ?.trim() ||
+    null;
+
+  console.log('signatore:: ', data)
+
   return (
     <View
       style={
@@ -86,22 +124,74 @@ export function QuotationPdfSignatures({
       }
       wrap={false}
     >
-      <View style={styles.block}>
-        <Text style={styles.heading}>
-          Prepared / Authorized By
+      {/* Business / authorized signature */}
+      <View
+        style={
+          styles.block
+        }
+      >
+        <Text
+          style={
+            styles.heading
+          }
+        >
+          Prepared /
+          Authorized By
         </Text>
 
-        <View style={styles.line}>
-          <Text style={styles.name}>
-            {data.preparedBy}
+        <View
+          style={
+            styles.signatureArea
+          }
+        >
+          {showSignature &&
+            data.authorizedSignatureUrl && (
+              <Image
+                src={
+                  data.authorizedSignatureUrl
+                }
+                style={
+                  styles.signatureImage
+                }
+              />
+            )}
+        </View>
+
+        <View
+          style={
+            styles.line
+          }
+        >
+          <Text
+            style={
+              styles.name
+            }
+          >
+            {signatoryName}
           </Text>
 
-          <Text style={styles.dateLine}>
-            Date: __________________
+          {signatoryTitle && (
+            <Text
+              style={
+                styles.detail
+              }
+            >
+              {signatoryTitle}
+            </Text>
+          )}
+
+          <Text
+            style={
+              styles.dateLine
+            }
+          >
+            Date:
+            __________________
           </Text>
         </View>
       </View>
 
+      {/* Customer signature */}
       <View
         style={
           styles.block
@@ -115,6 +205,12 @@ export function QuotationPdfSignatures({
           Accepted /
           Conforme
         </Text>
+
+        <View
+          style={
+            styles.signatureArea
+          }
+        />
 
         <View
           style={

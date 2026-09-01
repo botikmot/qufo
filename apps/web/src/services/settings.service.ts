@@ -12,6 +12,8 @@ import type {
   ChangePasswordResponse,
   UploadProfilePhotoResponse,
   RemoveProfilePhotoResponse,
+  UpdateQuotationSignatureSettingsData,
+  UploadQuotationSignatureResponse,
 } from "@/types/settings";
 
 import type { 
@@ -176,6 +178,52 @@ export const settingsService = {
     }>("/settings/business/logo", {
       method: "DELETE",
     });
+  },
+
+  async uploadQuotationSignature(
+    file: File,
+  ) {
+    const formData =
+      new FormData();
+
+    formData.append(
+      "file",
+      file,
+    );
+
+    return apiFetch<UploadQuotationSignatureResponse>(
+      "/settings/quotation-signature",
+      {
+        method: "POST",
+        body: formData,
+      },
+    );
+  },
+
+  async updateQuotationSignature(
+    data: UpdateQuotationSignatureSettingsData,
+  ) {
+    return apiFetch<UploadQuotationSignatureResponse>(
+      "/settings/quotation-signature",
+      {
+        method: "PATCH",
+
+        body: JSON.stringify(
+          data,
+        ),
+      },
+    );
+  },
+
+  async removeQuotationSignature() {
+    return apiFetch<{
+      removed: boolean;
+    }>(
+      "/settings/quotation-signature",
+      {
+        method: "DELETE",
+      },
+    );
   },
 
 };

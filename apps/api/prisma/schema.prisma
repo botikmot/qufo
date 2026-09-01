@@ -197,6 +197,13 @@ model Organization {
 
   quotationTerms      String? @db.Text
   quotationFooterNote String? @db.Text
+  quotationSignatureUrl   String?
+  quotationSignatureKey   String?
+
+  quotationSignatoryName  String?
+  quotationSignatoryTitle String?
+
+  showQuotationSignature  Boolean @default(false)
 
   countryCode String? @db.VarChar(2)
   currency    String  @default("PHP") @db.VarChar(3)

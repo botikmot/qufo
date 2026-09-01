@@ -33,6 +33,11 @@ export class OrganizationsService {
         quotationTerms: true,
         quotationFooterNote: true,
 
+        quotationSignatureUrl: true,
+        quotationSignatoryName: true,
+        quotationSignatoryTitle: true,
+        showQuotationSignature: true,
+
         countryCode: true,
         currency: true,
 
@@ -64,6 +69,10 @@ export class OrganizationsService {
       logoUrl: organization.logoUrl,
       quotationTerms: organization.quotationTerms,
       quotationFooterNote: organization.quotationFooterNote,
+      quotationSignatureUrl: organization.quotationSignatureUrl,
+      quotationSignatoryName: organization.quotationSignatoryName,
+      quotationSignatoryTitle: organization.quotationSignatoryTitle,
+      showQuotationSignature: organization.showQuotationSignature,
 
       countryCode: organization.countryCode,
       currency: organization.currency,

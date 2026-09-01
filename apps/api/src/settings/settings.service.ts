@@ -10,6 +10,7 @@ import type { TenantContext } from '../auth/types/tenant-context.type';
 
 import { UpdateBusinessSettingsDto } from './dto/update-business-settings.dto';
 import { UpdateProfileSettingsDto } from './dto/update-profile-settings.dto';
+import { UpdateQuotationSignatureSettingsDto } from './dto/update-quotation-signature-settings.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtPayload } from '../auth/types/jwt-payload.type';
 import * as bcrypt from 'bcrypt';
@@ -494,5 +495,177 @@ export class SettingsService {
     return {
       removed: true,
     };
+  }
+
+  async uploadQuotationSignature(
+    organizationId: string,
+    file: Express.Multer.File,
+  ) {
+    const organization = await this.prisma.organization.findUnique({
+      where: {
+        id: organizationId,
+      },
+
+      select: {
+        id: true,
+
+        quotationSignatureKey: true,
+      },
+    });
+
+    if (!organization) {
+      throw new NotFoundException('Organization not found.');
+    }
+
+    const uploaded = await this.uploadsService.uploadQuotationSignature(
+      file,
+      organizationId,
+    );
+
+    const updated = await this.prisma.organization.update({
+      where: {
+        id: organizationId,
+      },
+
+      data: {
+        quotationSignatureUrl: uploaded.url,
+
+        quotationSignatureKey: uploaded.signatureKey,
+      },
+
+      select: {
+        quotationSignatureUrl: true,
+
+        quotationSignatureKey: true,
+
+        quotationSignatoryName: true,
+
+        quotationSignatoryTitle: true,
+
+        showQuotationSignature: true,
+      },
+    });
+
+    /*
+     * Delete previous file only after
+     * new upload + DB update succeed.
+     */
+    if (
+      organization.quotationSignatureKey &&
+      organization.quotationSignatureKey !== uploaded.signatureKey
+    ) {
+      try {
+        await this.uploadsService.deleteImage(
+          organization.quotationSignatureKey,
+        );
+      } catch {
+        // New signature is already safely stored.
+      }
+    }
+
+    return updated;
+  }
+
+  async removeQuotationSignature(organizationId: string) {
+    const organization = await this.prisma.organization.findUnique({
+      where: {
+        id: organizationId,
+      },
+
+      select: {
+        quotationSignatureKey: true,
+      },
+    });
+
+    if (!organization) {
+      throw new NotFoundException('Organization not found.');
+    }
+
+    await this.prisma.organization.update({
+      where: {
+        id: organizationId,
+      },
+
+      data: {
+        quotationSignatureUrl: null,
+
+        quotationSignatureKey: null,
+
+        showQuotationSignature: false,
+      },
+    });
+
+    if (organization.quotationSignatureKey) {
+      try {
+        await this.uploadsService.deleteImage(
+          organization.quotationSignatureKey,
+        );
+      } catch {
+        // DB is already safely updated.
+      }
+    }
+
+    return {
+      removed: true,
+    };
+  }
+
+  async updateQuotationSignatureSettings(
+    organizationId: string,
+    dto: UpdateQuotationSignatureSettingsDto,
+  ) {
+    const organization = await this.prisma.organization.findUnique({
+      where: {
+        id: organizationId,
+      },
+
+      select: {
+        id: true,
+        quotationSignatureUrl: true,
+      },
+    });
+
+    if (!organization) {
+      throw new NotFoundException('Organization not found.');
+    }
+
+    /*
+     * Don't allow enabling a signature
+     * if no image exists.
+     */
+    if (
+      dto.showQuotationSignature === true &&
+      !organization.quotationSignatureUrl
+    ) {
+      throw new BadRequestException(
+        'Upload a quotation signature before enabling it.',
+      );
+    }
+
+    return this.prisma.organization.update({
+      where: {
+        id: organizationId,
+      },
+
+      data: {
+        quotationSignatoryName: dto.quotationSignatoryName?.trim() || null,
+
+        quotationSignatoryTitle: dto.quotationSignatoryTitle?.trim() || null,
+
+        showQuotationSignature: dto.showQuotationSignature,
+      },
+
+      select: {
+        quotationSignatureUrl: true,
+
+        quotationSignatureKey: true,
+
+        quotationSignatoryName: true,
+
+        quotationSignatoryTitle: true,
+
+        showQuotationSignature: true,
+      },
+    });
   }
 }

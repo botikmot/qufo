@@ -199,6 +199,17 @@ export type PublicQuotation = {
     phone: string | null;
     email: string | null;
     address: string | null;
+    quotationSignatureUrl:
+      string | null;
+
+    quotationSignatoryName:
+      string | null;
+
+    quotationSignatoryTitle:
+      string | null;
+
+    showQuotationSignature:
+      boolean;
   };
 
   customer: {
@@ -301,6 +312,18 @@ export type QuotationOrganization = {
   address:
     | string
     | null;
+
+  quotationSignatureUrl:
+    string | null;
+
+  quotationSignatoryName:
+    string | null;
+
+  quotationSignatoryTitle:
+    string | null;
+
+  showQuotationSignature:
+    boolean;
 };
 
 export type QuotationCreatedBy = {

@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Post,
   Patch,
   UseGuards,
   Delete,
@@ -21,6 +22,7 @@ import type { TenantContext } from '../auth/types/tenant-context.type';
 
 import { UpdateBusinessSettingsDto } from './dto/update-business-settings.dto';
 import { UpdateProfileSettingsDto } from './dto/update-profile-settings.dto';
+import { UpdateQuotationSignatureSettingsDto } from './dto/update-quotation-signature-settings.dto';
 import { SettingsService } from './settings.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtPayload } from '../auth/types/jwt-payload.type';
@@ -105,5 +107,51 @@ export class SettingsController {
     tenant: TenantContext,
   ) {
     return this.settingsService.removeBusinessLogo(tenant.organizationId);
+  }
+
+  @Post('quotation-signature')
+  @Roles('OWNER', 'ADMIN')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: {
+        fileSize: 2 * 1024 * 1024,
+      },
+    }),
+  )
+  uploadQuotationSignature(
+    @CurrentTenant()
+    tenant: TenantContext,
+
+    @UploadedFile()
+    file: Express.Multer.File,
+  ) {
+    return this.settingsService.uploadQuotationSignature(
+      tenant.organizationId,
+      file,
+    );
+  }
+
+  @Delete('quotation-signature')
+  @Roles('OWNER', 'ADMIN')
+  removeQuotationSignature(
+    @CurrentTenant()
+    tenant: TenantContext,
+  ) {
+    return this.settingsService.removeQuotationSignature(tenant.organizationId);
+  }
+
+  @Patch('quotation-signature')
+  @Roles('OWNER', 'ADMIN')
+  updateQuotationSignatureSettings(
+    @CurrentTenant()
+    tenant: TenantContext,
+
+    @Body()
+    dto: UpdateQuotationSignatureSettingsDto,
+  ) {
+    return this.settingsService.updateQuotationSignatureSettings(
+      tenant.organizationId,
+      dto,
+    );
   }
 }

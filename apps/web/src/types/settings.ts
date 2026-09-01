@@ -13,6 +13,14 @@ export type BusinessSettings = {
   quotationTerms: string | null;
   quotationFooterNote: string | null;
 
+  quotationSignatureUrl: string | null;
+
+  quotationSignatoryName: string | null;
+
+  quotationSignatoryTitle: string | null;
+
+  showQuotationSignature: boolean;
+
   countryCode: string | null;
 
   currency: string;
@@ -104,4 +112,29 @@ export type UploadProfilePhotoResponse = {
 
 export type RemoveProfilePhotoResponse = {
   message: string;
+};
+
+export type UpdateQuotationSignatureSettingsData = {
+  quotationSignatoryName:
+    string;
+
+  quotationSignatoryTitle:
+    string;
+
+  showQuotationSignature:
+    boolean;
+};
+
+export type UploadQuotationSignatureResponse = {
+  quotationSignatureUrl:
+    string | null;
+
+  quotationSignatoryName:
+    string | null;
+
+  quotationSignatoryTitle:
+    string | null;
+
+  showQuotationSignature:
+    boolean;
 };

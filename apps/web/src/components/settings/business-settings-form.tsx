@@ -25,6 +25,7 @@ import {
 import type {
   BusinessSettings,
   UpdateBusinessSettingsData,
+  UpdateQuotationSignatureSettingsData,
 } from "@/types/settings";
 
 import {
@@ -39,6 +40,10 @@ import {
   BusinessLogoUpload,
 } from "./business-logo-upload";
 
+import {
+  QuotationSignatureSettings,
+} from "./quotation-signature-settings";
+
 type BusinessSettingsFormProps = {
   settings: BusinessSettings;
 
@@ -52,6 +57,12 @@ type BusinessSettingsFormProps = {
 
   success: string | null;
 
+  uploadingSignature: boolean;
+
+  removingSignature: boolean;
+
+  savingSignature: boolean;
+
   onSave: (
     data: UpdateBusinessSettingsData,
   ) => Promise<boolean>;
@@ -62,6 +73,18 @@ type BusinessSettingsFormProps = {
 
   onRemoveLogo: () =>
     Promise<boolean>;
+
+  onUploadSignature: (
+    file: File,
+  ) => Promise<boolean>;
+
+  onRemoveSignature:
+    () => Promise<boolean>;
+
+  onSaveSignature: (
+    data:
+      UpdateQuotationSignatureSettingsData,
+  ) => Promise<boolean>;
 };
 
 export function BusinessSettingsForm({
@@ -69,11 +92,17 @@ export function BusinessSettingsForm({
   saving,
   uploadingLogo,
   removingLogo,
+  uploadingSignature,
+  removingSignature,
+  savingSignature,
   error,
   success,
   onSave,
   onUploadLogo,
   onRemoveLogo,
+  onUploadSignature,
+  onRemoveSignature,
+  onSaveSignature,
 }: BusinessSettingsFormProps) {
   const [
     name,
@@ -621,6 +650,40 @@ export function BusinessSettingsForm({
                 </span>
               </div>
             </div>
+
+            <QuotationSignatureSettings
+              signatureUrl={
+                settings.quotationSignatureUrl
+              }
+              initialName={
+                settings.quotationSignatoryName
+              }
+              initialTitle={
+                settings.quotationSignatoryTitle
+              }
+              initialEnabled={
+                settings.showQuotationSignature
+              }
+              uploading={
+                uploadingSignature
+              }
+              removing={
+                removingSignature
+              }
+              saving={
+                savingSignature
+              }
+              onUpload={
+                onUploadSignature
+              }
+              onRemove={
+                onRemoveSignature
+              }
+              onSave={
+                onSaveSignature
+              }
+            />
+
           </div>
         </div>
 

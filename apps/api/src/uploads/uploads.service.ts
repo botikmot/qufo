@@ -494,4 +494,84 @@ export class UploadsService {
       resource_type: 'image',
     });
   }
+
+  async uploadQuotationSignature(
+    file: Express.Multer.File,
+    organizationId: string,
+  ) {
+    this.validateImage(file, 'Quotation signature', 2 * 1024 * 1024);
+
+    /*
+     * Self-hosted.
+     */
+    if (this.storageDriver === 'local') {
+      const uploaded = await this.saveLocalImage(
+        file,
+        `quotation-signatures/${organizationId}`,
+      );
+
+      return {
+        url: uploaded.url,
+        signatureKey: uploaded.key,
+      };
+    }
+
+    /*
+     * QUFO SaaS / Cloudinary.
+     */
+    const result = await new Promise<{
+      secure_url: string;
+      public_id: string;
+    }>((resolvePromise, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: `qufo/quotation-signatures/${organizationId}`,
+
+          resource_type: 'image',
+
+          transformation: [
+            {
+              width: 1000,
+              height: 500,
+              crop: 'limit',
+            },
+
+            {
+              quality: 'auto',
+              fetch_format: 'auto',
+            },
+          ],
+        },
+
+        (error, uploadResult) => {
+          if (error) {
+            reject(
+              new Error(error.message || 'Quotation signature upload failed.'),
+            );
+
+            return;
+          }
+
+          if (!uploadResult) {
+            reject(new Error('Quotation signature upload failed.'));
+
+            return;
+          }
+
+          resolvePromise({
+            secure_url: uploadResult.secure_url,
+
+            public_id: uploadResult.public_id,
+          });
+        },
+      );
+
+      stream.end(file.buffer);
+    });
+
+    return {
+      url: result.secure_url,
+      signatureKey: result.public_id,
+    };
+  }
 }

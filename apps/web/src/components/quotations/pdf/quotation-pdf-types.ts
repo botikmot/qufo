@@ -108,4 +108,16 @@ export type QuotationPdfData = {
     | null;
 
   preparedBy: string;
+
+  authorizedSignatureUrl:
+  string | null;
+
+  authorizedSignatoryName:
+    string | null;
+
+  authorizedSignatoryTitle:
+    string | null;
+
+  showQuotationSignature:
+    boolean;
 };
