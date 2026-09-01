@@ -1,4 +1,8 @@
-import { BadGatewayException, Injectable } from '@nestjs/common';
+import {
+  BadGatewayException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 import { ConfigService } from '@nestjs/config';
 
@@ -38,7 +42,23 @@ export class PayMongoService {
 
   constructor(private readonly configService: ConfigService) {}
 
+  private get subscriptionEnabled(): boolean {
+    const value = this.configService.get<string>('SUBSCRIPTION_ENABLED');
+
+    return value?.trim().toLowerCase() !== 'false';
+  }
+
+  private ensureSubscriptionEnabled(): void {
+    if (!this.subscriptionEnabled) {
+      throw new NotFoundException(
+        'Subscription billing is not available in this deployment.',
+      );
+    }
+  }
+
   verifyWebhookSignature(rawBody: Buffer, signatureHeader: string) {
+    this.ensureSubscriptionEnabled();
+
     const webhookSecret = this.configService.getOrThrow<string>(
       'PAYMONGO_WEBHOOK_SECRET',
     );
@@ -107,6 +127,8 @@ export class PayMongoService {
   }
 
   async createCheckoutSession(input: CreatePayMongoCheckoutInput) {
+    this.ensureSubscriptionEnabled();
+
     const secretKey = this.configService.getOrThrow<string>(
       'PAYMONGO_SECRET_KEY',
     );

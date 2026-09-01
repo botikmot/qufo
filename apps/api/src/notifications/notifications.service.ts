@@ -59,11 +59,29 @@ type JobStatusNotificationData = {
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
 
-  private readonly resend: Resend;
+  private readonly resend: Resend | null;
 
   constructor(private readonly configService: ConfigService) {
-    this.resend = new Resend(
-      this.configService.getOrThrow<string>('RESEND_API_KEY'),
+    if (!this.emailEnabled) {
+      this.resend = null;
+
+      this.logger.log('Email notifications are disabled.');
+
+      return;
+    }
+
+    const apiKey = this.configService.get<string>('RESEND_API_KEY');
+
+    if (!apiKey) {
+      throw new Error('RESEND_API_KEY is required when EMAIL_ENABLED=true.');
+    }
+
+    this.resend = new Resend(apiKey);
+  }
+
+  private get emailEnabled(): boolean {
+    return (
+      this.configService.get<string>('EMAIL_ENABLED')?.toLowerCase() === 'true'
     );
   }
 
@@ -405,6 +423,21 @@ export class NotificationsService {
     subject: string;
     html: string;
   }): Promise<boolean> {
+    /*
+     * Self-hosted installations may run
+     * without transactional email.
+     *
+     * Notification failure/disablement must
+     * never block the actual business workflow.
+     */
+    if (!this.emailEnabled || !this.resend) {
+      this.logger.debug(
+        `Email notification skipped because email is disabled: "${params.subject}"`,
+      );
+
+      return false;
+    }
+
     try {
       const { error } = await this.resend.emails.send({
         from: this.fromEmail,

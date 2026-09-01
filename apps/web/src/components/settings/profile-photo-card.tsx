@@ -11,7 +11,6 @@ import {
   ImageUp,
   LoaderCircle,
   Trash2,
-  UserRound,
 } from "lucide-react";
 
 import type {

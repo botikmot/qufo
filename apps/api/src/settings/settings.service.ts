@@ -422,7 +422,7 @@ export class SettingsService {
       organizationId,
     );
 
-    return this.prisma.organization.update({
+    const updated = await this.prisma.organization.update({
       where: {
         id: organizationId,
       },
@@ -438,6 +438,27 @@ export class SettingsService {
         logoPublicId: true,
       },
     });
+
+    /*
+     * Only remove previous storage object after
+     * the new upload and database update succeed.
+     */
+    if (
+      organization.logoPublicId &&
+      organization.logoPublicId !== uploaded.publicId
+    ) {
+      try {
+        await this.uploadsService.deleteImage(organization.logoPublicId);
+      } catch {
+        /*
+         * New logo has already been safely stored
+         * and persisted. Cleanup failure should not
+         * make the operation fail.
+         */
+      }
+    }
+
+    return updated;
   }
 
   async removeBusinessLogo(organizationId: string) {

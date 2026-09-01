@@ -44,6 +44,10 @@ const SUPPORT_TYPE_LABELS: Record<
     "Suggest a feature",
 };
 
+const SUPPORT_MODE = process.env.NEXT_PUBLIC_SUPPORT_MODE ?? "api";
+
+const SUPPORT_EMAIL = process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "support@qufo.im";
+
 export function SupportForm() {
   const [
     type,
@@ -89,9 +93,13 @@ export function SupportForm() {
   ) {
     event.preventDefault();
 
+    const cleanSubject = subject.trim();
+
+    const cleanMessage = message.trim();
+
     if (
-      !subject.trim() ||
-      !message.trim()
+      !cleanSubject ||
+      !cleanMessage
     ) {
       return;
     }
@@ -101,13 +109,57 @@ export function SupportForm() {
     setSuccess(null);
 
     try {
+      /*
+      * Self-hosted deployments don't require
+      * QUFO transactional email infrastructure.
+      *
+      * Open the user's own email application
+      * instead.
+      */
+      if (
+        SUPPORT_MODE ===
+        "mailto"
+      ) {
+        const typeLabel =
+          SUPPORT_TYPE_LABELS[
+            type
+          ];
+
+        const emailSubject =
+          encodeURIComponent(
+            `[QUFO Support] ${typeLabel} - ${cleanSubject}`,
+          );
+
+        const emailBody =
+          encodeURIComponent(
+            [
+              `Support type: ${typeLabel}`,
+              "",
+              cleanMessage,
+              "",
+              "Sent from QUFO Self-Hosted",
+            ].join("\n"),
+          );
+
+        window.location.href =
+          `mailto:${SUPPORT_EMAIL}` +
+          `?subject=${emailSubject}` +
+          `&body=${emailBody}`;
+
+        return;
+      }
+
+      /*
+      * SaaS deployment continues using
+      * the normal QUFO support API.
+      */
       const response =
         await supportService.send({
           type,
           subject:
-            subject.trim(),
+            cleanSubject,
           message:
-            message.trim(),
+            cleanMessage,
         });
 
       setSuccess(
@@ -144,11 +196,9 @@ export function SupportForm() {
             </h2>
 
             <p className="mt-1 text-xs text-slate-500">
-              Ask a question,
-              report a problem, or
-              suggest something
-              that could make QUFO
-              better.
+              {SUPPORT_MODE === "mailto"
+                ? "Contact QUFO support using your email application."
+                : "Ask a question, report a problem, or suggest something that could make QUFO better."}
             </p>
           </div>
         </div>
@@ -325,7 +375,9 @@ export function SupportForm() {
 
             {sending
               ? "Sending..."
-              : "Send message"}
+              : SUPPORT_MODE === "mailto"
+                ? "Email support"
+                : "Send message"}
           </button>
         </div>
       </form>

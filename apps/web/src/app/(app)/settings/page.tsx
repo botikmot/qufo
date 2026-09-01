@@ -49,6 +49,8 @@ import {
   useSearchParams,
 } from "next/navigation";
 
+const SUBSCRIPTION_ENABLED = process.env.NEXT_PUBLIC_SUBSCRIPTION_ENABLED !== "false";
+
 export default function SettingsPage() {
   const business =
     useBusinessSettings();
@@ -173,33 +175,35 @@ export default function SettingsPage() {
             </span>
           </TabsTrigger>
 
-          <TabsTrigger
-            value="subscription"
-            className="
-              !h-auto
-              !w-full
-              min-w-0
-              justify-center
-              gap-2
-              rounded-xl
-              px-3
-              py-2.5
-              text-slate-400
-              data-[state=active]:bg-emerald-400/10
-              data-[state=active]:text-emerald-300
+          {SUBSCRIPTION_ENABLED && (
+            <TabsTrigger
+              value="subscription"
+              className="
+                !h-auto
+                !w-full
+                min-w-0
+                justify-center
+                gap-2
+                rounded-xl
+                px-3
+                py-2.5
+                text-slate-400
+                data-[state=active]:bg-emerald-400/10
+                data-[state=active]:text-emerald-300
 
-              md:!w-auto
-            "
-          >
-            <CreditCard
-              size={16}
-              className="shrink-0"
-            />
+                md:!w-auto
+              "
+            >
+              <CreditCard
+                size={16}
+                className="shrink-0"
+              />
 
-            <span className="truncate">
-              Subscription
-            </span>
-          </TabsTrigger>
+              <span className="truncate">
+                Subscription
+              </span>
+            </TabsTrigger>
+          )}
 
           <TabsTrigger
             value="support"
@@ -333,45 +337,47 @@ export default function SettingsPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="subscription">
-          {subscription.loading ? (
-            <div className="qufo-surface rounded-3xl p-8 text-sm text-slate-500">
-              Loading subscription...
-            </div>
-          ) : subscription.billing ? (
-            <SubscriptionSettingsCard
-              billing={
-                subscription.billing
-              }
-              payments={
-                subscription.payments
-              }
-              renewing={
-                subscription.renewing
-              }
-              confirmingPayment={
-                subscription.confirmingPayment
-              }
-              paymentResult={
-                subscription.paymentResult
-              }
-              error={
-                subscription.error
-              }
-              onRenew={
-                subscription.renew
-              }
-              onRefresh={
-                subscription.refresh
-              }
-            />
-          ) : (
-            <div className="rounded-2xl border border-red-400/15 bg-red-400/[0.05] p-5 text-sm text-red-300">
-              {subscription.error ??
-                "Unable to load subscription."}
-            </div>
-          )}
-        </TabsContent>
+        {SUBSCRIPTION_ENABLED && (
+          <TabsContent value="subscription">
+            {subscription.loading ? (
+              <div className="qufo-surface rounded-3xl p-8 text-sm text-slate-500">
+                Loading subscription...
+              </div>
+            ) : subscription.billing ? (
+              <SubscriptionSettingsCard
+                billing={
+                  subscription.billing
+                }
+                payments={
+                  subscription.payments
+                }
+                renewing={
+                  subscription.renewing
+                }
+                confirmingPayment={
+                  subscription.confirmingPayment
+                }
+                paymentResult={
+                  subscription.paymentResult
+                }
+                error={
+                  subscription.error
+                }
+                onRenew={
+                  subscription.renew
+                }
+                onRefresh={
+                  subscription.refresh
+                }
+              />
+            ) : (
+              <div className="rounded-2xl border border-red-400/15 bg-red-400/[0.05] p-5 text-sm text-red-300">
+                {subscription.error ??
+                  "Unable to load subscription."}
+              </div>
+            )}
+          </TabsContent>
+        )}
         
         <TabsContent value="support">
           <SupportForm />

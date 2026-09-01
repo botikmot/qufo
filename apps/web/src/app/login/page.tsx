@@ -15,6 +15,8 @@ import Image from "next/image";
 import type { LoginResponse } from "@/types/auth";
 import { GoogleContinueButton } from "@/components/shared/google-continue-button";
 
+const GOOGLE_AUTH_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED !== "false";
+
 export default function LoginPage() {
   const router = useRouter();
 
@@ -111,9 +113,11 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <GoogleContinueButton
-          onError={setError}
-        />
+        {GOOGLE_AUTH_ENABLED && (
+          <GoogleContinueButton
+            onError={setError}
+          />
+        )}
 
         <div className="my-6 flex items-center gap-4">
           <div className="h-px flex-1 bg-white/[0.07]" />
@@ -161,12 +165,14 @@ export default function LoginPage() {
                 Password
               </label>
 
-              <Link
-                href="/forgot-password"
-                className="text-xs font-medium text-emerald-400 transition hover:text-emerald-300"
-              >
-                Forgot password?
-              </Link>
+              {GOOGLE_AUTH_ENABLED && (
+                <Link
+                  href="/forgot-password"
+                  className="text-xs font-medium text-emerald-400 transition hover:text-emerald-300"
+                >
+                  Forgot password?
+                </Link>
+              )}
             </div>
 
             <input

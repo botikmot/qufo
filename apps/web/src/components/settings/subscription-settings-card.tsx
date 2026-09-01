@@ -23,6 +23,8 @@ import type {
   SubscriptionPaymentHistoryItem,
 } from "@/types/subscription";
 
+const SUBSCRIPTION_ENABLED = process.env.NEXT_PUBLIC_SUBSCRIPTION_ENABLED !== "false";
+
 type SubscriptionSettingsCardProps = {
   billing:
     SubscriptionBillingSummary;
@@ -57,6 +59,11 @@ export function SubscriptionSettingsCard({
   onRenew,
   onRefresh,
 }: SubscriptionSettingsCardProps) {
+
+  if (!SUBSCRIPTION_ENABLED) {
+    return null;
+  }
+
   const subscription =
     billing.subscription;
 

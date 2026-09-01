@@ -19,6 +19,9 @@ coverage/
 # Prisma generated client
 apps/api/src/generated/prisma/
 
+# Local/self-hosted uploaded files
+apps/api/uploads/
+
 # Logs
 *.log
 npm-debug.log*

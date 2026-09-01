@@ -1,4 +1,8 @@
-import { BadGatewayException, Injectable } from '@nestjs/common';
+import {
+  BadGatewayException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 import { ConfigService } from '@nestjs/config';
 import { createVerify } from 'node:crypto';
@@ -97,6 +101,20 @@ type PayPalWebhookVerificationInput = {
 export class PayPalService {
   constructor(private readonly configService: ConfigService) {}
 
+  private get subscriptionEnabled(): boolean {
+    const value = this.configService.get<string>('SUBSCRIPTION_ENABLED');
+
+    return value?.trim().toLowerCase() !== 'false';
+  }
+
+  private ensureSubscriptionEnabled(): void {
+    if (!this.subscriptionEnabled) {
+      throw new NotFoundException(
+        'Subscription billing is not available in this deployment.',
+      );
+    }
+  }
+
   private getApiUrl() {
     const environment = this.configService.get<string>('PAYPAL_ENVIRONMENT');
 
@@ -147,6 +165,8 @@ export class PayPalService {
 
     input: PayPalWebhookVerificationInput,
   ) {
+    this.ensureSubscriptionEnabled();
+
     const webhookId =
       this.configService.getOrThrow<string>('PAYPAL_WEBHOOK_ID');
 
@@ -185,6 +205,8 @@ export class PayPalService {
   }
 
   private async getAccessToken() {
+    this.ensureSubscriptionEnabled();
+
     const clientId = this.configService.getOrThrow<string>('PAYPAL_CLIENT_ID');
 
     const clientSecret = this.configService.getOrThrow<string>(
@@ -227,6 +249,8 @@ export class PayPalService {
   }
 
   async createOrder(input: CreatePayPalOrderInput) {
+    this.ensureSubscriptionEnabled();
+
     const accessToken = await this.getAccessToken();
 
     const response = await fetch(`${this.getApiUrl()}/v2/checkout/orders`, {
@@ -312,6 +336,8 @@ export class PayPalService {
   }
 
   async captureOrder(orderId: string, paymentId: string) {
+    this.ensureSubscriptionEnabled();
+
     const accessToken = await this.getAccessToken();
 
     const response = await fetch(

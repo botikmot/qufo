@@ -36,6 +36,8 @@ import {
 
 import { GoogleContinueButton } from "@/components/shared/google-continue-button";
 
+const GOOGLE_AUTH_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED !== "false";
+
 type RegisterResponse = {
   message: string;
 
@@ -285,9 +287,11 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <GoogleContinueButton
-            onError={setError}
-          />
+          {GOOGLE_AUTH_ENABLED && (
+            <GoogleContinueButton
+              onError={setError}
+            />
+          )}
 
           <form
             onSubmit={handleSubmit}

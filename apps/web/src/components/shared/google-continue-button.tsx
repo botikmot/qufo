@@ -42,7 +42,33 @@ type Props = {
   ) => void;
 };
 
+const GOOGLE_AUTH_ENABLED =
+  process.env
+    .NEXT_PUBLIC_GOOGLE_AUTH_ENABLED !==
+  "false";
+
 export function GoogleContinueButton({
+  onError,
+}: Props) {
+  /*
+   * Self-hosted deployment:
+   * Google authentication is completely hidden.
+   *
+   * The inner component containing Google hooks /
+   * provider is never mounted.
+   */
+  if (!GOOGLE_AUTH_ENABLED) {
+    return null;
+  }
+
+  return (
+    <GoogleContinueButtonInner
+      onError={onError}
+    />
+  );
+}
+
+function GoogleContinueButtonInner({
   onError,
 }: Props) {
   const router =
@@ -53,34 +79,64 @@ export function GoogleContinueButton({
     setLoading,
   ] = useState(false);
 
-  const containerRef = useRef<HTMLDivElement>(null);
-   const [buttonWidth, setButtonWidth] = useState(400);
+  const containerRef =
+    useRef<HTMLDivElement>(
+      null,
+    );
+
+  const [
+    buttonWidth,
+    setButtonWidth,
+  ] = useState(400);
 
   const clientId =
     process.env
       .NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
-
   useEffect(() => {
-    const element = containerRef.current;
+    const element =
+      containerRef.current;
 
-    if (!element) return;
+    if (!element) {
+      return;
+    }
 
-    const updateWidth = () => {
-      const width = element.clientWidth;
+    const updateWidth =
+      () => {
+        const width =
+          element.clientWidth;
 
-      setButtonWidth(Math.min(width, 400));
-    };
+        setButtonWidth(
+          Math.min(
+            width,
+            400,
+          ),
+        );
+      };
 
     updateWidth();
 
-    const observer = new ResizeObserver(updateWidth);
+    const observer =
+      new ResizeObserver(
+        updateWidth,
+      );
 
-    observer.observe(element);
+    observer.observe(
+      element,
+    );
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+    };
   }, []);
 
+  /*
+   * Google auth is enabled but the
+   * client ID is missing.
+   *
+   * This should only happen due to an
+   * incomplete SaaS configuration.
+   */
   if (!clientId) {
     return (
       <div className="rounded-2xl border border-amber-400/15 bg-amber-400/[0.04] px-4 py-3 text-xs leading-5 text-amber-200/70">
@@ -89,22 +145,20 @@ export function GoogleContinueButton({
       </div>
     );
   }
+
   async function handleCredential(
     credential: string,
   ) {
     setLoading(true);
 
-    onError?.(
-      null,
-    );
+    onError?.(null);
 
     try {
       const response =
         await apiFetch<GoogleAuthResponse>(
           "/auth/google",
           {
-            method:
-              "POST",
+            method: "POST",
 
             requireAuth:
               false,
@@ -159,8 +213,7 @@ export function GoogleContinueButton({
       );
     } catch (error) {
       onError?.(
-        error instanceof
-          Error
+        error instanceof Error
           ? error.message
           : "Unable to continue with Google.",
       );
@@ -173,7 +226,7 @@ export function GoogleContinueButton({
     <GoogleOAuthProvider
       clientId={clientId}
     >
-      <div className="rounded-2xl border mb-3 border-white/[0.07] bg-white/[0.018] p-4 transition hover:border-cyan-400/15 hover:bg-white/[0.025]">
+      <div className="mb-3 rounded-2xl border border-white/[0.07] bg-white/[0.018] p-4 transition hover:border-cyan-400/15 hover:bg-white/[0.025]">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-medium text-slate-300">
@@ -196,12 +249,18 @@ export function GoogleContinueButton({
         <div
           className={[
             "relative overflow-hidden rounded-xl",
+
             loading
               ? "pointer-events-none opacity-50"
               : "",
           ].join(" ")}
         >
-          <div ref={containerRef} className="flex w-full justify-center">
+          <div
+            ref={
+              containerRef
+            }
+            className="flex w-full justify-center"
+          >
             <GoogleLogin
               onSuccess={(
                 response,
@@ -232,7 +291,9 @@ export function GoogleContinueButton({
               shape="circle"
               text="continue_with"
               logo_alignment="left"
-              width={String(buttonWidth)}
+              width={String(
+                buttonWidth,
+              )}
             />
           </div>
 
@@ -244,7 +305,8 @@ export function GoogleContinueButton({
               />
 
               <span className="ml-2 text-sm text-slate-300">
-                Signing in...
+                Signing
+                in...
               </span>
             </div>
           )}

@@ -19,6 +19,9 @@ import type {
   SubscriptionPaymentHistoryItem,
 } from "@/types/subscription";
 
+const SUBSCRIPTION_ENABLED =
+  process.env.NEXT_PUBLIC_SUBSCRIPTION_ENABLED !== "false";
+
 function getErrorMessage(
   error: unknown,
   fallback: string,
@@ -71,11 +74,16 @@ export function useSubscriptionSettings() {
       SubscriptionPaymentHistoryItem[]
     >([]);
 
+  /*
+   * If subscriptions are disabled,
+   * there is nothing to load.
+   */
   const [
     loading,
     setLoading,
-  ] =
-    useState(true);
+  ] = useState(
+    SUBSCRIPTION_ENABLED,
+  );
 
   const [
     renewing,
@@ -105,13 +113,16 @@ export function useSubscriptionSettings() {
 
   /*
    * Silent refresh.
-   *
-   * Useful after PayMongo redirect
-   * and for future manual refreshes.
    */
   const refresh =
     useCallback(
       async () => {
+        if (
+          !SUBSCRIPTION_ENABLED
+        ) {
+          return null;
+        }
+
         try {
           const [
             billingResponse,
@@ -156,7 +167,10 @@ export function useSubscriptionSettings() {
   const renew =
     useCallback(
       async () => {
-        if (!billing) {
+        if (
+          !SUBSCRIPTION_ENABLED ||
+          !billing
+        ) {
           return;
         }
 
@@ -169,12 +183,6 @@ export function useSubscriptionSettings() {
             null,
           );
 
-          /*
-           * Provider follows subscription
-           * billing currency.
-           *
-           * NOT the workspace currency.
-           */
           const provider =
             billing.pricing
               .currency ===
@@ -217,13 +225,15 @@ export function useSubscriptionSettings() {
     );
 
   /*
-   * Initial fetch.
-   *
-   * Safe with the newer React lint rule
-   * because state updates happen only
-   * after the awaited request.
+   * Initial subscription fetch.
    */
   useEffect(() => {
+    if (
+      !SUBSCRIPTION_ENABLED
+    ) {
+      return;
+    }
+
     let cancelled =
       false;
 
@@ -282,18 +292,13 @@ export function useSubscriptionSettings() {
   }, []);
 
   /*
-   * When customer returns from PayMongo:
-   *
-   * /settings?tab=subscription&payment=success
-   *
-   * do NOT trust the redirect as payment proof.
-   * Poll our backend because the webhook
-   * remains the source of truth.
+   * PayMongo return confirmation.
    */
   useEffect(() => {
     if (
+      !SUBSCRIPTION_ENABLED ||
       paymentResult !==
-      "success"
+        "success"
     ) {
       return;
     }
@@ -311,10 +316,6 @@ export function useSubscriptionSettings() {
         maxAttempts;
         attempt += 1
       ) {
-        /*
-         * Allow webhook a moment
-         * to reach QUFO first.
-         */
         await delay(
           1500,
         );
@@ -364,8 +365,12 @@ export function useSubscriptionSettings() {
     };
   }, [paymentResult]);
 
+  /*
+   * PayPal return / capture.
+   */
   useEffect(() => {
     if (
+      !SUBSCRIPTION_ENABLED ||
       paymentResult !==
         "paypal-return" ||
       !paypalOrderId
@@ -378,11 +383,6 @@ export function useSubscriptionSettings() {
 
     async function capturePayPal() {
       try {
-        /*
-        * First async work happens before
-        * any state mutation, avoiding the
-        * set-state-in-effect lint issue.
-        */
         await settingsService.capturePayPalSubscription(
           paypalOrderId!,
         );
@@ -421,11 +421,6 @@ export function useSubscriptionSettings() {
           true,
         );
 
-        /*
-        * Remove PayPal token from URL.
-        * Prevents unnecessary capture
-        * attempt after page refresh.
-        */
         window.history.replaceState(
           null,
           "",
@@ -461,11 +456,13 @@ export function useSubscriptionSettings() {
   ]);
 
   const confirmingPayMongo =
+    SUBSCRIPTION_ENABLED &&
     paymentResult ===
       "success" &&
     !paymentCheckDone;
 
   const confirmingPayPal =
+    SUBSCRIPTION_ENABLED &&
     paymentResult ===
       "paypal-return" &&
     !paypalCaptureDone;
@@ -474,14 +471,10 @@ export function useSubscriptionSettings() {
     confirmingPayMongo ||
     confirmingPayPal;
 
-  /* const confirmingPayment =
-    paymentResult ===
-      "success" &&
-    !paymentCheckDone &&
-    billing?.effectiveStatus !==
-      "ACTIVE"; */
-
   return {
+    enabled:
+      SUBSCRIPTION_ENABLED,
+
     billing,
 
     payments,

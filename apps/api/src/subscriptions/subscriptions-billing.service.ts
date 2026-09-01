@@ -31,6 +31,26 @@ export class SubscriptionsBillingService {
 
   private readonly pendingCheckoutReuseMs = 30 * 60 * 1000; // 30 minutes
 
+  private get subscriptionEnabled(): boolean {
+    const value = this.configService.get<string>('SUBSCRIPTION_ENABLED');
+
+    /*
+     * Default ON for safety.
+     *
+     * Only an explicit false disables
+     * SaaS subscription billing.
+     */
+    return value?.trim().toLowerCase() !== 'false';
+  }
+
+  private ensureSubscriptionEnabled(): void {
+    if (!this.subscriptionEnabled) {
+      throw new NotFoundException(
+        'Subscription billing is not available in this deployment.',
+      );
+    }
+  }
+
   private async findReusablePendingCheckout(input: {
     organizationId: string;
 
@@ -316,6 +336,8 @@ export class SubscriptionsBillingService {
   }
 
   async handlePayPalOrderApprovedWebhook(orderId: string) {
+    this.ensureSubscriptionEnabled();
+
     const payment = await this.prisma.subscriptionPayment.findFirst({
       where: {
         provider: 'PAYPAL',
@@ -369,6 +391,8 @@ export class SubscriptionsBillingService {
 
     paidAt: Date;
   }) {
+    this.ensureSubscriptionEnabled();
+
     const payment = await this.prisma.subscriptionPayment.findFirst({
       where: {
         provider: 'PAYPAL',
@@ -436,6 +460,8 @@ export class SubscriptionsBillingService {
   }
 
   async handlePayPalCaptureDeniedWebhook(orderId: string) {
+    this.ensureSubscriptionEnabled();
+
     const result = await this.prisma.subscriptionPayment.updateMany({
       where: {
         provider: 'PAYPAL',
@@ -458,6 +484,8 @@ export class SubscriptionsBillingService {
   }
 
   async getBillingSummary(tenant: TenantContext) {
+    this.ensureSubscriptionEnabled();
+
     const organization = await this.prisma.organization.findUnique({
       where: {
         id: tenant.organizationId,
@@ -537,6 +565,7 @@ export class SubscriptionsBillingService {
     tenant: TenantContext,
     dto: CreateSubscriptionCheckoutDto,
   ) {
+    this.ensureSubscriptionEnabled();
     const now = new Date();
 
     const organization = await this.prisma.organization.findUnique({
@@ -859,6 +888,7 @@ export class SubscriptionsBillingService {
 
     paidAt: Date;
   }) {
+    this.ensureSubscriptionEnabled();
     const { subscriptionPaymentId, checkoutSessionId, paidAt } = input;
 
     return this.prisma.$transaction(async (tx) => {
@@ -963,6 +993,7 @@ export class SubscriptionsBillingService {
   }
 
   async getPaymentHistory(organizationId: string) {
+    this.ensureSubscriptionEnabled();
     const payments = await this.prisma.subscriptionPayment.findMany({
       where: {
         organizationId,
@@ -1013,6 +1044,7 @@ export class SubscriptionsBillingService {
   }
 
   async capturePayPalOrder(organizationId: string, orderId: string) {
+    this.ensureSubscriptionEnabled();
     /*
      * --------------------------------------------------
      * 1. Find the QUFO SubscriptionPayment
