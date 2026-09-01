@@ -33,6 +33,10 @@ type QuotationCustomerEmailData = {
   quotationNumber: string;
   publicUrl: string;
   validUntil?: Date | null;
+  pdfAttachment?: {
+    filename: string;
+    content: Buffer;
+  };
 };
 
 type QuotationBusinessNotificationData = {
@@ -422,6 +426,11 @@ export class NotificationsService {
     to: string;
     subject: string;
     html: string;
+
+    attachments?: Array<{
+      filename: string;
+      content: string;
+    }>;
   }): Promise<boolean> {
     /*
      * Self-hosted installations may run
@@ -444,6 +453,7 @@ export class NotificationsService {
         to: params.to,
         subject: params.subject,
         html: params.html,
+        attachments: params.attachments,
       });
 
       if (error) {
@@ -555,6 +565,15 @@ export class NotificationsService {
       subject: `${data.quotationNumber} from ${data.businessName}`,
 
       html,
+      attachments: data.pdfAttachment
+        ? [
+            {
+              filename: data.pdfAttachment.filename,
+
+              content: data.pdfAttachment.content.toString('base64'),
+            },
+          ]
+        : undefined,
     });
   }
 

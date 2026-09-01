@@ -103,7 +103,10 @@ export async function apiFetch<T>(
     new Headers(headers);
 
   const isFormData =
-    requestOptions.body instanceof FormData;
+    typeof FormData !==
+      "undefined" &&
+    requestOptions.body instanceof
+      FormData;
 
   if (
     requestOptions.body &&

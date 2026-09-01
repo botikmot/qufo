@@ -7,7 +7,12 @@ import {
   Post,
   Query,
   UseGuards,
+  BadRequestException,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+
+import { FileInterceptor } from '@nestjs/platform-express';
 
 import { CurrentTenant } from '../auth/decorators/current-tenant.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -109,14 +114,36 @@ export class QuotationsController {
 
   @Roles('OWNER', 'ADMIN', 'MANAGER')
   @Post(':id/send')
+  @UseInterceptors(
+    FileInterceptor('pdf', {
+      limits: {
+        fileSize: 5 * 1024 * 1024,
+      },
+    }),
+  )
   send(
     @CurrentTenant()
     tenant: TenantContext,
 
     @Param('id')
     id: string,
+
+    @UploadedFile()
+    pdfFile?: Express.Multer.File,
   ) {
-    return this.quotationsService.send(tenant, id);
+    if (pdfFile) {
+      if (pdfFile.mimetype !== 'application/pdf') {
+        throw new BadRequestException('Quotation attachment must be a PDF.');
+      }
+
+      const signature = pdfFile.buffer.subarray(0, 5).toString();
+
+      if (signature !== '%PDF-') {
+        throw new BadRequestException('Invalid PDF attachment.');
+      }
+    }
+
+    return this.quotationsService.send(tenant, id, pdfFile);
   }
 
   @Roles('OWNER', 'ADMIN', 'MANAGER')

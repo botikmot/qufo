@@ -42,6 +42,8 @@ import type {
   QuotationUpdatedEvent,
 } from "@/types/realtime";
 
+import { generateQuotationPdfBlob } from "@/components/quotations/pdf/generate-quotation-pdf";
+
 
 export function useQuotations() {
   const [
@@ -239,7 +241,8 @@ export function useQuotations() {
       await confirm({
         title:
           "Send quotation?",
-        description: `${selectedQuotation.quotationNumber} will be sent to the customer for review.`,
+        description:
+          `${selectedQuotation.quotationNumber} will be sent to the customer for review.`,
         confirmText:
           "Send quotation",
       });
@@ -252,9 +255,38 @@ export function useQuotations() {
     setError(null);
 
     try {
+      let pdfBlob:
+        Blob | undefined;
+
+      /*
+      * PDF attachment is optional.
+      *
+      * If PDF generation fails,
+      * we still send the quotation
+      * review link to the customer.
+      */
+      try {
+        pdfBlob =
+          await generateQuotationPdfBlob(
+            selectedQuotation,
+          );
+      } catch (
+        pdfError
+      ) {
+        console.error(
+          "Unable to generate quotation PDF attachment:",
+          pdfError,
+        );
+      }
+
+      const filename =
+        `${selectedQuotation.quotationNumber}.pdf`;
+
       const result =
         await quotationsService.send(
           selectedQuotation.id,
+          pdfBlob,
+          filename,
         );
 
       const refreshed =
@@ -271,15 +303,16 @@ export function useQuotations() {
       });
 
       const url =
-          result.publicUrl ??
-          result.quotationUrl ??
-          result.url ??
-          null;
+        result.publicUrl ??
+        result.quotationUrl ??
+        result.url ??
+        null;
 
-        setSentQuotationUrl(url);
+      setSentQuotationUrl(
+        url,
+      );
 
-        return url;
-
+      return url;
     } catch (error) {
       setError(
         error instanceof Error
@@ -289,7 +322,9 @@ export function useQuotations() {
 
       throw error;
     } finally {
-      setActionLoading(false);
+      setActionLoading(
+        false,
+      );
     }
   }
 
@@ -915,17 +950,50 @@ export function useQuotations() {
     }
 
     setSendFlowLoading(true);
-
-    setSendFlowCopied(
-      false,
-    );
-
+    setSendFlowCopied(false);
     setError(null);
 
     try {
+      /*
+      * Get the complete quotation because
+      * the PDF needs organization settings,
+      * items, signature, customer details, etc.
+      */
+      const quotation =
+        await quotationsService.getOne(
+          sendFlowQuotation.id,
+        );
+
+      let pdfBlob:
+        Blob | undefined;
+
+      try {
+        pdfBlob =
+          await generateQuotationPdfBlob(
+            quotation,
+          );
+
+        console.log(
+          "SEND FLOW PDF:",
+          {
+            size:
+              pdfBlob.size,
+            type:
+              pdfBlob.type,
+          },
+        );
+      } catch (pdfError) {
+        console.error(
+          "Unable to generate quotation PDF attachment:",
+          pdfError,
+        );
+      }
+
       const result =
         await quotationsService.send(
           sendFlowQuotation.id,
+          pdfBlob,
+          `${quotation.quotationNumber}.pdf`,
         );
 
       const url =

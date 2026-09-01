@@ -119,11 +119,26 @@ export const quotationsService = {
 
   send(
     quotationId: string,
+    pdfBlob?: Blob,
+    filename?: string,
   ) {
+    const formData =
+      new FormData();
+
+    if (pdfBlob) {
+      formData.append(
+        "pdf",
+        pdfBlob,
+        filename ??
+          "quotation.pdf",
+      );
+    }
+
     return apiFetch<SendQuotationResponse>(
       `/quotations/${quotationId}/send`,
       {
         method: "POST",
+        body: formData,
       },
     );
   },

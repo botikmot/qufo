@@ -37,6 +37,44 @@ function createSocket() {
 
       withCredentials: true,
 
+      /*
+       * Use WebSocket directly.
+       *
+       * This avoids stale Engine.IO
+       * polling session IDs after
+       * backend restarts/reconnects.
+       */
+      transports: [
+        "websocket",
+      ],
+
+      /*
+       * IMPORTANT:
+       *
+       * This runs again every time
+       * Socket.IO connects/reconnects,
+       * so we always send the latest
+       * access token.
+       */
+      auth: (callback) => {
+        const session =
+          getAuthSession();
+
+        if (!session) {
+          callback({});
+
+          return;
+        }
+
+        callback({
+          token:
+            session.accessToken,
+
+          organizationId:
+            session.organization.id,
+        });
+      },
+
       reconnection: true,
 
       reconnectionAttempts:
@@ -65,6 +103,8 @@ export function connectRealtimeSocket() {
     getAuthSession();
 
   if (!session) {
+    disconnectRealtimeSocket();
+
     return null;
   }
 
@@ -75,9 +115,12 @@ export function connectRealtimeSocket() {
     session.organization.id;
 
   /*
-   * If the user switched workspace,
-   * reconnect so the backend joins
-   * the correct organization room.
+   * If the user changed workspace,
+   * disconnect first.
+   *
+   * The auth callback above will
+   * automatically use the new
+   * organization on reconnect.
    */
   if (
     connectedOrganizationId &&
@@ -89,13 +132,6 @@ export function connectRealtimeSocket() {
     connectedOrganizationId =
       null;
   }
-
-  realtimeSocket.auth = {
-    token:
-      session.accessToken,
-
-    organizationId,
-  };
 
   connectedOrganizationId =
     organizationId;

@@ -810,7 +810,7 @@ export class QuotationsService {
     return customer;
   }
 
-  async send(tenant: TenantContext, id: string) {
+  async send(tenant: TenantContext, id: string, pdfFile?: Express.Multer.File) {
     const quotation = await this.prisma.quotation.findFirst({
       where: {
         id,
@@ -897,6 +897,14 @@ export class QuotationsService {
         publicUrl,
 
         validUntil: quotation.validUntil,
+
+        pdfAttachment: pdfFile
+          ? {
+              filename: `${updated.quotationNumber}.pdf`,
+
+              content: pdfFile.buffer,
+            }
+          : undefined,
       });
     }
 
