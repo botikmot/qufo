@@ -68,7 +68,9 @@ export class SupportService {
     const typeLabel = this.getTypeLabel(dto.type);
 
     const { error } = await resend.emails.send({
-      from: 'QUFO Support <onboarding@resend.dev>',
+      from:
+        this.configService.get<string>('MAIL_FROM') ??
+        'QUFO <no-reply@qufo.im>',
 
       to: supportEmail,
 
