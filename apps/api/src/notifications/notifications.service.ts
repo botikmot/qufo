@@ -30,6 +30,7 @@ type QuotationCustomerEmailData = {
   recipientEmail: string;
   customerName: string;
   businessName: string;
+  businessLogoUrl?: string | null;
   quotationNumber: string;
   publicUrl: string;
   validUntil?: Date | null;
@@ -509,6 +510,8 @@ export class NotificationsService {
       preheader: `${data.businessName} sent you quotation ${data.quotationNumber}.`,
 
       businessName,
+
+      businessLogoUrl: data.businessLogoUrl,
 
       content: `
       <p

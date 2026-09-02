@@ -5,6 +5,8 @@ export type QufoEmailLayoutOptions = {
 
   businessName?: string | null;
 
+  businessLogoUrl?: string | null;
+
   content: string;
 
   infoCard?: string | null;
@@ -24,6 +26,7 @@ export function buildQufoEmail({
   title,
   preheader,
   businessName,
+  businessLogoUrl,
   content,
   infoCard,
   actionLabel,
@@ -132,27 +135,57 @@ export function buildQufoEmail({
                       border="0"
                     >
                       <tr>
-                        <td
-                          valign="middle"
-                          style="
-                            vertical-align: middle;
-                          "
-                        >
-                          <img
-                            src="${QUFO_LOGO_URL}"
-                            alt="QUFO"
-                            width="42"
-                            height="42"
-                            style="
-                              display: block;
-                              width: 42px;
-                              height: 42px;
-                              border: 0;
-                              outline: none;
-                              object-fit: contain;
-                            "
-                          />
-                        </td>
+                        ${
+                          businessLogoUrl
+                            ? `
+                              <td
+                                valign="middle"
+                                style="
+                                  vertical-align: middle;
+                                "
+                              >
+                                <img
+                                  src="${businessLogoUrl}"
+                                  alt="${businessName ?? 'Business'}"
+                                  width="48"
+                                  height="48"
+                                  style="
+                                    display: block;
+                                    width: 48px;
+                                    height: 48px;
+                                    border: 0;
+                                    border-radius: 10px;
+                                    outline: none;
+                                    object-fit: contain;
+                                    background-color: #ffffff;
+                                  "
+                                />
+                              </td>
+                            `
+                            : `
+                              <td
+                                valign="middle"
+                                style="
+                                  vertical-align: middle;
+                                "
+                              >
+                                <img
+                                  src="${QUFO_LOGO_URL}"
+                                  alt="QUFO"
+                                  width="42"
+                                  height="42"
+                                  style="
+                                    display: block;
+                                    width: 42px;
+                                    height: 42px;
+                                    border: 0;
+                                    outline: none;
+                                    object-fit: contain;
+                                  "
+                                />
+                              </td>
+                            `
+                        }
 
                         <td
                           valign="middle"
@@ -163,14 +196,13 @@ export function buildQufoEmail({
                         >
                           <div
                             style="
-                              font-size: 20px;
+                              font-size: 18px;
                               line-height: 24px;
-                              font-weight: 800;
-                              letter-spacing: 0.06em;
+                              font-weight: 700;
                               color: #ffffff;
                             "
                           >
-                            QUFO
+                            ${businessName ? businessName : 'QUFO'}
                           </div>
 
                           <div
@@ -181,11 +213,7 @@ export function buildQufoEmail({
                               color: #94a3b8;
                             "
                           >
-                            ${
-                              businessName
-                                ? businessName
-                                : 'Quick Flow for your business'
-                            }
+                            ${businessName ? 'Quotation' : 'Quick Flow for your business'}
                           </div>
                         </td>
                       </tr>

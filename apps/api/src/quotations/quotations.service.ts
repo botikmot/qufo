@@ -832,6 +832,7 @@ export class QuotationsService {
         organization: {
           select: {
             name: true,
+            logoUrl: true,
           },
         },
       },
@@ -891,6 +892,8 @@ export class QuotationsService {
         customerName: quotation.customer.name ?? 'Customer',
 
         businessName: quotation.organization?.name ?? 'QUFO',
+
+        businessLogoUrl: quotation.organization?.logoUrl ?? null,
 
         quotationNumber: updated.quotationNumber,
 
