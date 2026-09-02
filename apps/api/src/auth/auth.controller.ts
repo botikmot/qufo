@@ -189,19 +189,55 @@ export class AuthController {
   }
 
   @Post('google')
-  googleLogin(
+  async googleLogin(
     @Body()
     dto: GoogleLoginDto,
+
+    @Res({
+      passthrough: true,
+    })
+    response: Response,
   ) {
-    return this.authService.googleLogin(dto);
+    const result = await this.authService.googleLogin(dto);
+
+    if (result.requiresOnboarding) {
+      return result;
+    }
+
+    this.setRefreshCookie(response, result.refreshToken);
+
+    return {
+      requiresOnboarding: result.requiresOnboarding,
+
+      accessToken: result.accessToken,
+
+      user: result.user,
+
+      organizations: result.organizations,
+    };
   }
 
   @Post('google/complete')
-  completeGoogleRegistration(
+  async completeGoogleRegistration(
     @Body()
     dto: CompleteGoogleRegistrationDto,
+
+    @Res({
+      passthrough: true,
+    })
+    response: Response,
   ) {
-    return this.authService.completeGoogleRegistration(dto);
+    const result = await this.authService.completeGoogleRegistration(dto);
+
+    this.setRefreshCookie(response, result.refreshToken);
+
+    return {
+      accessToken: result.accessToken,
+
+      user: result.user,
+
+      organizations: result.organizations,
+    };
   }
 
   @Post('forgot-password')

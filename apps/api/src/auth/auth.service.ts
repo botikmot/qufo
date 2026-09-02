@@ -539,13 +539,11 @@ export class AuthService {
      */
     if (!user) {
       return {
-        requiresOnboarding: true,
+        requiresOnboarding: true as const,
 
         profile: {
           name: google.name,
-
           email: google.email,
-
           picture: google.picture,
         },
       };
@@ -558,7 +556,7 @@ export class AuthService {
     const session = await this.createLoginSession(user.id);
 
     return {
-      requiresOnboarding: false,
+      requiresOnboarding: false as const,
 
       ...session,
     };
