@@ -157,10 +157,6 @@ export function LandingFooter() {
                 />
               </a>
 
-              <a href="https://postyourstartup.co/startup/qufo?ref=badge" target="_blank">
-                <img src="https://postyourstartup.co/api/badge/qufo?theme=dark" alt="Featured on PostYourStartup" width="212" height="55" />
-              </a>
-
             </div>
           </div>
         </div>

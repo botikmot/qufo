@@ -81,7 +81,7 @@ export function DemoSection() {
                 poster="/images/qufo-dashboard2.png"
                 className="aspect-video w-full bg-black object-contain"
               >
-                <source src="/videos/qufo-demo.mp4" type="video/mp4" />
+                <source src="/videos/QUFO_Product_Walkthrough.mp4" type="video/mp4" />
 
                 Your browser does not support the video element.
               </video>
