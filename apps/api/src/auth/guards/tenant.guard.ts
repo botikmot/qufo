@@ -26,12 +26,6 @@ export class TenantGuard implements CanActivate {
     const organizationId =
       typeof header === 'string' ? header.trim() : undefined;
 
-    console.log('TENANT GUARD DEBUG', {
-      organizationId,
-      userSub: request.user.sub,
-      email: request.user.email,
-    });
-
     if (!organizationId) {
       throw new BadRequestException('X-Organization-Id header is required.');
     }
@@ -52,8 +46,6 @@ export class TenantGuard implements CanActivate {
         },
       },
     });
-
-    console.log('TENANT GUARD MEMBERSHIP', membership);
 
     if (!membership || !membership.isActive) {
       throw new ForbiddenException(
