@@ -9,6 +9,7 @@ import {
 import type {
   PublicQuotation,
 } from "@/types/quotation";
+import Image from "next/image";
 
 type PublicQuotationHeaderProps = {
   quotation: PublicQuotation;
@@ -20,16 +21,26 @@ export function PublicQuotationHeader({
   return (
     <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-3">
-        <div className="relative flex size-11 items-center justify-center overflow-hidden rounded-2xl border border-emerald-400/15 bg-[var(--qufo-surface)]">
-          <div className="absolute -left-3 -top-3 size-10 rounded-full bg-cyan-400/10 blur-xl" />
-
-          <div className="absolute -bottom-4 -right-3 size-10 rounded-full bg-emerald-400/10 blur-xl" />
-
-          <Building2
-            size={19}
-            className="relative text-emerald-300"
-          />
-        </div>
+        <div className="relative flex size-14 items-center justify-center overflow-hidden rounded-2xl border border-cyan-400/15 bg-[var(--qufo-surface)]">
+          {quotation.organization?.logoUrl ? (
+            <Image
+                src={quotation.organization.logoUrl}
+                alt={`${quotation.organization.name} logo`}
+                fill
+                sizes="112px"
+                className="object-contain p-3"
+            />
+          ) : (
+            <>
+              <div className="absolute -left-3 -top-3 size-10 rounded-full bg-cyan-400/10 blur-xl" />
+              <div className="absolute -bottom-4 -right-3 size-10 rounded-full bg-emerald-400/10 blur-xl" />
+                <Building2
+                  size={19}
+                  className="relative text-emerald-300"
+                />
+            </>
+          )}
+         </div>
 
         <div>
           <p className="text-lg font-semibold text-white">
