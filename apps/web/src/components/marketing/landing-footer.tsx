@@ -157,6 +157,10 @@ export function LandingFooter() {
                 />
               </a>
 
+              <a href="https://launchstag.com/p/qufo" target="_blank" rel="noopener">
+                <img src="https://launchstag.com/badge-dark.svg" alt="Featured on Launchstag" width="198" height="62" />
+              </a>
+
             </div>
           </div>
         </div>
