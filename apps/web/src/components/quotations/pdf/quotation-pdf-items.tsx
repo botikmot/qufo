@@ -193,8 +193,10 @@ const styles =
   });
 
 type Props = {
-  data:
-    QuotationPdfData;
+  data: Pick<
+    QuotationPdfData,
+    "items" | "currency"
+  >;
 };
 
 export function QuotationPdfItems({

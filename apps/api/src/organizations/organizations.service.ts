@@ -9,10 +9,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { TenantContext } from '../auth/types/tenant-context.type';
 
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class OrganizationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async findCurrent(tenant: TenantContext) {
     const organization = await this.prisma.organization.findUnique({
@@ -37,6 +41,7 @@ export class OrganizationsService {
         quotationSignatoryName: true,
         quotationSignatoryTitle: true,
         showQuotationSignature: true,
+        customerEmailNotificationsEnabled: true,
 
         countryCode: true,
         currency: true,
@@ -73,6 +78,9 @@ export class OrganizationsService {
       quotationSignatoryName: organization.quotationSignatoryName,
       quotationSignatoryTitle: organization.quotationSignatoryTitle,
       showQuotationSignature: organization.showQuotationSignature,
+      customerEmailNotificationsEnabled:
+        organization.customerEmailNotificationsEnabled,
+      emailNotificationsAvailable: this.notificationsService.canSendEmail(),
 
       countryCode: organization.countryCode,
       currency: organization.currency,
@@ -120,7 +128,7 @@ export class OrganizationsService {
       );
     }
 
-    return this.prisma.organization.update({
+    await this.prisma.organization.update({
       where: {
         id: tenant.organizationId,
       },
@@ -161,28 +169,18 @@ export class OrganizationsService {
         ...(requestedCurrency !== undefined && {
           currency: requestedCurrency,
         }),
+
+        ...(dto.customerEmailNotificationsEnabled !== undefined && {
+          customerEmailNotificationsEnabled:
+            dto.customerEmailNotificationsEnabled,
+        }),
       },
 
       select: {
         id: true,
-        name: true,
-        slug: true,
-        businessType: true,
-
-        email: true,
-        phone: true,
-        address: true,
-        logoUrl: true,
-        quotationTerms: true,
-        quotationFooterNote: true,
-
-        countryCode: true,
-        currency: true,
-
-        status: true,
-        createdAt: true,
-        updatedAt: true,
       },
     });
+
+    return this.findCurrent(tenant);
   }
 }

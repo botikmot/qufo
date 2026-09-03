@@ -53,6 +53,10 @@ import type {
   JobStatus,
 } from "@/types/job";
 
+import {
+  JobPdfActions,
+} from "@/components/jobs/pdf/job-pdf-actions";
+
 type JobDetailModalProps = {
   job: Job;
 
@@ -129,6 +133,36 @@ export function JobDetailModal({
           }
         />
 
+        <JobStatusUpdateForm
+          nextStatuses={
+            detail.nextStatuses
+          }
+          selectedStatus={
+            detail.selectedStatus
+          }
+          internalMessage={
+            detail.internalMessage
+          }
+          publicMessage={
+            detail.publicMessage
+          }
+          loading={
+            actionLoading
+          }
+          onStatusChange={
+            detail.setSelectedStatus
+          }
+          onInternalMessageChange={
+            detail.setInternalMessage
+          }
+          onPublicMessageChange={
+            detail.setPublicMessage
+          }
+          onSubmit={() =>
+            void detail.updateStatus()
+          }
+        />
+
         <JobItemsList
           items={
             job.items
@@ -167,36 +201,20 @@ export function JobDetailModal({
           }
         />
 
-        <JobStatusUpdateForm
-          nextStatuses={
-            detail.nextStatuses
-          }
-          selectedStatus={
-            detail.selectedStatus
-          }
-          internalMessage={
-            detail.internalMessage
-          }
-          publicMessage={
-            detail.publicMessage
-          }
-          loading={
-            actionLoading
-          }
-          onStatusChange={
-            detail.setSelectedStatus
-          }
-          onInternalMessageChange={
-            detail.setInternalMessage
-          }
-          onPublicMessageChange={
-            detail.setPublicMessage
-          }
-          onSubmit={() =>
-            void detail.updateStatus()
+        {detail.trackingLink && (
+          <JobPdfActions
+            job={job}
+            trackingUrl={
+              detail.trackingLink
+            }
+          />
+        )}
+
+        <JobActivityHistory
+          updates={
+            job.updates
           }
         />
-
         <JobLifecycleActions
           job={job}
           cancellationReason={
@@ -221,12 +239,6 @@ export function JobDetailModal({
           }
           onReopen={() =>
             void onReopen()
-          }
-        />
-
-        <JobActivityHistory
-          updates={
-            job.updates
           }
         />
       </div>

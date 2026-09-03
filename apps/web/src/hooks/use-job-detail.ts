@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -79,6 +81,75 @@ export function useJobDetail({
     cancellationReason,
     setCancellationReason,
   ] = useState("");
+
+  const generateTrackingLinkRef =
+    useRef(
+      onGenerateTrackingLink,
+    );
+
+  useEffect(() => {
+    generateTrackingLinkRef.current =
+      onGenerateTrackingLink;
+  }, [onGenerateTrackingLink]);
+
+  /*
+   * Restore the existing tracking
+   * link when the modal is opened.
+   *
+   * The backend now returns the
+   * existing encrypted token instead
+   * of generating a new token.
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!job.trackingEnabled) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    async function loadTrackingLink() {
+      try {
+        const url =
+          await generateTrackingLinkRef
+            .current();
+
+        if (!url) {
+          throw new Error(
+            "Tracking URL was not returned by the server.",
+          );
+        }
+
+        if (cancelled) {
+          return;
+        }
+
+        setTrackingLink(url);
+        setTrackingError(null);
+        setCopied(false);
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        setTrackingError(
+          error instanceof Error
+            ? error.message
+            : "Unable to load the tracking link.",
+        );
+      }
+    }
+
+    void loadTrackingLink();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    job.id,
+    job.trackingEnabled,
+  ]);
 
   async function updateStatus() {
     if (!selectedStatus) {

@@ -1,4 +1,10 @@
-import { IsEmail, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsEmail,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 
 export class UpdateBusinessSettingsDto {
   @IsOptional()
@@ -40,4 +46,8 @@ export class UpdateBusinessSettingsDto {
   @IsString()
   @MaxLength(1000)
   quotationFooterNote?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  customerEmailNotificationsEnabled?: boolean;
 }

@@ -3,6 +3,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  ConflictException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
@@ -356,12 +357,25 @@ export class JobsService {
           createdAt: true,
           updatedAt: true,
 
+          organization: {
+            select: {
+              id: true,
+              name: true,
+              logoUrl: true,
+              address: true,
+              email: true,
+              phone: true,
+            },
+          },
+
           customer: {
             select: {
               id: true,
               name: true,
               companyName: true,
               phone: true,
+              email: true,
+              address: true,
             },
           },
 
@@ -406,6 +420,16 @@ export class JobsService {
       },
 
       include: {
+        organization: {
+          select: {
+            id: true,
+            name: true,
+            logoUrl: true,
+            address: true,
+            email: true,
+            phone: true,
+          },
+        },
         customer: true,
 
         quotation: {
@@ -629,6 +653,9 @@ export class JobsService {
           organization: {
             select: {
               name: true,
+              logoUrl: true,
+
+              customerEmailNotificationsEnabled: true,
             },
           },
 
@@ -672,25 +699,24 @@ export class JobsService {
      * could still be rolled back.
      */
 
+    const shouldSendCustomerEmail =
+      this.notificationsService.canSendEmail() &&
+      result.job.organization.customerEmailNotificationsEnabled === true &&
+      Boolean(result.job.customer?.email) &&
+      this.shouldNotifyCustomerOfJobStatus(result.notification.status);
+
     let trackingUrl: string | null = null;
 
-    if (
-      result.job.customer?.email &&
-      this.shouldNotifyCustomerOfJobStatus(result.notification.status)
-    ) {
+    /*
+     * Only create/restore the tracking
+     * link when an email will actually
+     * be sent.
+     */
+    if (shouldSendCustomerEmail) {
       trackingUrl = await this.ensureTrackingLinkForNotification(result.job.id);
     }
 
-    /*
-     * Send an email only when:
-     *
-     * 1. The customer has an email address.
-     * 2. The status is meaningful enough to notify them.
-     */
-    if (
-      result.job.customer?.email &&
-      this.shouldNotifyCustomerOfJobStatus(result.notification.status)
-    ) {
+    if (shouldSendCustomerEmail && result.job.customer.email) {
       void this.notificationsService.sendJobStatusUpdated({
         recipientEmail: result.job.customer.email,
 
@@ -699,7 +725,8 @@ export class JobsService {
           result.job.customer.name ??
           'Customer',
 
-        businessName: result.job.organization?.name ?? 'QUFO',
+        businessName: result.job.organization.name ?? 'QUFO',
+        businessLogoUrl: result.job.organization.logoUrl ?? null,
 
         jobNumber: result.job.jobNumber,
 
@@ -793,20 +820,50 @@ export class JobsService {
   }
 
   async generateTrackingLink(tenant: TenantContext, id: string) {
+    return this.ensureTrackingLink(tenant.organizationId, id);
+  }
+
+  async ensureTrackingLink(organizationId: string, id: string) {
     const job = await this.prisma.job.findFirst({
       where: {
         id,
-        organizationId: tenant.organizationId,
+        organizationId,
       },
 
       select: {
         id: true,
         jobNumber: true,
+        trackingEnabled: true,
+        trackingTokenEncrypted: true,
       },
     });
 
     if (!job) {
       throw new NotFoundException('Job not found.');
+    }
+
+    const webUrl = (
+      this.configService.get<string>('WEB_URL') ?? 'http://localhost:3000'
+    ).replace(/\/+$/, '');
+
+    if (job.trackingEnabled && job.trackingTokenEncrypted) {
+      const existingToken = this.decryptTrackingToken(
+        job.trackingTokenEncrypted,
+      );
+
+      return {
+        jobNumber: job.jobNumber,
+
+        trackingEnabled: true,
+
+        trackingUrl: `${webUrl}/track/${existingToken}`,
+      };
+    }
+
+    if (job.trackingEnabled) {
+      throw new ConflictException(
+        'The existing tracking link cannot be recovered. Disable tracking before generating a new link.',
+      );
     }
 
     const token = randomBytes(32).toString('base64url');
@@ -828,11 +885,10 @@ export class JobsService {
       },
     });
 
-    const webUrl =
-      this.configService.get<string>('WEB_URL') ?? 'http://localhost:3000';
-
     return {
       jobNumber: job.jobNumber,
+
+      trackingEnabled: true,
 
       trackingUrl: `${webUrl}/track/${token}`,
     };
@@ -848,6 +904,7 @@ export class JobsService {
       data: {
         trackingEnabled: false,
         trackingTokenHash: null,
+        trackingTokenEncrypted: null,
         trackingCreatedAt: null,
       },
     });
@@ -857,6 +914,8 @@ export class JobsService {
     }
 
     return {
+      trackingEnabled: false,
+      trackingUrl: null,
       message: 'Public job tracking disabled.',
     };
   }

@@ -7,6 +7,16 @@ import type {
   PublicQuotationResponse,
 } from "@/types/quotation";
 
+type SendJobConfirmationResult = {
+  sent: boolean;
+
+  alreadySent?: boolean;
+  skipped?: boolean;
+
+  reason?: string;
+  message: string;
+};
+
 export const publicQuotationService = {
   getByToken(
     token: string,
@@ -71,4 +81,35 @@ export const publicQuotationService = {
       },
     );
   },
+
+  async sendJobConfirmation(
+    token: string,
+    pdfBlob: Blob,
+    filename: string,
+  ) {
+    const formData =
+      new FormData();
+
+    formData.append(
+      "pdf",
+      pdfBlob,
+      filename,
+    );
+
+    return apiFetch<
+      SendJobConfirmationResult
+    >(
+      `/public/quotations/${encodeURIComponent(
+        token,
+      )}/job-confirmation`,
+      {
+        method: "POST",
+
+        requireAuth: false,
+
+        body: formData,
+      },
+    );
+  },
+
 };

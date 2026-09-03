@@ -195,15 +195,17 @@ model Organization {
 
   logoPublicId String?
 
-  quotationTerms      String? @db.Text
-  quotationFooterNote String? @db.Text
-  quotationSignatureUrl   String?
-  quotationSignatureKey   String?
+  quotationTerms        String? @db.Text
+  quotationFooterNote   String? @db.Text
+  quotationSignatureUrl String?
+  quotationSignatureKey String?
 
   quotationSignatoryName  String?
   quotationSignatoryTitle String?
 
-  showQuotationSignature  Boolean @default(false)
+  showQuotationSignature Boolean @default(false)
+
+  customerEmailNotificationsEnabled Boolean @default(true)
 
   countryCode String? @db.VarChar(2)
   currency    String  @default("PHP") @db.VarChar(3)
@@ -509,10 +511,12 @@ model Job {
   dueDate     DateTime?
   completedAt DateTime?
 
-  trackingTokenHash String?   @unique
-  trackingTokenEncrypted String? @db.Text
-  trackingEnabled   Boolean   @default(false)
-  trackingCreatedAt DateTime?
+  trackingTokenHash      String?   @unique
+  trackingTokenEncrypted String?   @db.Text
+  trackingEnabled        Boolean   @default(false)
+  trackingCreatedAt      DateTime?
+
+  confirmationEmailSentAt DateTime?
 
   subtotal       Decimal @default(0) @db.Decimal(14, 2)
   discountAmount Decimal @default(0) @db.Decimal(14, 2)

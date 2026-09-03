@@ -1,3 +1,19 @@
+import type {
+  JobPdfData,
+} from "@/components/jobs/pdf/job-pdf-types";
+
+export type JobConfirmationData = {
+  emailRequired: boolean;
+
+  trackingUrl: string;
+
+  pdfData: Omit<
+    JobPdfData,
+    | "trackingUrl"
+    | "qrCodeDataUrl"
+  >;
+};
+
 export type QuotationStatus =
   | "DRAFT"
   | "SENT"
@@ -277,6 +293,10 @@ export type PublicQuotationResponse = {
       | string
       | null;
   };
+
+  jobConfirmation?:
+    | JobConfirmationData
+    | null;
 };
 
 export type QuotationRevisionInfo = {

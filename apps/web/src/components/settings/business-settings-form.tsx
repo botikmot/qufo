@@ -44,6 +44,10 @@ import {
   QuotationSignatureSettings,
 } from "./quotation-signature-settings";
 
+import {
+  CustomerEmailNotificationsSettings,
+} from "./customer-email-notifications-settings";
+
 type BusinessSettingsFormProps = {
   settings: BusinessSettings;
 
@@ -170,6 +174,43 @@ export function BusinessSettingsForm({
       "",
   );
 
+  const [
+    customerEmailNotificationsEnabled,
+    setCustomerEmailNotificationsEnabled,
+  ] = useState(
+    settings
+      .customerEmailNotificationsEnabled,
+  );
+
+  const [
+    quotationSignatoryName,
+    setQuotationSignatoryName,
+  ] = useState(
+    settings
+      .quotationSignatoryName ??
+      "",
+  );
+
+  const [
+    quotationSignatoryTitle,
+    setQuotationSignatoryTitle,
+  ] = useState(
+    settings
+      .quotationSignatoryTitle ??
+      "",
+  );
+
+  const [
+    showQuotationSignature,
+    setShowQuotationSignature,
+  ] = useState(
+    Boolean(
+      settings
+        .showQuotationSignature &&
+      settings
+        .quotationSignatureUrl,
+    ),
+  );
 
   function handleCountryChange(
     value: string,
@@ -199,19 +240,46 @@ export function BusinessSettingsForm({
   ) {
     event.preventDefault();
 
-    await onSave({
-      name,
-      businessType,
-      email,
-      phone,
-      address,
+    const businessSaved =
+      await onSave({
+        name,
+        businessType,
+        email,
+        phone,
+        address,
 
-      countryCode,
-      currency,
-      quotationTerms,
-      quotationFooterNote,
+        countryCode,
+        currency,
+        quotationTerms,
+        quotationFooterNote,
+
+        ...(settings
+          .emailNotificationsAvailable && {
+          customerEmailNotificationsEnabled,
+        }),
+      });
+
+    if (!businessSaved) {
+      return;
+    }
+
+    await onSaveSignature({
+      quotationSignatoryName:
+        quotationSignatoryName.trim(),
+
+      quotationSignatoryTitle:
+        quotationSignatoryTitle.trim(),
+
+      showQuotationSignature:
+        showQuotationSignature,
     });
   }
+
+  console.log('settings:', settings)
+
+  const formSaving =
+    saving ||
+    savingSignature;
 
   return (
     <form
@@ -535,21 +603,20 @@ export function BusinessSettingsForm({
           </div>
         </div>
 
-
-        <div>
-          <label className="mb-2 block text-sm text-slate-400">
-            Workspace URL
-          </label>
-
-          <div className="qufo-surface-soft rounded-xl px-4 py-3 text-sm text-slate-500">
-            {settings.slug}
-          </div>
-
-          <p className="mt-2 text-xs text-slate-600">
-            Workspace identifier
-            cannot be changed here.
-          </p>
-        </div>
+        {settings
+          .emailNotificationsAvailable && (
+          <CustomerEmailNotificationsSettings
+            enabled={
+              customerEmailNotificationsEnabled
+            }
+            disabled={
+              saving
+            }
+            onChange={
+              setCustomerEmailNotificationsEnabled
+            }
+          />
+        )}
 
         <div className="border-t border-[var(--qufo-border)] pt-6">
           <div className="mb-5">
@@ -564,105 +631,114 @@ export function BusinessSettingsForm({
             </p>
           </div>
 
-          <div className="space-y-5">
-            <div>
-              <label
-                htmlFor="quotation-terms"
-                className="mb-2 block text-sm text-slate-400"
-              >
-                Terms & Conditions
-              </label>
+          <div className="grid items-start gap-5 lg:grid-cols-2 mb-6">
+            <div className="min-w-0">
+              {/* Terms & Conditions field */}
+              <div>
+                <label
+                  htmlFor="quotation-terms"
+                  className="mb-2 block text-sm text-slate-400"
+                >
+                  Terms & Conditions
+                </label>
 
-              <textarea
-                id="quotation-terms"
-                rows={7}
-                maxLength={5000}
-                value={
-                  quotationTerms
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setQuotationTerms(
-                    event.target.value,
-                  )
-                }
-                className="qufo-input min-h-40 resize-y"
-                placeholder={`Quotation validity: 30 days.
-        50% downpayment upon approval.
-        Balance payable upon completion.
-        Lead time is subject to material availability.`}
-              />
-
-              <div className="mt-2 flex items-center justify-between gap-4">
-                <p className="text-xs text-slate-600">
-                  Appears below the
-                  quotation totals.
-                </p>
-
-                <span className="text-xs text-slate-700">
-                  {
-                    quotationTerms.length
+                <textarea
+                  id="quotation-terms"
+                  rows={5}
+                  maxLength={5000}
+                  value={
+                    quotationTerms
                   }
-                  /5000
-                </span>
+                  onChange={(
+                    event,
+                  ) =>
+                    setQuotationTerms(
+                      event.target.value,
+                    )
+                  }
+                  className="qufo-input resize-y"
+                  placeholder={`Quotation validity: 30 days.
+          50% downpayment upon approval.
+          Balance payable upon completion.
+          Lead time is subject to material availability.`}
+                />
+
+                <div className="mt-2 flex items-center justify-between gap-4">
+                  <p className="text-xs text-slate-600">
+                    Appears below the
+                    quotation totals.
+                  </p>
+
+                  <span className="text-xs text-slate-700">
+                    {
+                      quotationTerms.length
+                    }
+                    /5000
+                  </span>
+                </div>
               </div>
             </div>
 
-            <div>
-              <label
-                htmlFor="quotation-footer-note"
-                className="mb-2 block text-sm text-slate-400"
-              >
-                Footer note
-              </label>
+            <div className="min-w-0">
+              {/* Footer Note field */}
+              <div>
+                <label
+                  htmlFor="quotation-footer-note"
+                  className="mb-2 block text-sm text-slate-400"
+                >
+                  Footer note
+                </label>
 
-              <textarea
-                id="quotation-footer-note"
-                rows={3}
-                maxLength={1000}
-                value={
-                  quotationFooterNote
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setQuotationFooterNote(
-                    event.target.value,
-                  )
-                }
-                className="qufo-input resize-y"
-                placeholder="Thank you for your business. We look forward to working with you."
-              />
-
-              <div className="mt-2 flex items-center justify-between gap-4">
-                <p className="text-xs text-slate-600">
-                  Short closing message
-                  shown near the bottom
-                  of printed quotations.
-                </p>
-
-                <span className="text-xs text-slate-700">
-                  {
-                    quotationFooterNote.length
+                <textarea
+                  id="quotation-footer-note"
+                  rows={5}
+                  maxLength={1000}
+                  value={
+                    quotationFooterNote
                   }
-                  /1000
-                </span>
+                  onChange={(
+                    event,
+                  ) =>
+                    setQuotationFooterNote(
+                      event.target.value,
+                    )
+                  }
+                  className="qufo-input resize-y"
+                  placeholder="Thank you for your business. We look forward to working with you."
+                />
+
+                <div className="mt-2 flex items-center justify-between gap-4">
+                  <p className="text-xs text-slate-600">
+                    Short closing message
+                    shown near the bottom
+                    of printed quotations.
+                  </p>
+
+                  <span className="text-xs text-slate-700">
+                    {
+                      quotationFooterNote.length
+                    }
+                    /1000
+                  </span>
+                </div>
               </div>
             </div>
+          </div>
 
+            
             <QuotationSignatureSettings
               signatureUrl={
-                settings.quotationSignatureUrl
+                settings
+                  .quotationSignatureUrl
               }
-              initialName={
-                settings.quotationSignatoryName
+              name={
+                quotationSignatoryName
               }
-              initialTitle={
-                settings.quotationSignatoryTitle
+              title={
+                quotationSignatoryTitle
               }
-              initialEnabled={
-                settings.showQuotationSignature
+              enabled={
+                showQuotationSignature
               }
               uploading={
                 uploadingSignature
@@ -670,8 +746,18 @@ export function BusinessSettingsForm({
               removing={
                 removingSignature
               }
-              saving={
+              disabled={
+                saving ||
                 savingSignature
+              }
+              onNameChange={
+                setQuotationSignatoryName
+              }
+              onTitleChange={
+                setQuotationSignatoryTitle
+              }
+              onEnabledChange={
+                setShowQuotationSignature
               }
               onUpload={
                 onUploadSignature
@@ -679,12 +765,7 @@ export function BusinessSettingsForm({
               onRemove={
                 onRemoveSignature
               }
-              onSave={
-                onSaveSignature
-              }
             />
-
-          </div>
         </div>
 
 
@@ -705,21 +786,22 @@ export function BusinessSettingsForm({
         <button
           type="submit"
           disabled={
-            saving ||
-            !name.trim()
+            formSaving
           }
-          className="flex items-center gap-2 rounded-xl bg-emerald-400 px-5 py-2.5 text-sm font-medium text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex items-center gap-2 rounded-xl bg-emerald-400 px-4 py-2.5 text-sm font-medium text-slate-950 transition hover:bg-emerald-300 disabled:opacity-50"
         >
-          {saving ? (
+          {formSaving ? (
             <LoaderCircle
               size={16}
               className="animate-spin"
             />
           ) : (
-            <Save size={16} />
+            <Save
+              size={16}
+            />
           )}
 
-          {saving
+          {formSaving
             ? "Saving..."
             : "Save changes"}
         </button>

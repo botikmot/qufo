@@ -15,12 +15,14 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtPayload } from '../auth/types/jwt-payload.type';
 import * as bcrypt from 'bcrypt';
 import { UploadsService } from '../uploads/uploads.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class SettingsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly uploadsService: UploadsService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async getBusinessSettings(user: JwtPayload, tenant: TenantContext) {
@@ -40,6 +42,7 @@ export class SettingsService {
         logoUrl: true,
         quotationTerms: true,
         quotationFooterNote: true,
+        customerEmailNotificationsEnabled: true,
         status: true,
         createdAt: true,
         updatedAt: true,
@@ -70,6 +73,7 @@ export class SettingsService {
       ...organization,
 
       email: fallbackEmail,
+      emailNotificationsAvailable: this.notificationsService.canSendEmail(),
     };
   }
 
@@ -114,6 +118,11 @@ export class SettingsService {
         ...(dto.quotationFooterNote !== undefined && {
           quotationFooterNote: dto.quotationFooterNote.trim() || null,
         }),
+
+        ...(dto.customerEmailNotificationsEnabled !== undefined && {
+          customerEmailNotificationsEnabled:
+            dto.customerEmailNotificationsEnabled,
+        }),
       },
 
       select: {
@@ -127,6 +136,7 @@ export class SettingsService {
         logoUrl: true,
         quotationTerms: true,
         quotationFooterNote: true,
+        customerEmailNotificationsEnabled: true,
         status: true,
         updatedAt: true,
       },
@@ -136,6 +146,7 @@ export class SettingsService {
       message: 'Business settings updated successfully.',
 
       organization,
+      emailNotificationsAvailable: this.notificationsService.canSendEmail(),
     };
   }
 

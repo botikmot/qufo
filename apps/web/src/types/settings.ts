@@ -20,6 +20,7 @@ export type BusinessSettings = {
   quotationSignatoryTitle: string | null;
 
   showQuotationSignature: boolean;
+  customerEmailNotificationsEnabled: boolean;
 
   countryCode: string | null;
 
@@ -31,6 +32,7 @@ export type BusinessSettings = {
 
   createdAt?: string;
   updatedAt: string;
+  emailNotificationsAvailable: boolean;
 };
 
 export type UpdateBusinessSettingsData = {
@@ -41,6 +43,7 @@ export type UpdateBusinessSettingsData = {
   address?: string;
   quotationTerms?: string | null;
   quotationFooterNote?: string | null;
+  customerEmailNotificationsEnabled?: boolean;
 
   countryCode?: string;
   currency?: string;

@@ -79,8 +79,14 @@ const styles =
   });
 
 type Props = {
-  data:
-    QuotationPdfData;
+  data: Pick<
+    QuotationPdfData,
+    | "currency"
+    | "subtotal"
+    | "discountAmount"
+    | "taxAmount"
+    | "total"
+  >;
 };
 
 export function QuotationPdfTotals({

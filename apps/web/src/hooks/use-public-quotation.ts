@@ -14,6 +14,9 @@ import type {
 } from "@/types/quotation";
 
 import { useConfirm } from "@/components/providers/confirm-dialog-provider";
+import {
+  generateJobConfirmationPdfBlob,
+} from "@/components/jobs/pdf/generate-job-confirmation-pdf-blob";
 
 type PublicQuotationAction =
   | "approve"
@@ -153,7 +156,10 @@ export function usePublicQuotation(
       await confirm({
         title:
           "Approve quotation?",
-        description: `You are about to approve ${quotation.quotationNumber}.`,
+
+        description:
+          `You are about to approve ${quotation.quotationNumber}.`,
+
         confirmText:
           "Approve quotation",
       });
@@ -171,9 +177,7 @@ export function usePublicQuotation(
     try {
       const result =
         await publicQuotationService
-          .approve(
-            token,
-          );
+          .approve(token);
 
       setQuotation(
         (current) =>
@@ -189,8 +193,69 @@ export function usePublicQuotation(
             : current,
       );
 
+      let successMessage =
+        "Quotation approved successfully. The business can now proceed with your order.";
+
+      const confirmation =
+        result.jobConfirmation;
+
+      /*
+      * This only runs when:
+      *
+      * - global email is enabled
+      * - business enabled customer email
+      * - customer has an email
+      * - confirmation was not sent before
+      */
+      if (
+        confirmation
+          ?.emailRequired
+      ) {
+        try {
+          const pdfBlob =
+            await generateJobConfirmationPdfBlob(
+              confirmation.pdfData,
+              confirmation.trackingUrl,
+            );
+
+          const emailResult =
+            await publicQuotationService
+              .sendJobConfirmation(
+                token,
+                pdfBlob,
+                `${confirmation.pdfData.jobNumber}-confirmation.pdf`,
+              );
+
+          if (
+            emailResult.sent ||
+            emailResult.alreadySent
+          ) {
+            successMessage =
+              "Quotation approved successfully. Your job confirmation and tracking details were sent to your email.";
+          } else {
+            successMessage =
+              "Quotation approved successfully. Your job was created, but the confirmation email could not be sent.";
+          }
+        } catch (
+          confirmationError
+        ) {
+          /*
+          * Never turn a successful
+          * quotation approval into
+          * an approval error.
+          */
+          console.error(
+            "Unable to send job confirmation email.",
+            confirmationError,
+          );
+
+          successMessage =
+            "Quotation approved successfully. Your job was created, but the confirmation email could not be sent.";
+        }
+      }
+
       setSuccessMessage(
-        "Quotation approved successfully. The business can now proceed with your order.",
+        successMessage,
       );
     } catch (error) {
       setError(

@@ -1,8 +1,19 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  BadRequestException,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
 
 import { RespondQuotationDto } from './dto/respond-quotation.dto';
 import { QuotationsService } from './quotations.service';
 import { CustomerQuotationFeedbackDto } from './dto/customer-quotation-feedback.dto';
+
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('public/quotations')
 export class PublicQuotationsController {
@@ -47,5 +58,39 @@ export class PublicQuotationsController {
     dto: CustomerQuotationFeedbackDto,
   ) {
     return this.quotationsService.requestChangesPublicQuotation(token, dto);
+  }
+
+  @Post(':token/job-confirmation')
+  @UseInterceptors(
+    FileInterceptor('pdf', {
+      limits: {
+        fileSize: 10 * 1024 * 1024,
+      },
+    }),
+  )
+  sendJobConfirmation(
+    @Param('token')
+    token: string,
+
+    @UploadedFile()
+    pdfFile?: Express.Multer.File,
+  ) {
+    if (!pdfFile) {
+      throw new BadRequestException('Job confirmation PDF is required.');
+    }
+
+    if (pdfFile.mimetype !== 'application/pdf') {
+      throw new BadRequestException(
+        'Job confirmation attachment must be a PDF.',
+      );
+    }
+
+    const signature = pdfFile.buffer.subarray(0, 5).toString();
+
+    if (signature !== '%PDF-') {
+      throw new BadRequestException('Invalid PDF attachment.');
+    }
+
+    return this.quotationsService.sendPublicJobConfirmation(token, pdfFile);
   }
 }

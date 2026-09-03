@@ -6,6 +6,7 @@ import type {
   BusinessSettings,
   ProfileSettings,
   UpdateBusinessSettingsData,
+  UpdateBusinessSettingsResponse,
   UpdateProfileSettingsData,
   UpdateProfileSettingsResponse,
   ChangePasswordData,

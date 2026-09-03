@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 
@@ -26,6 +27,7 @@ import { ConvertQuotationToJobDto } from './dto/convert-quotation-to-job.dto';
 import { CustomerQuotationFeedbackDto } from './dto/customer-quotation-feedback.dto';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
+import { JobsService } from '../jobs/jobs.service';
 
 @Injectable()
 export class QuotationsService {
@@ -34,11 +36,14 @@ export class QuotationsService {
     private readonly configService: ConfigService,
     private readonly realtimeGateway: RealtimeGateway,
     private readonly notificationsService: NotificationsService,
+    private readonly jobsService: JobsService,
   ) {}
 
   private hashPublicToken(token: string) {
     return createHash('sha256').update(token).digest('hex');
   }
+
+  private readonly logger = new Logger(QuotationsService.name);
 
   private getPublicLinkEncryptionKey() {
     const encodedKey = this.configService.getOrThrow<string>(
@@ -833,6 +838,7 @@ export class QuotationsService {
           select: {
             name: true,
             logoUrl: true,
+            customerEmailNotificationsEnabled: true,
           },
         },
       },
@@ -883,17 +889,23 @@ export class QuotationsService {
 
     const publicUrl = `${webUrl}/quote/${token}`;
 
+    const customerEmailAllowed =
+      this.notificationsService.canSendEmail() &&
+      quotation.organization.customerEmailNotificationsEnabled === true;
+
+    const customerEmail = quotation.customer?.email ?? null;
+
     let emailSent = false;
 
-    if (quotation.customer?.email) {
+    if (customerEmailAllowed && customerEmail) {
       emailSent = await this.notificationsService.sendQuotationToCustomer({
-        recipientEmail: quotation.customer.email,
+        recipientEmail: customerEmail,
 
         customerName: quotation.customer.name ?? 'Customer',
 
-        businessName: quotation.organization?.name ?? 'QUFO',
+        businessName: quotation.organization.name ?? 'QUFO',
 
-        businessLogoUrl: quotation.organization?.logoUrl ?? null,
+        businessLogoUrl: quotation.organization.logoUrl ?? null,
 
         quotationNumber: updated.quotationNumber,
 
@@ -922,6 +934,13 @@ export class QuotationsService {
         sent: emailSent,
 
         recipient: quotation.customer?.email ?? null,
+        skippedReason: !this.notificationsService.canSendEmail()
+          ? 'EMAIL_DISABLED'
+          : !quotation.organization.customerEmailNotificationsEnabled
+            ? 'BUSINESS_EMAIL_DISABLED'
+            : !customerEmail
+              ? 'CUSTOMER_EMAIL_MISSING'
+              : null,
       },
     };
   }
@@ -1144,50 +1163,251 @@ export class QuotationsService {
 
         customer: {
           select: {
+            id: true,
             name: true,
+            email: true,
+          },
+        },
+
+        organization: {
+          select: {
+            id: true,
+            name: true,
+            logoUrl: true,
+            address: true,
+            email: true,
+            phone: true,
+
+            customerEmailNotificationsEnabled: true,
           },
         },
 
         createdBy: {
           select: {
+            id: true,
             email: true,
           },
         },
       },
     });
 
-    if (updated) {
-      this.realtimeGateway.emitQuotationUpdated(quotation.organizationId, {
-        quotationId: quotation.id,
+    if (!updated) {
+      throw new NotFoundException('Quotation not found after approval.');
+    }
+
+    /*
+     * Notify the business interface
+     * that the customer approved.
+     */
+    this.realtimeGateway.emitQuotationUpdated(quotation.organizationId, {
+      quotationId: quotation.id,
+
+      quotationNumber: updated.quotationNumber,
+
+      status: updated.status,
+
+      customerResponseNote: updated.customerResponseNote,
+
+      respondedAt: updated.approvedAt,
+    });
+
+    /*
+     * Notify the business user.
+     *
+     * This is an internal/business
+     * notification and is not
+     * controlled by the customer
+     * email preference.
+     */
+    if (updated.createdBy.email) {
+      void this.notificationsService.sendQuotationApproved({
+        recipientEmail: updated.createdBy.email,
+
+        quotationId: updated.id,
 
         quotationNumber: updated.quotationNumber,
 
-        status: updated.status,
+        customerName: updated.customer.name,
 
-        customerResponseNote: updated.customerResponseNote,
-
-        respondedAt: updated.approvedAt,
+        note: updated.customerResponseNote,
       });
+    }
 
-      if (updated.createdBy?.email) {
-        void this.notificationsService.sendQuotationApproved({
-          recipientEmail: updated.createdBy.email,
+    /*
+     * The quotation approval has
+     * already succeeded.
+     *
+     * Automatic job/email failure
+     * must not invalidate the
+     * customer's approval.
+     */
+    const jobConfirmation = await (async () => {
+      try {
+        const conversion = await this.convertApprovedQuotationToJob(
+          updated.createdBy.id,
 
-          quotationId: updated.id,
+          quotation.organizationId,
+
+          quotation.id,
+
+          new ConvertQuotationToJobDto(),
+
+          true,
+        );
+
+        const job = conversion.job;
+
+        /*
+         * Generate one stable
+         * customer tracking link.
+         */
+        const tracking = await this.jobsService.ensureTrackingLink(
+          quotation.organizationId,
+
+          job.id,
+        );
+
+        /*
+         * Notify active business
+         * clients that the quotation
+         * is now converted.
+         */
+        this.realtimeGateway.emitQuotationUpdated(quotation.organizationId, {
+          quotationId: quotation.id,
 
           quotationNumber: updated.quotationNumber,
 
-          customerName: updated.customer?.name ?? 'Customer',
+          status: 'CONVERTED',
 
-          note: updated.customerResponseNote,
+          customerResponseNote: updated.customerResponseNote,
+
+          respondedAt: updated.approvedAt,
         });
+
+        const customerEmail = job.customer.email ?? updated.customer.email;
+
+        const shouldSendEmail =
+          this.notificationsService.canSendEmail() &&
+          updated.organization.customerEmailNotificationsEnabled &&
+          Boolean(customerEmail) &&
+          !job.confirmationEmailSentAt;
+
+        /*
+         * Self-hosted, disabled business
+         * email, missing customer email,
+         * or already sent:
+         *
+         * Do not ask the frontend to
+         * generate/upload a PDF.
+         */
+        if (!shouldSendEmail) {
+          return null;
+        }
+
+        /*
+         * Return only the customer-safe
+         * data needed by the web app to
+         * generate the same Job PDF.
+         */
+        return {
+          emailRequired: true,
+
+          trackingUrl: tracking.trackingUrl,
+
+          pdfData: {
+            jobNumber: job.jobNumber,
+
+            quotationNumber: job.quotation.quotationNumber,
+
+            createdAt: job.createdAt.toISOString(),
+
+            dueDate: job.dueDate?.toISOString() ?? null,
+
+            status: job.status,
+
+            priority: job.priority,
+
+            title: job.title,
+
+            description: job.description,
+
+            currency: job.currency,
+
+            business: {
+              name: updated.organization.name,
+
+              logoUrl: updated.organization.logoUrl,
+
+              address: updated.organization.address,
+
+              email: updated.organization.email,
+
+              phone: updated.organization.phone,
+            },
+
+            customer: {
+              name: job.customer.name,
+
+              companyName: job.customer.companyName,
+
+              address: job.customer.address ?? null,
+
+              email: job.customer.email ?? null,
+
+              phone: job.customer.phone ?? null,
+            },
+
+            items: job.items.map((item) => ({
+              id: item.id,
+
+              name: item.name,
+
+              description: item.description,
+
+              quantity: Number(item.quantity),
+
+              unit: item.unit,
+
+              unitPrice: Number(item.unitPrice),
+
+              total: Number(item.total),
+
+              imageUrl: item.imageUrl,
+
+              imageKey: item.imageKey,
+
+              warrantyDuration: item.warrantyDuration,
+
+              warrantyUnit: item.warrantyUnit,
+
+              warrantyTerms: item.warrantyTerms,
+            })),
+
+            subtotal: Number(job.subtotal),
+
+            discountAmount: Number(job.discountAmount),
+
+            taxAmount: Number(job.taxAmount),
+
+            total: Number(job.total),
+          },
+        };
+      } catch (error) {
+        this.logger.error(
+          `Quotation ${updated.quotationNumber} was approved, but automatic job confirmation preparation failed.`,
+
+          error instanceof Error ? error.stack : String(error),
+        );
+
+        return null;
       }
-    }
+    })();
 
     return {
       message: 'Quotation approved successfully.',
 
       quotation: updated,
+      jobConfirmation,
     };
   }
 
@@ -1294,11 +1514,27 @@ export class QuotationsService {
     id: string,
     dto: ConvertQuotationToJobDto,
   ) {
+    return this.convertApprovedQuotationToJob(
+      user.sub,
+      tenant.organizationId,
+      id,
+      dto,
+      false,
+    );
+  }
+
+  private async convertApprovedQuotationToJob(
+    createdById: string,
+    organizationId: string,
+    id: string,
+    dto: ConvertQuotationToJobDto,
+    automatic = false,
+  ) {
     return this.prisma.$transaction(async (tx) => {
       const quotation = await tx.quotation.findFirst({
         where: {
           id,
-          organizationId: tenant.organizationId,
+          organizationId,
         },
 
         include: {
@@ -1342,16 +1578,18 @@ export class QuotationsService {
       }
 
       /*
-       * Claim the quotation for conversion.
+       * Claim the quotation for
+       * conversion.
        *
-       * If another request converts it at the same time,
-       * only one request should successfully change
+       * Only one request can change
        * APPROVED → CONVERTED.
        */
       const conversion = await tx.quotation.updateMany({
         where: {
           id: quotation.id,
-          organizationId: tenant.organizationId,
+
+          organizationId,
+
           status: 'APPROVED',
         },
 
@@ -1366,13 +1604,17 @@ export class QuotationsService {
         );
       }
 
+      /*
+       * Generate the next job
+       * sequence number.
+       */
       const sequence = await tx.organizationSequence.upsert({
         where: {
-          organizationId: tenant.organizationId,
+          organizationId,
         },
 
         create: {
-          organizationId: tenant.organizationId,
+          organizationId,
 
           job: 1,
         },
@@ -1392,19 +1634,36 @@ export class QuotationsService {
         sequence.job,
       ).padStart(6, '0')}`;
 
+      const customerDisplayName =
+        quotation.customer.companyName ?? quotation.customer.name;
+
       const defaultTitle = quotation.items[0]?.name
-        ? `${quotation.items[0].name} - ${quotation.customer.companyName ?? quotation.customer.name}`
-        : `Job for ${quotation.customer.companyName ?? quotation.customer.name}`;
+        ? `${quotation.items[0].name} - ${customerDisplayName}`
+        : `Job for ${customerDisplayName}`;
+
+      /*
+       * Automatic conversions cannot
+       * ask the business for a due date.
+       *
+       * Quotation validUntil is not a
+       * production completion date, so
+       * automatic jobs start with null.
+       */
+      const dueDate = dto.dueDate
+        ? new Date(dto.dueDate)
+        : automatic
+          ? null
+          : quotation.validUntil;
 
       const job = await tx.job.create({
         data: {
-          organizationId: tenant.organizationId,
+          organizationId,
 
           customerId: quotation.customerId,
 
           quotationId: quotation.id,
 
-          createdById: user.sub,
+          createdById,
 
           jobNumber,
 
@@ -1416,7 +1675,7 @@ export class QuotationsService {
 
           priority: dto.priority ?? 'NORMAL',
 
-          dueDate: dto.dueDate ? new Date(dto.dueDate) : quotation.validUntil,
+          dueDate,
 
           subtotal: quotation.subtotal,
 
@@ -1463,12 +1722,23 @@ export class QuotationsService {
               publicMessage:
                 'Your quotation has been approved and your job has been confirmed.',
 
-              createdById: user.sub,
+              createdById,
             },
           },
         },
 
         include: {
+          organization: {
+            select: {
+              id: true,
+              name: true,
+              logoUrl: true,
+              address: true,
+              email: true,
+              phone: true,
+            },
+          },
+
           customer: {
             select: {
               id: true,
@@ -1476,6 +1746,7 @@ export class QuotationsService {
               companyName: true,
               email: true,
               phone: true,
+              address: true,
             },
           },
 
@@ -1941,6 +2212,181 @@ export class QuotationsService {
 
     return {
       publicUrl: `${webUrl}/quote/${token}`,
+    };
+  }
+
+  async sendPublicJobConfirmation(token: string, pdfFile: Express.Multer.File) {
+    const tokenHash = this.hashPublicToken(token);
+
+    const quotation = await this.prisma.quotation.findFirst({
+      where: {
+        publicTokenHash: tokenHash,
+      },
+
+      select: {
+        id: true,
+        quotationNumber: true,
+        status: true,
+        organizationId: true,
+
+        organization: {
+          select: {
+            name: true,
+            logoUrl: true,
+
+            customerEmailNotificationsEnabled: true,
+          },
+        },
+
+        customer: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+
+        job: {
+          select: {
+            id: true,
+            jobNumber: true,
+            dueDate: true,
+
+            confirmationEmailSentAt: true,
+          },
+        },
+      },
+    });
+
+    if (!quotation) {
+      throw new NotFoundException('Quotation not found.');
+    }
+
+    if (quotation.status !== 'CONVERTED' || !quotation.job) {
+      throw new BadRequestException(
+        'This quotation has not been converted to a job.',
+      );
+    }
+
+    /*
+     * Avoid sending the same
+     * confirmation more than once.
+     */
+    if (quotation.job.confirmationEmailSentAt) {
+      return {
+        sent: false,
+        alreadySent: true,
+
+        message: 'Job confirmation email was already sent.',
+      };
+    }
+
+    /*
+     * Self-hosted/global email
+     * or business-level setting
+     * can prevent the email.
+     */
+    if (!this.notificationsService.canSendEmail()) {
+      return {
+        sent: false,
+        skipped: true,
+
+        reason: 'EMAIL_DISABLED',
+
+        message: 'Email notifications are globally disabled.',
+      };
+    }
+
+    if (!quotation.organization.customerEmailNotificationsEnabled) {
+      return {
+        sent: false,
+        skipped: true,
+
+        reason: 'BUSINESS_EMAIL_DISABLED',
+
+        message: 'Customer email notifications are disabled for this business.',
+      };
+    }
+
+    if (!quotation.customer.email) {
+      return {
+        sent: false,
+        skipped: true,
+
+        reason: 'CUSTOMER_EMAIL_MISSING',
+
+        message: 'The customer does not have an email address.',
+      };
+    }
+
+    /*
+     * This restores the existing
+     * tracking URL when one already
+     * exists. It does not regenerate
+     * the QR token.
+     */
+    const tracking = await this.jobsService.ensureTrackingLink(
+      quotation.organizationId,
+      quotation.job.id,
+    );
+
+    const emailSent = await this.notificationsService.sendJobConfirmation({
+      recipientEmail: quotation.customer.email,
+
+      customerName: quotation.customer.name,
+
+      businessName: quotation.organization.name,
+
+      businessLogoUrl: quotation.organization.logoUrl,
+
+      jobNumber: quotation.job.jobNumber,
+
+      trackingUrl: tracking.trackingUrl,
+
+      dueDate: quotation.job.dueDate,
+
+      pdfAttachment: {
+        filename: `${quotation.job.jobNumber}-confirmation.pdf`,
+
+        content: pdfFile.buffer,
+      },
+    });
+
+    if (!emailSent) {
+      this.logger.warn(
+        `Unable to send confirmation email for job ${quotation.job.jobNumber}.`,
+      );
+
+      return {
+        sent: false,
+        alreadySent: false,
+
+        message: 'The confirmation email could not be sent.',
+      };
+    }
+
+    /*
+     * Only mark it as sent after
+     * NotificationsService succeeds.
+     */
+    await this.prisma.job.update({
+      where: {
+        id: quotation.job.id,
+      },
+
+      data: {
+        confirmationEmailSentAt: new Date(),
+      },
+    });
+
+    return {
+      sent: true,
+      alreadySent: false,
+
+      recipient: quotation.customer.email,
+
+      jobNumber: quotation.job.jobNumber,
+
+      message: 'Job confirmation email sent successfully.',
     };
   }
 }

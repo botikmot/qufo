@@ -1,5 +1,6 @@
 import {
   IsEmail,
+  IsBoolean,
   IsIn,
   IsOptional,
   IsString,
@@ -62,4 +63,8 @@ export class UpdateOrganizationDto {
   @IsString()
   @MaxLength(1000)
   quotationFooterNote?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  customerEmailNotificationsEnabled?: boolean;
 }

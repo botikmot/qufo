@@ -20,6 +20,9 @@ export type JobCustomer = {
   companyName: string | null;
   phone?: string | null;
   email?: string | null;
+  address?:
+    | string
+    | null;
 };
 
 export type WarrantyUnit =
@@ -80,6 +83,8 @@ export type Job = {
 
   trackingEnabled: boolean;
   trackingCreatedAt: string | null;
+
+  organization: JobOrganization;
 
   customer: JobCustomer;
 
@@ -155,4 +160,26 @@ export type PublicJob = {
   }[];
 
   timeline: PublicJobTimelineEntry[];
+};
+
+export type JobOrganization = {
+  id: string;
+
+  name: string;
+
+  logoUrl:
+    | string
+    | null;
+
+  email:
+    | string
+    | null;
+
+  phone:
+    | string
+    | null;
+
+  address:
+    | string
+    | null;
 };

@@ -3,42 +3,39 @@
 import {
   ChangeEvent,
   useRef,
-  useState,
 } from "react";
 
 import {
   FileSignature,
   ImageUp,
   LoaderCircle,
-  Save,
   Trash2,
 } from "lucide-react";
 
-import type {
-  UpdateQuotationSignatureSettingsData,
-} from "@/types/settings";
-
 type Props = {
   signatureUrl:
-    string | null;
+    | string
+    | null;
 
-  initialName:
-    string | null;
+  name: string;
+  title: string;
+  enabled: boolean;
 
-  initialTitle:
-    string | null;
+  uploading: boolean;
+  removing: boolean;
+  disabled?: boolean;
 
-  initialEnabled:
-    boolean;
+  onNameChange: (
+    value: string,
+  ) => void;
 
-  uploading:
-    boolean;
+  onTitleChange: (
+    value: string,
+  ) => void;
 
-  removing:
-    boolean;
-
-  saving:
-    boolean;
+  onEnabledChange: (
+    enabled: boolean,
+  ) => void;
 
   onUpload: (
     file: File,
@@ -46,52 +43,35 @@ type Props = {
 
   onRemove:
     () => Promise<boolean>;
-
-  onSave: (
-    data: UpdateQuotationSignatureSettingsData,
-  ) => Promise<boolean>;
 };
 
 export function QuotationSignatureSettings({
   signatureUrl,
-  initialName,
-  initialTitle,
-  initialEnabled,
+  name,
+  title,
+  enabled,
   uploading,
   removing,
-  saving,
+  disabled = false,
+  onNameChange,
+  onTitleChange,
+  onEnabledChange,
   onUpload,
   onRemove,
-  onSave,
 }: Props) {
   const inputRef =
     useRef<HTMLInputElement>(
       null,
     );
 
-  const [
-    name,
-    setName,
-  ] = useState(
-    initialName ?? "",
-  );
-
-  const [
-    title,
-    setTitle,
-  ] = useState(
-    initialTitle ?? "",
-  );
-
-  const [
-    enabled,
-    setEnabled,
-] = useState<boolean>(
-    initialEnabled ?? false,
-);
+  const busy =
+    uploading ||
+    removing ||
+    disabled;
 
   async function handleFileChange(
-    event: ChangeEvent<HTMLInputElement>,
+    event:
+      ChangeEvent<HTMLInputElement>,
   ) {
     const file =
       event.target.files?.[0];
@@ -109,26 +89,22 @@ export function QuotationSignatureSettings({
     if (
       !allowed.includes(
         file.type,
-      )
-    ) {
-      return;
-    }
-
-    if (
+      ) ||
       file.size >
-      2 * 1024 * 1024
+        2 * 1024 * 1024
     ) {
+      event.target.value =
+        "";
+
       return;
     }
 
-    await onUpload(file);
+    await onUpload(
+      file,
+    );
 
-    if (
-      inputRef.current
-    ) {
-      inputRef.current.value =
-        "";
-    }
+    event.target.value =
+      "";
   }
 
   async function handleRemove() {
@@ -136,27 +112,11 @@ export function QuotationSignatureSettings({
       await onRemove();
 
     if (success) {
-      setEnabled(false);
+      onEnabledChange(
+        false,
+      );
     }
   }
-
-  async function handleSave() {
-    await onSave({
-      quotationSignatoryName:
-        name.trim(),
-
-      quotationSignatoryTitle:
-        title.trim(),
-
-      showQuotationSignature:
-        enabled,
-    });
-  }
-
-  const busy =
-    uploading ||
-    removing ||
-    saving;
 
   return (
     <div className="border-t border-[var(--qufo-border)] pt-6">
@@ -173,14 +133,16 @@ export function QuotationSignatureSettings({
           </h3>
 
           <p className="mt-1 text-xs leading-5 text-slate-500">
-            Optionally include an authorized signature
-            in generated quotation PDFs.
+            Optionally include an
+            authorized signature in
+            generated quotation PDFs.
           </p>
         </div>
       </div>
 
-      <div className="space-y-5">
-        <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.85fr)]">
+        {/* Signature information */}
+        <div className="min-w-0 space-y-5">
           <div>
             <label
               htmlFor="quotation-signatory-name"
@@ -193,8 +155,9 @@ export function QuotationSignatureSettings({
               id="quotation-signatory-name"
               value={name}
               maxLength={150}
+              disabled={busy}
               onChange={(event) =>
-                setName(
+                onNameChange(
                   event.target.value,
                 )
               }
@@ -215,8 +178,9 @@ export function QuotationSignatureSettings({
               id="quotation-signatory-title"
               value={title}
               maxLength={150}
+              disabled={busy}
               onChange={(event) =>
-                setTitle(
+                onTitleChange(
                   event.target.value,
                 )
               }
@@ -224,19 +188,92 @@ export function QuotationSignatureSettings({
               placeholder="Owner / Manager"
             />
           </div>
+
+          <div className="flex items-start justify-between gap-5 rounded-2xl border border-[var(--qufo-border)] bg-white/[0.015] p-4">
+            <div>
+              <div className="text-sm font-medium text-slate-200">
+                Show on quotation PDFs
+              </div>
+
+              <p className="mt-1 text-xs leading-5 text-slate-600">
+                Display the uploaded
+                signature above the
+                authorized signatory.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              role="switch"
+              aria-checked={
+                enabled
+              }
+              disabled={
+                !signatureUrl ||
+                busy
+              }
+              onClick={() =>
+                onEnabledChange(
+                  !enabled,
+                )
+              }
+              className={`
+                relative
+                h-7
+                w-12
+                shrink-0
+                rounded-full
+                border
+                transition
+                disabled:cursor-not-allowed
+                disabled:opacity-40
+                ${
+                  enabled
+                    ? "border-violet-300/30 bg-violet-400"
+                    : "border-white/10 bg-slate-800"
+                }
+              `}
+            >
+              <span
+                className={`
+                  absolute
+                  left-1
+                  top-1/2
+                  size-5
+                  -translate-y-1/2
+                  rounded-full
+                  bg-white
+                  shadow
+                  transition-transform
+                  ${
+                    enabled
+                      ? "translate-x-5"
+                      : "translate-x-0"
+                  }
+                `}
+              />
+            </button>
+          </div>
+
+          <div className="rounded-xl border border-amber-400/10 bg-amber-400/[0.03] px-4 py-3 text-xs leading-5 text-amber-200/60">
+            Only upload a signature
+            that you are authorized to
+            use on business quotations.
+          </div>
         </div>
 
-        <div>
+        {/* Signature image */}
+        <div className="min-w-0">
           <label className="mb-2 block text-sm text-slate-400">
             Signature image
           </label>
 
-          <div className="qufo-surface-soft flex min-h-36 items-center justify-center rounded-2xl p-5">
+          <div className="qufo-surface-soft flex min-h-40 items-center justify-center rounded-2xl p-5">
             {signatureUrl ? (
               <img
                 src={signatureUrl}
                 alt="Authorized signature"
-                className="max-h-28 max-w-full object-contain"
+                className="max-h-24 max-w-full object-contain"
               />
             ) : (
               <div className="text-center">
@@ -267,7 +304,8 @@ export function QuotationSignatureSettings({
               type="button"
               disabled={busy}
               onClick={() =>
-                inputRef.current?.click()
+                inputRef.current
+                  ?.click()
               }
               className="flex items-center gap-2 rounded-xl border border-[var(--qufo-border)] bg-white/[0.03] px-4 py-2.5 text-sm text-slate-300 transition hover:bg-white/[0.06] disabled:opacity-50"
             >
@@ -283,7 +321,7 @@ export function QuotationSignatureSettings({
               )}
 
               {signatureUrl
-                ? "Replace signature"
+                ? "Replace"
                 : "Upload signature"}
             </button>
 
@@ -313,67 +351,10 @@ export function QuotationSignatureSettings({
           </div>
 
           <p className="mt-2 text-xs leading-5 text-slate-600">
-            JPG, PNG or WebP. Maximum 2 MB.
-            Transparent PNG is recommended.
+            JPG, PNG or WebP.
+            Maximum 2 MB. Transparent
+            PNG is recommended.
           </p>
-        </div>
-
-        <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[var(--qufo-border)] bg-white/[0.015] p-4">
-          <input
-            type="checkbox"
-            checked={enabled}
-            disabled={
-              !signatureUrl ||
-              busy
-            }
-            onChange={(event) =>
-              setEnabled(
-                event.target.checked,
-              )
-            }
-            className="mt-0.5 size-4 accent-emerald-400"
-          />
-
-          <div>
-            <div className="text-sm font-medium text-slate-200">
-              Show signature on quotation PDFs
-            </div>
-
-            <p className="mt-1 text-xs leading-5 text-slate-600">
-              When enabled, the uploaded signature
-              appears above the authorized signatory
-              name.
-            </p>
-          </div>
-        </label>
-
-        <div className="rounded-xl border border-amber-400/10 bg-amber-400/[0.03] px-4 py-3 text-xs leading-5 text-amber-200/60">
-          Only upload a signature that you are
-          authorized to use on business quotations.
-        </div>
-
-        <div className="flex justify-end">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => {
-              void handleSave();
-            }}
-            className="flex items-center gap-2 rounded-xl bg-violet-400 px-4 py-2.5 text-sm font-medium text-slate-950 transition hover:bg-violet-300 disabled:opacity-50"
-          >
-            {saving ? (
-              <LoaderCircle
-                size={15}
-                className="animate-spin"
-              />
-            ) : (
-              <Save
-                size={15}
-              />
-            )}
-
-            Save signature settings
-          </button>
         </div>
       </div>
     </div>

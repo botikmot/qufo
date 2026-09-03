@@ -87,6 +87,8 @@ export function useBusinessSettings() {
           return;
         }
 
+        console.log('hooks settings:', response)
+
         setSettings(response);
         setError(null);
       } catch (error) {
@@ -126,7 +128,9 @@ export function useBusinessSettings() {
           data,
         );
 
-      setSettings(response);
+      setSettings(
+        response,
+      );
 
       setSuccess(
         "Business settings updated successfully.",

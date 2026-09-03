@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
 import { JobStatus } from '../generated/prisma/enums';
 import { buildQufoEmail } from './templates/qufo-email-layout';
+import QRCode from 'qrcode';
 
 type QuotationNotificationData = {
   recipientEmail: string;
@@ -52,6 +53,7 @@ type JobStatusNotificationData = {
   recipientEmail: string;
   customerName: string;
   businessName: string;
+  businessLogoUrl?: string | null;
 
   jobNumber: string;
   status: JobStatus;
@@ -60,11 +62,29 @@ type JobStatusNotificationData = {
   trackingUrl?: string | null;
 };
 
+type JobConfirmationNotificationData = {
+  recipientEmail: string;
+  customerName: string;
+  businessName: string;
+  businessLogoUrl?: string | null;
+  jobNumber: string;
+  trackingUrl: string;
+  dueDate?: Date | null;
+  pdfAttachment?: {
+    filename: string;
+    content: Buffer;
+  };
+};
+
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
 
   private readonly resend: Resend | null;
+
+  canSendEmail(): boolean {
+    return this.emailEnabled && this.resend !== null;
+  }
 
   constructor(private readonly configService: ConfigService) {
     if (!this.emailEnabled) {
@@ -431,6 +451,7 @@ export class NotificationsService {
     attachments?: Array<{
       filename: string;
       content: string;
+      contentId?: string;
     }>;
   }): Promise<boolean> {
     /*
@@ -589,6 +610,10 @@ export class NotificationsService {
 
     const jobNumber = this.escapeHtml(data.jobNumber);
 
+    const businessLogoUrl = data.businessLogoUrl
+      ? this.escapeHtml(data.businessLogoUrl)
+      : null;
+
     const message = data.message ? this.escapeHtml(data.message) : null;
 
     const statusLabel = this.formatJobStatus(data.status);
@@ -601,6 +626,7 @@ export class NotificationsService {
       preheader: `${data.jobNumber} is now ${statusLabel}.`,
 
       businessName,
+      businessLogoUrl,
 
       content: `
       <p
@@ -676,6 +702,195 @@ export class NotificationsService {
       subject,
 
       html,
+    });
+  }
+
+  async sendJobConfirmation(
+    data: JobConfirmationNotificationData,
+  ): Promise<boolean> {
+    /*
+     * Avoid generating the QR when
+     * email is globally disabled,
+     * including self-hosted mode.
+     */
+    if (!this.canSendEmail()) {
+      this.logger.debug(
+        `Job confirmation skipped because email is disabled: "${data.jobNumber}"`,
+      );
+
+      return false;
+    }
+
+    const customerName = this.escapeHtml(data.customerName);
+
+    const businessName = this.escapeHtml(data.businessName);
+
+    const jobNumber = this.escapeHtml(data.jobNumber);
+
+    const dueDate = data.dueDate
+      ? new Intl.DateTimeFormat('en', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        }).format(data.dueDate)
+      : null;
+
+    const qrCodeBuffer = await QRCode.toBuffer(data.trackingUrl, {
+      type: 'png',
+
+      errorCorrectionLevel: 'H',
+
+      width: 360,
+
+      margin: 1,
+
+      color: {
+        dark: '#020617',
+
+        light: '#FFFFFF',
+      },
+    });
+
+    const html = buildQufoEmail({
+      title: 'Your job is confirmed',
+
+      preheader: `${data.businessName} confirmed your job ${data.jobNumber}.`,
+
+      businessName,
+
+      businessLogoUrl: data.businessLogoUrl,
+
+      content: `
+        <p
+          style="
+            margin: 0 0 14px;
+          "
+        >
+          Hi ${customerName},
+        </p>
+
+        <p
+          style="
+            margin: 0 0 14px;
+          "
+        >
+          Your quotation has been approved
+          and your job
+          <strong>${jobNumber}</strong>
+          is now confirmed.
+        </p>
+
+        <p
+          style="
+            margin: 0 0 18px;
+            color: #475467;
+          "
+        >
+          Scan the QR code below or use the
+          tracking button to follow your
+          order's progress.
+        </p>
+
+        <div
+          style="
+            margin: 0 auto;
+            text-align: center;
+          "
+        >
+          <img
+            src="cid:job-tracking-qr"
+            alt="Job tracking QR code"
+            width="180"
+            height="180"
+            style="
+              display: inline-block;
+              width: 180px;
+              height: 180px;
+              padding: 8px;
+              border: 1px solid #d1fae5;
+              border-radius: 12px;
+              background: #ffffff;
+            "
+          />
+        </div>
+      `,
+
+      infoCard: `
+        <div
+          style="
+            font-size: 11px;
+            line-height: 16px;
+            font-weight: 700;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            color: #667085;
+          "
+        >
+          Job reference
+        </div>
+
+        <div
+          style="
+            margin-top: 6px;
+            font-size: 18px;
+            line-height: 24px;
+            font-weight: 700;
+            color: #172033;
+          "
+        >
+          ${jobNumber}
+        </div>
+
+        ${
+          dueDate
+            ? `
+              <div
+                style="
+                  margin-top: 8px;
+                  font-size: 14px;
+                  line-height: 22px;
+                  color: #475467;
+                "
+              >
+                <strong>Expected completion:</strong>
+                ${dueDate}
+              </div>
+            `
+            : ''
+        }
+      `,
+
+      actionLabel: 'Track your job',
+
+      actionUrl: data.trackingUrl,
+    });
+
+    return this.sendSafely({
+      to: data.recipientEmail,
+
+      subject: `Your job ${data.jobNumber} is confirmed`,
+
+      html,
+
+      attachments: [
+        {
+          filename: `${data.jobNumber}-tracking-qr.png`,
+
+          content: qrCodeBuffer.toString('base64'),
+
+          contentId: 'job-tracking-qr',
+        },
+
+        ...(data.pdfAttachment
+          ? [
+              {
+                filename: data.pdfAttachment.filename,
+
+                content: data.pdfAttachment.content.toString('base64'),
+              },
+            ]
+          : []),
+      ],
     });
   }
 }

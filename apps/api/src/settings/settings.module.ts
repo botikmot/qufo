@@ -4,9 +4,10 @@ import { SettingsController } from './settings.controller';
 import { SettingsService } from './settings.service';
 import { SettingsSecurityController } from './settings-security.controller';
 import { UploadsModule } from '../uploads/uploads.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [UploadsModule],
+  imports: [UploadsModule, NotificationsModule],
   controllers: [SettingsController, SettingsSecurityController],
   providers: [SettingsService],
 })
