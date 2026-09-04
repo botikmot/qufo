@@ -5,6 +5,12 @@ export type SubscriptionPlan = 'STANDARD';
 export type SubscriptionStatus =
   'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELLED' | 'EXPIRED';
 
+export type SubscriptionSource = 'DIRECT' | 'APPSUMO';
+
+export type SubscriptionAccessType = 'RECURRING' | 'LIFETIME';
+
+export type AppSumoTier = 'TIER_1' | 'TIER_2' | 'TIER_3';
+
 export type TenantContext = {
   organizationId: string;
   organizationName: string;
@@ -15,6 +21,14 @@ export type TenantContext = {
   subscription: {
     plan: SubscriptionPlan;
     status: SubscriptionStatus;
+
+    source: SubscriptionSource;
+
+    accessType: SubscriptionAccessType;
+
+    appSumoTier: AppSumoTier | null;
+
+    appSumoActivatedAt: Date | null;
 
     trialStartedAt: Date;
     trialEndsAt: Date;

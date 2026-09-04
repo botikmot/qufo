@@ -385,6 +385,15 @@ export default function SettingsPage() {
                 paymentResult={
                   subscription.paymentResult
                 }
+                appSumoEnabled={
+                  subscription.appSumoEnabled
+                }
+                redeemingAppSumo={
+                  subscription.redeemingAppSumo
+                }
+                appSumoSuccess={
+                  subscription.appSumoSuccess
+                }
                 error={
                   subscription.error
                 }
@@ -393,6 +402,9 @@ export default function SettingsPage() {
                 }
                 onRefresh={
                   subscription.refresh
+                }
+                onRedeemAppSumo={
+                  subscription.redeemAppSumo
                 }
               />
             ) : (

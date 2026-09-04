@@ -15,6 +15,8 @@ import {
   Phone,
   Save,
   WalletCards,
+  CheckCircle2,
+  TriangleAlert,
 } from "lucide-react";
 
 import {
@@ -282,6 +284,39 @@ export function BusinessSettingsForm({
     savingSignature;
 
   return (
+    <>
+      {(error ||
+        success) && (
+        <div className="pointer-events-none fixed inset-x-4 top-20 z-[200] flex justify-center sm:justify-end">
+          <div
+            role={
+              error
+                ? "alert"
+                : "status"
+            }
+            className={[
+              "flex w-full max-w-md items-start gap-3 rounded-2xl border px-4 py-3 text-sm shadow-2xl backdrop-blur-xl",
+
+              error
+                ? "border-red-400/20 bg-[#1a0d16]/95 text-red-200"
+                : "border-emerald-400/20 bg-[#071a19]/95 text-emerald-200",
+            ].join(" ")}
+          >
+            {error ? (
+              <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+            ) : (
+              <CheckCircle2 className="mt-0.5 size-4 shrink-0" />
+            )}
+
+            <span>
+              {error ??
+                success}
+            </span>
+          </div>
+        </div>
+      )}
+
+   
     <form
       onSubmit={handleSubmit}
       className="qufo-surface overflow-hidden rounded-3xl"
@@ -807,5 +842,7 @@ export function BusinessSettingsForm({
         </button>
       </div>
     </form>
+
+     </>
   );
 }

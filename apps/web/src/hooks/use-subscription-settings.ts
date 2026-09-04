@@ -22,6 +22,8 @@ import type {
 const SUBSCRIPTION_ENABLED =
   process.env.NEXT_PUBLIC_SUBSCRIPTION_ENABLED !== "false";
 
+const APPSUMO_ENABLED = SUBSCRIPTION_ENABLED && process.env.NEXT_PUBLIC_APPSUMO_ENABLED === "true";
+
 function getErrorMessage(
   error: unknown,
   fallback: string,
@@ -111,6 +113,19 @@ export function useSubscriptionSettings() {
   ] =
     useState(false);
 
+  const [
+    redeemingAppSumo,
+    setRedeemingAppSumo,
+  ] = useState(false);
+
+  const [
+    appSumoSuccess,
+    setAppSumoSuccess,
+  ] =
+    useState<string | null>(
+      null,
+    );
+
   /*
    * Silent refresh.
    */
@@ -161,6 +176,68 @@ export function useSubscriptionSettings() {
       [],
     );
 
+  const redeemAppSumo =
+    useCallback(
+      async (
+        code: string,
+      ) => {
+        if (
+          !APPSUMO_ENABLED ||
+          !code.trim()
+        ) {
+          return false;
+        }
+
+        setRedeemingAppSumo(
+          true,
+        );
+
+        setError(
+          null,
+        );
+
+        setAppSumoSuccess(
+          null,
+        );
+
+        try {
+          const response =
+            await settingsService
+              .redeemAppSumoCode(
+                code,
+              );
+
+          setAppSumoSuccess(
+            response.message,
+          );
+
+          /*
+          * Reload the complete billing
+          * details after activation.
+          */
+          await refresh();
+
+          return true;
+        } catch (error) {
+          setError(
+            getErrorMessage(
+              error,
+              "Unable to redeem AppSumo code.",
+            ),
+          );
+
+          return false;
+        } finally {
+          setRedeemingAppSumo(
+            false,
+          );
+        }
+      },
+      [
+        refresh,
+      ],
+    );
+
   /*
    * User-triggered renewal.
    */
@@ -169,7 +246,11 @@ export function useSubscriptionSettings() {
       async () => {
         if (
           !SUBSCRIPTION_ENABLED ||
-          !billing
+          !billing ||
+          !billing.canRenew ||
+          billing.subscription
+            .accessType ===
+            "LIFETIME"
         ) {
           return;
         }
@@ -340,7 +421,7 @@ export function useSubscriptionSettings() {
         );
 
         if (
-          response.effectiveStatus ===
+          response.subscription.effectiveStatus ===
           "ACTIVE"
         ) {
           setPaymentCheckDone(
@@ -474,6 +555,12 @@ export function useSubscriptionSettings() {
   return {
     enabled:
       SUBSCRIPTION_ENABLED,
+    
+    appSumoEnabled:
+      APPSUMO_ENABLED,
+
+    redeemingAppSumo,
+    appSumoSuccess,
 
     billing,
 
@@ -488,6 +575,8 @@ export function useSubscriptionSettings() {
     paymentResult,
 
     error,
+
+    redeemAppSumo,
 
     refresh,
 

@@ -1,3 +1,27 @@
+export type SubscriptionSource =
+  | "DIRECT"
+  | "APPSUMO";
+
+export type SubscriptionAccessType =
+  | "RECURRING"
+  | "LIFETIME";
+
+export type AppSumoTier =
+  | "TIER_1"
+  | "TIER_2"
+  | "TIER_3";
+
+export type AppSumoEntitlements = {
+  label: string;
+
+  maxMembers: number;
+
+  maxStorageBytes: number;
+
+  monthlyCustomerEmailLimit:
+    number;
+};
+
 export type SubscriptionPlan =
   | "STANDARD";
 
@@ -52,8 +76,21 @@ export type SubscriptionSettings = {
   id: string;
 
   plan: SubscriptionPlan;
-
   status: SubscriptionStatus;
+
+  source:
+    SubscriptionSource;
+
+  accessType:
+    SubscriptionAccessType;
+
+  appSumoTier:
+    | AppSumoTier
+    | null;
+
+  appSumoActivatedAt:
+    | string
+    | null;
 
   trialStartedAt:
     | string
@@ -71,37 +108,53 @@ export type SubscriptionSettings = {
     | string
     | null;
 
-  cancelAtPeriodEnd: boolean;
+  cancelAtPeriodEnd:
+    boolean;
 
   cancelledAt:
     | string
     | null;
 
-  createdAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 
-  updatedAt: string;
-  trialDaysRemaining: number;
-  daysRemaining: number;
+  effectiveStatus:
+    SubscriptionStatus;
 
+  /*
+   * Lifetime subscriptions have
+   * no expiration date.
+   */
+  trialDaysRemaining:
+    | number
+    | null;
+
+  daysRemaining:
+    | number
+    | null;
 };
 
 export type SubscriptionBillingSummary = {
   subscription:
     SubscriptionSettings;
 
-  effectiveStatus:
-    SubscriptionStatus;
+  entitlements:
+    | AppSumoEntitlements
+    | null;
 
-  trialDaysRemaining:
-    number;
+  customerEmailUsage:
+    | CustomerEmailUsage
+    | null;
 
-  daysRemaining:
-    number;
+  storageUsage:
+    | SubscriptionStorageUsage
+    | null;
 
   pricing:
     SubscriptionPrice;
 
-  canRenew: boolean;
+  canRenew:
+    boolean;
 };
 
 export type SubscriptionCheckoutResponse = {
@@ -211,4 +264,60 @@ export type CapturePayPalSubscriptionResponse = {
   paidAt?: string;
   currentPeriodStart?: string;
   currentPeriodEnd?: string;
+};
+
+export type RedeemAppSumoCodeResponse = {
+  message: string;
+
+  redeemed: boolean;
+
+  alreadyRedeemed:
+    boolean;
+
+  subscription: {
+    plan:
+      SubscriptionPlan;
+
+    status:
+      SubscriptionStatus;
+
+    source:
+      SubscriptionSource;
+
+    accessType:
+      SubscriptionAccessType;
+
+    appSumoTier:
+      | AppSumoTier
+      | null;
+
+    appSumoActivatedAt:
+      | string
+      | null;
+  };
+
+  entitlements:
+    AppSumoEntitlements;
+};
+
+export type CustomerEmailUsage = {
+  used: number;
+
+  limit: number;
+
+  remaining: number;
+
+  periodStart: string;
+
+  resetsAt: string;
+};
+
+export type SubscriptionStorageUsage = {
+  usedBytes: number;
+
+  limitBytes: number;
+
+  remainingBytes: number;
+
+  percentageUsed: number;
 };

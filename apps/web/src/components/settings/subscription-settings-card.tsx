@@ -22,6 +22,9 @@ import type {
   SubscriptionBillingSummary,
   SubscriptionPaymentHistoryItem,
 } from "@/types/subscription";
+import {
+  AppSumoRedemptionCard,
+} from "@/components/settings/appsumo-redemption-card";
 
 const SUBSCRIPTION_ENABLED = process.env.NEXT_PUBLIC_SUBSCRIPTION_ENABLED !== "false";
 
@@ -39,6 +42,13 @@ type SubscriptionSettingsCardProps = {
   paymentResult:
     string | null;
 
+  appSumoEnabled: boolean;
+  redeemingAppSumo: boolean;
+
+  appSumoSuccess:
+    | string
+    | null;
+
   error:
     string | null;
 
@@ -47,6 +57,10 @@ type SubscriptionSettingsCardProps = {
 
   onRefresh:
     () => Promise<SubscriptionBillingSummary | null>;
+  
+  onRedeemAppSumo: (
+    code: string,
+  ) => Promise<boolean>;
 };
 
 export function SubscriptionSettingsCard({
@@ -55,9 +69,13 @@ export function SubscriptionSettingsCard({
   renewing,
   confirmingPayment,
   paymentResult,
+  appSumoEnabled,
+  redeemingAppSumo,
+  appSumoSuccess,
   error,
   onRenew,
   onRefresh,
+  onRedeemAppSumo,
 }: SubscriptionSettingsCardProps) {
 
   if (!SUBSCRIPTION_ENABLED) {
@@ -68,8 +86,14 @@ export function SubscriptionSettingsCard({
     billing.subscription;
 
   const status =
-    billing.effectiveStatus ??
+    subscription.effectiveStatus ??
     subscription.status;
+
+  const lifetime =
+    subscription.source ===
+      "APPSUMO" &&
+    subscription.accessType ===
+      "LIFETIME";
 
   const trialing =
     status ===
@@ -211,7 +235,7 @@ export function SubscriptionSettingsCard({
 
         <div className="space-y-6 p-6">
           <div className="qufo-surface-soft rounded-2xl p-5">
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between mb-6">
               <div>
                 <div className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">
                   Current plan
@@ -246,20 +270,44 @@ export function SubscriptionSettingsCard({
 
               <div className="sm:text-right">
                 <div className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">
-                  Monthly
+                  {lifetime
+                    ? "Access"
+                    : "Monthly"}
                 </div>
 
                 <div className="mt-2 text-2xl font-semibold text-white">
-                  {price}
+                  {lifetime
+                    ? "Lifetime"
+                    : price}
                 </div>
 
                 <div className="mt-1 text-xs text-slate-500">
-                  per month
+                  {lifetime
+                    ? "No recurring payment"
+                    : "per month"}
                 </div>
               </div>
             </div>
 
-            {(trialing ||
+            <AppSumoRedemptionCard
+              enabled={
+                appSumoEnabled
+              }
+              billing={
+                billing
+              }
+              redeeming={
+                redeemingAppSumo
+              }
+              success={
+                appSumoSuccess
+              }
+              onRedeem={
+                onRedeemAppSumo
+              }
+            />
+
+            {!lifetime && (trialing ||
               active) && (
               <div className="mt-5 border-t border-[var(--qufo-border)] pt-5">
                 <div className="flex items-center gap-2 text-sm text-slate-300">
@@ -275,10 +323,10 @@ export function SubscriptionSettingsCard({
                       }
                     </strong>{" "}
                     {daysRemaining ===
-                    1
-                      ? "day"
-                      : "days"}{" "}
-                    remaining
+                      1
+                        ? "day"
+                        : "days"}{" "}
+                      remaining
                   </span>
                 </div>
 
@@ -295,8 +343,17 @@ export function SubscriptionSettingsCard({
               </div>
             )}
           </div>
-
-          {trialing ? (
+          {lifetime ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <DateCard
+                label="Lifetime access activated"
+                value={
+                  subscription
+                    .appSumoActivatedAt
+                }
+              />
+            </div>
+          ) : trialing ? (
             <div className="grid gap-4 sm:grid-cols-2">
               <DateCard
                 label="Trial started"
@@ -377,19 +434,23 @@ export function SubscriptionSettingsCard({
           <div className="flex flex-col gap-4 border-t border-[var(--qufo-border)] pt-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-medium text-slate-200">
-                {trialing
-                  ? "Renew before your trial ends"
-                  : active
-                    ? "Extend your subscription"
-                    : "Restore workspace access"}
+                {lifetime
+                  ? "Lifetime access active"
+                  : trialing
+                    ? "Renew before your trial ends"
+                    : active
+                      ? "Extend your subscription"
+                      : "Restore workspace access"}
               </p>
 
               <p className="mt-1 max-w-lg text-xs leading-5 text-slate-500">
-                {trialing
-                  ? "Paying early keeps your remaining trial. Your paid month begins after the trial ends."
-                  : active
-                    ? "Renewing early adds the next month after your current subscription period."
-                    : "Renew your subscription to restore full workspace actions."}
+                 {lifetime
+                  ? "No recurring subscription payment or renewal is required."
+                  : trialing
+                    ? "Paying early keeps your remaining trial. Your paid month begins after the trial ends."
+                    : active
+                      ? "Renewing early adds the next month after your current subscription period."
+                      : "Renew your subscription to restore full workspace actions."}
               </p>
             </div>
 

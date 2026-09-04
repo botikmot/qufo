@@ -74,6 +74,15 @@ export class TenantGuard implements CanActivate {
 
             status: membership.organization.subscription.status,
 
+            source: membership.organization.subscription.source,
+
+            accessType: membership.organization.subscription.accessType,
+
+            appSumoTier: membership.organization.subscription.appSumoTier,
+
+            appSumoActivatedAt:
+              membership.organization.subscription.appSumoActivatedAt,
+
             trialStartedAt: membership.organization.subscription.trialStartedAt,
 
             trialEndsAt: membership.organization.subscription.trialEndsAt,

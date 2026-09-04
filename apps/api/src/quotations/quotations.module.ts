@@ -8,9 +8,15 @@ import { QuotationsService } from './quotations.service';
 import { PublicQuotationsController } from './public-quotations.controller';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { NotificationsModule } from '../notifications/notifications.module';
-
+import { UploadsModule } from '../uploads/uploads.module';
 @Module({
-  imports: [AuthModule, RealtimeModule, NotificationsModule, JobsModule],
+  imports: [
+    AuthModule,
+    RealtimeModule,
+    NotificationsModule,
+    JobsModule,
+    UploadsModule,
+  ],
 
   controllers: [QuotationsController, PublicQuotationsController],
 

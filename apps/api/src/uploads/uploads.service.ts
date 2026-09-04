@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 
 import { ConfigService } from '@nestjs/config';
@@ -18,11 +19,19 @@ import { Readable } from 'node:stream';
 
 import sharp from 'sharp';
 
+import type { WorkspaceAssetKind } from '../generated/prisma/client';
+
+import { WorkspaceStorageService } from './workspace-storage.service';
+
 type StorageDriver = 'cloudinary' | 'local';
 
 @Injectable()
 export class UploadsService {
-  constructor(private readonly configService: ConfigService) {
+  private readonly logger = new Logger(UploadsService.name);
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly workspaceStorageService: WorkspaceStorageService,
+  ) {
     /*
      * IMPORTANT:
      *
@@ -226,6 +235,95 @@ export class UploadsService {
     }
   }
 
+  private async trackWorkspaceUpload<T>(
+    organizationId: string,
+
+    file: Express.Multer.File,
+
+    kind: WorkspaceAssetKind,
+
+    upload: () => Promise<{
+      storageKey: string;
+
+      result: T;
+    }>,
+  ): Promise<T> {
+    const reservation = await this.workspaceStorageService.reserve(
+      organizationId,
+      file.size,
+    );
+
+    let uploadedStorageKey: string | null = null;
+
+    try {
+      const uploaded = await upload();
+
+      uploadedStorageKey = uploaded.storageKey;
+
+      /*
+       * V1 counts the accepted upload
+       * size. Cloudinary transformations
+       * may optimize the physical file,
+       * but this produces predictable
+       * customer-facing quota behavior.
+       */
+      await this.workspaceStorageService.finalize(
+        reservation,
+
+        uploaded.storageKey,
+
+        file.size,
+
+        kind,
+      );
+
+      return uploaded.result;
+    } catch (error) {
+      let storageRemoved = uploadedStorageKey === null;
+
+      /*
+       * If provider upload succeeded but
+       * storage finalization failed, remove
+       * the newly uploaded object.
+       */
+      if (uploadedStorageKey) {
+        try {
+          await this.deleteStorageObject(uploadedStorageKey);
+
+          storageRemoved = true;
+        } catch (cleanupError) {
+          this.logger.error(
+            `Unable to clean up failed upload "${uploadedStorageKey}": ${
+              cleanupError instanceof Error
+                ? cleanupError.message
+                : String(cleanupError)
+            }`,
+          );
+        }
+      }
+
+      /*
+       * Release only when no physical
+       * storage object remains.
+       */
+      if (storageRemoved) {
+        try {
+          await this.workspaceStorageService.releaseReservation(reservation);
+        } catch (releaseError) {
+          this.logger.error(
+            `Unable to release storage reservation: ${
+              releaseError instanceof Error
+                ? releaseError.message
+                : String(releaseError)
+            }`,
+          );
+        }
+      }
+
+      throw error;
+    }
+  }
+
   /*
    * ----------------------------------------------------------------
    * Profile image
@@ -299,75 +397,102 @@ export class UploadsService {
    * ----------------------------------------------------------------
    */
 
-  async uploadBusinessLogo(file: Express.Multer.File, organizationId: string) {
+  async uploadBusinessLogo(
+    file: Express.Multer.File,
+
+    organizationId: string,
+  ) {
     this.validateImage(file, 'Business logo', 5 * 1024 * 1024);
 
-    if (this.storageDriver === 'local') {
-      const uploaded = await this.saveLocalImage(
-        file,
-        `business-logos/${organizationId}`,
-      );
+    return this.trackWorkspaceUpload(
+      organizationId,
+      file,
+      'BUSINESS_LOGO',
 
-      return {
-        url: uploaded.url,
-        publicId: uploaded.key,
-      };
-    }
+      async () => {
+        if (this.storageDriver === 'local') {
+          const uploaded = await this.saveLocalImage(
+            file,
 
-    const result = await new Promise<{
-      secure_url: string;
-      public_id: string;
-    }>((resolvePromise, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        {
-          folder: 'qufo/business-logos',
+            `business-logos/${organizationId}`,
+          );
 
-          public_id: organizationId,
+          return {
+            storageKey: uploaded.key,
 
-          overwrite: true,
+            result: {
+              url: uploaded.url,
 
-          invalidate: true,
-
-          resource_type: 'image',
-
-          transformation: [
-            {
-              width: 1000,
-              height: 1000,
-              crop: 'limit',
-              quality: 'auto',
+              publicId: uploaded.key,
             },
-          ],
-        },
+          };
+        }
 
-        (error, uploadResult) => {
-          if (error) {
-            reject(new Error(error.message || 'Business logo upload failed.'));
+        const result = await new Promise<{
+          secure_url: string;
 
-            return;
-          }
+          public_id: string;
+        }>((resolvePromise, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            {
+              folder: `qufo/business-logos/${organizationId}`,
 
-          if (!uploadResult) {
-            reject(new Error('Business logo upload failed.'));
+              public_id: randomBytes(12).toString('hex'),
 
-            return;
-          }
+              overwrite: false,
 
-          resolvePromise({
-            secure_url: uploadResult.secure_url,
+              resource_type: 'image',
 
-            public_id: uploadResult.public_id,
-          });
-        },
-      );
+              transformation: [
+                {
+                  width: 1000,
 
-      stream.end(file.buffer);
-    });
+                  height: 1000,
 
-    return {
-      url: result.secure_url,
-      publicId: result.public_id,
-    };
+                  crop: 'limit',
+
+                  quality: 'auto',
+                },
+              ],
+            },
+
+            (error, uploadResult) => {
+              if (error) {
+                reject(
+                  new Error(error.message || 'Business logo upload failed.'),
+                );
+
+                return;
+              }
+
+              if (!uploadResult) {
+                reject(new Error('Business logo upload failed.'));
+
+                return;
+              }
+
+              resolvePromise({
+                secure_url: uploadResult.secure_url,
+
+                public_id: uploadResult.public_id,
+              });
+            },
+          );
+
+          stream.end(file.buffer);
+        });
+
+        return {
+          storageKey: result.public_id,
+
+          result: {
+            url: result.secure_url,
+
+            publicId: result.public_id,
+          },
+        };
+      },
+    );
   }
 
   /*
@@ -378,82 +503,128 @@ export class UploadsService {
 
   async uploadQuotationItemImage(
     file: Express.Multer.File,
+
     organizationId: string,
   ) {
     this.validateImage(file, 'Quotation item image', 5 * 1024 * 1024);
 
-    if (this.storageDriver === 'local') {
-      const uploaded = await this.saveLocalImage(
-        file,
-        `quotation-items/${organizationId}`,
-      );
+    return this.trackWorkspaceUpload(
+      organizationId,
+      file,
+      'QUOTATION_ITEM',
 
-      return {
-        url: uploaded.url,
+      async () => {
+        if (this.storageDriver === 'local') {
+          const uploaded = await this.saveLocalImage(
+            file,
+
+            `quotation-items/${organizationId}`,
+          );
+
+          return {
+            storageKey: uploaded.key,
+
+            result: {
+              url: uploaded.url,
+
+              imageKey: uploaded.key,
+            },
+          };
+        }
 
         /*
-         * Same provider-neutral field already
-         * used by QuotationItem/JobItem.
+         * Keep your existing Cloudinary
+         * quotation-item upload code here.
          */
-        imageKey: uploaded.key,
-      };
+        const result = await new Promise<{
+          secure_url: string;
+
+          public_id: string;
+        }>((resolvePromise, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            {
+              folder: `qufo/quotation-items/${organizationId}`,
+
+              resource_type: 'image',
+
+              transformation: [
+                {
+                  width: 1600,
+
+                  height: 1600,
+
+                  crop: 'limit',
+                },
+
+                {
+                  quality: 'auto',
+
+                  fetch_format: 'auto',
+                },
+              ],
+            },
+
+            (error, uploadResult) => {
+              if (error) {
+                reject(
+                  new Error(
+                    error.message || 'Quotation item image upload failed.',
+                  ),
+                );
+
+                return;
+              }
+
+              if (!uploadResult) {
+                reject(new Error('Quotation item image upload failed.'));
+
+                return;
+              }
+
+              resolvePromise({
+                secure_url: uploadResult.secure_url,
+
+                public_id: uploadResult.public_id,
+              });
+            },
+          );
+
+          stream.end(file.buffer);
+        });
+
+        return {
+          storageKey: result.public_id,
+
+          result: {
+            url: result.secure_url,
+
+            imageKey: result.public_id,
+          },
+        };
+      },
+    );
+  }
+
+  private async deleteStorageObject(storageKey: string) {
+    if (!storageKey) {
+      return;
     }
 
-    const result = await new Promise<{
-      secure_url: string;
-      public_id: string;
-    }>((resolvePromise, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        {
-          folder: `qufo/quotation-items/${organizationId}`,
+    if (storageKey.startsWith('local:')) {
+      await this.deleteLocalImage(storageKey);
 
-          resource_type: 'image',
+      return;
+    }
 
-          transformation: [
-            {
-              width: 1600,
-              height: 1600,
-              crop: 'limit',
-            },
+    if (this.storageDriver !== 'cloudinary') {
+      return;
+    }
 
-            {
-              quality: 'auto',
-              fetch_format: 'auto',
-            },
-          ],
-        },
+    await cloudinary.uploader.destroy(storageKey, {
+      invalidate: true,
 
-        (error, uploadResult) => {
-          if (error) {
-            reject(
-              new Error(error.message || 'Quotation item image upload failed.'),
-            );
-
-            return;
-          }
-
-          if (!uploadResult) {
-            reject(new Error('Quotation item image upload failed.'));
-
-            return;
-          }
-
-          resolvePromise({
-            secure_url: uploadResult.secure_url,
-
-            public_id: uploadResult.public_id,
-          });
-        },
-      );
-
-      stream.end(file.buffer);
+      resource_type: 'image',
     });
-
-    return {
-      url: result.secure_url,
-
-      imageKey: result.public_id,
-    };
   }
 
   /*
@@ -468,110 +639,112 @@ export class UploadsService {
     }
 
     /*
-     * Local files identify themselves through
-     * the local: prefix.
+     * Delete the physical object first.
+     * Only release quota after successful
+     * storage deletion.
      */
-    if (storageKey.startsWith('local:')) {
-      await this.deleteLocalImage(storageKey);
+    await this.deleteStorageObject(storageKey);
 
-      return;
-    }
-
-    /*
-     * Existing SaaS records contain raw
-     * Cloudinary public IDs.
-     *
-     * Never require Cloudinary credentials on a
-     * self-hosted installation just to delete an
-     * unknown/legacy key.
-     */
-    if (this.storageDriver !== 'cloudinary') {
-      return;
-    }
-
-    await cloudinary.uploader.destroy(storageKey, {
-      invalidate: true,
-      resource_type: 'image',
-    });
+    await this.workspaceStorageService.releaseAsset(storageKey);
   }
 
   async uploadQuotationSignature(
     file: Express.Multer.File,
+
     organizationId: string,
   ) {
     this.validateImage(file, 'Quotation signature', 2 * 1024 * 1024);
 
-    /*
-     * Self-hosted.
-     */
-    if (this.storageDriver === 'local') {
-      const uploaded = await this.saveLocalImage(
-        file,
-        `quotation-signatures/${organizationId}`,
-      );
+    return this.trackWorkspaceUpload(
+      organizationId,
+      file,
+      'QUOTATION_SIGNATURE',
 
-      return {
-        url: uploaded.url,
-        signatureKey: uploaded.key,
-      };
-    }
+      async () => {
+        if (this.storageDriver === 'local') {
+          const uploaded = await this.saveLocalImage(
+            file,
 
-    /*
-     * QUFO SaaS / Cloudinary.
-     */
-    const result = await new Promise<{
-      secure_url: string;
-      public_id: string;
-    }>((resolvePromise, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        {
-          folder: `qufo/quotation-signatures/${organizationId}`,
+            `quotation-signatures/${organizationId}`,
+          );
 
-          resource_type: 'image',
+          return {
+            storageKey: uploaded.key,
 
-          transformation: [
+            result: {
+              url: uploaded.url,
+
+              signatureKey: uploaded.key,
+            },
+          };
+        }
+
+        const result = await new Promise<{
+          secure_url: string;
+
+          public_id: string;
+        }>((resolvePromise, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
             {
-              width: 1000,
-              height: 500,
-              crop: 'limit',
+              folder: `qufo/quotation-signatures/${organizationId}`,
+
+              resource_type: 'image',
+
+              transformation: [
+                {
+                  width: 1000,
+
+                  height: 500,
+
+                  crop: 'limit',
+                },
+
+                {
+                  quality: 'auto',
+
+                  fetch_format: 'auto',
+                },
+              ],
             },
 
-            {
-              quality: 'auto',
-              fetch_format: 'auto',
+            (error, uploadResult) => {
+              if (error) {
+                reject(
+                  new Error(
+                    error.message || 'Quotation signature upload failed.',
+                  ),
+                );
+
+                return;
+              }
+
+              if (!uploadResult) {
+                reject(new Error('Quotation signature upload failed.'));
+
+                return;
+              }
+
+              resolvePromise({
+                secure_url: uploadResult.secure_url,
+
+                public_id: uploadResult.public_id,
+              });
             },
-          ],
-        },
+          );
 
-        (error, uploadResult) => {
-          if (error) {
-            reject(
-              new Error(error.message || 'Quotation signature upload failed.'),
-            );
+          stream.end(file.buffer);
+        });
 
-            return;
-          }
+        return {
+          storageKey: result.public_id,
 
-          if (!uploadResult) {
-            reject(new Error('Quotation signature upload failed.'));
+          result: {
+            url: result.secure_url,
 
-            return;
-          }
-
-          resolvePromise({
-            secure_url: uploadResult.secure_url,
-
-            public_id: uploadResult.public_id,
-          });
-        },
-      );
-
-      stream.end(file.buffer);
-    });
-
-    return {
-      url: result.secure_url,
-      signatureKey: result.public_id,
-    };
+            signatureKey: result.public_id,
+          },
+        };
+      },
+    );
   }
 }

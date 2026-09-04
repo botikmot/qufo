@@ -718,6 +718,7 @@ export class JobsService {
 
     if (shouldSendCustomerEmail && result.job.customer.email) {
       void this.notificationsService.sendJobStatusUpdated({
+        organizationId: tenant.organizationId,
         recipientEmail: result.job.customer.email,
 
         customerName:

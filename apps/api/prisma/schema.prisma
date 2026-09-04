@@ -136,6 +136,35 @@ enum WarrantyUnit {
   YEARS
 }
 
+enum SubscriptionSource {
+  DIRECT
+  APPSUMO
+}
+
+enum SubscriptionAccessType {
+  RECURRING
+  LIFETIME
+}
+
+enum AppSumoTier {
+  TIER_1
+  TIER_2
+  TIER_3
+}
+
+enum AppSumoCodeStatus {
+  AVAILABLE
+  REDEEMED
+  REVOKED
+  REFUNDED
+}
+
+enum WorkspaceAssetKind {
+  BUSINESS_LOGO
+  QUOTATION_SIGNATURE
+  QUOTATION_ITEM
+}
+
 // ======================================================
 // USER
 // ======================================================
@@ -215,11 +244,16 @@ model Organization {
   memberships          OrganizationMember[]
   subscription         Subscription?
   subscriptionPayments SubscriptionPayment[]
+  appSumoCodes         AppSumoCode[]
   customers            Customer[]
   quotations           Quotation[]
   sequence             OrganizationSequence?
   jobs                 Job[]
   payments             Payment[]
+
+  customerEmailUsages OrganizationEmailUsage[]
+  storageUsage        OrganizationStorageUsage?
+  storedAssets        OrganizationStoredAsset[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -262,8 +296,15 @@ model Subscription {
 
   organizationId String @unique
 
-  plan     SubscriptionPlan      @default(STANDARD)
-  status   SubscriptionStatus    @default(TRIALING)
+  plan   SubscriptionPlan   @default(STANDARD)
+  status SubscriptionStatus @default(TRIALING)
+
+  source     SubscriptionSource     @default(DIRECT)
+  accessType SubscriptionAccessType @default(RECURRING)
+
+  appSumoTier        AppSumoTier?
+  appSumoActivatedAt DateTime?
+
   payments SubscriptionPayment[]
 
   trialStartedAt DateTime
@@ -281,6 +322,9 @@ model Subscription {
   updatedAt DateTime @updatedAt
 
   @@index([status])
+  @@index([source])
+  @@index([accessType])
+  @@index([appSumoTier])
   @@index([trialEndsAt])
   @@index([currentPeriodEnd])
 }
@@ -488,6 +532,7 @@ model QuotationItem {
   updatedAt DateTime @updatedAt
 
   @@index([quotationId])
+  @@index([imageKey])
 }
 
 model Job {
@@ -573,6 +618,7 @@ model JobItem {
   updatedAt DateTime @updatedAt
 
   @@index([jobId])
+  @@index([imageKey])
 }
 
 model JobUpdate {
@@ -685,4 +731,102 @@ model PasswordResetToken {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+model AppSumoCode {
+  id String @id @default(cuid())
+
+  /**
+   * SHA-256 hash only.
+   * Never store the usable
+   * redemption code as plaintext.
+   */
+  codeHash String @unique @db.VarChar(64)
+
+  /**
+   * Example: ****-A7K9
+   * For admin/support display.
+   */
+  codeHint String @db.VarChar(20)
+
+  tier   AppSumoTier
+  status AppSumoCodeStatus @default(AVAILABLE)
+
+  batchLabel String? @db.VarChar(100)
+
+  organizationId String?
+
+  redeemedAt DateTime?
+  revokedAt  DateTime?
+  refundedAt DateTime?
+  expiresAt  DateTime?
+
+  metadata Json?
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([tier])
+  @@index([organizationId])
+  @@index([batchLabel])
+  @@index([redeemedAt])
+}
+
+model OrganizationEmailUsage {
+  id String @id @default(cuid())
+
+  organizationId String
+
+  /**
+   * First day of the UTC month.
+   * Example: 2026-09-01
+   */
+  periodStart DateTime @db.Date
+
+  customerEmailsSent Int @default(0)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, periodStart])
+  @@index([organizationId])
+  @@index([periodStart])
+}
+
+model OrganizationStorageUsage {
+  id String @id @default(cuid())
+
+  organizationId String @unique
+
+  bytesUsed BigInt @default(0)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OrganizationStoredAsset {
+  id String @id @default(cuid())
+
+  organizationId String
+
+  storageKey String @unique @db.VarChar(500)
+
+  kind WorkspaceAssetKind
+
+  byteSize BigInt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([organizationId, kind])
 }
