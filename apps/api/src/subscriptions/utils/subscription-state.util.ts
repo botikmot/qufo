@@ -1,7 +1,12 @@
-import type { SubscriptionStatus } from '../../generated/prisma/client';
+import type {
+  SubscriptionStatus,
+  SubscriptionAccessType,
+} from '../../generated/prisma/client';
 
 type SubscriptionStateInput = {
   status: SubscriptionStatus;
+
+  accessType: SubscriptionAccessType;
 
   trialEndsAt: Date;
 
@@ -37,6 +42,23 @@ export function resolveSubscriptionState(
   now = new Date(),
 ): EffectiveSubscriptionState {
   let status = subscription.status;
+
+  /*
+   * Lifetime subscriptions have no
+   * billing period end date.
+   *
+   * ACTIVE lifetime access has no
+   * remaining-day countdown.
+   */
+  if (subscription.accessType === 'LIFETIME') {
+    return {
+      status,
+
+      trialDaysRemaining: null,
+
+      daysRemaining: status === 'ACTIVE' ? null : 0,
+    };
+  }
 
   /*
    * Trial expires exactly when

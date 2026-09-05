@@ -18,6 +18,7 @@ import { ConfigService } from '@nestjs/config';
 import { PayMongoService } from './providers/paymongo.service';
 import { PayPalService } from './providers/paypal.service';
 import { Prisma } from '../generated/prisma/client';
+import { getAppSumoEntitlements } from './constants/appsumo-entitlements';
 
 @Injectable()
 export class SubscriptionsBillingService {
@@ -486,6 +487,16 @@ export class SubscriptionsBillingService {
   async getBillingSummary(tenant: TenantContext) {
     this.ensureSubscriptionEnabled();
 
+    const now = new Date();
+
+    const customerEmailPeriodStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+    );
+
+    const customerEmailResetsAt = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
+    );
+
     const organization = await this.prisma.organization.findUnique({
       where: {
         id: tenant.organizationId,
@@ -503,20 +514,37 @@ export class SubscriptionsBillingService {
             id: true,
 
             plan: true,
-
             status: true,
 
-            trialStartedAt: true,
+            source: true,
+            accessType: true,
+            appSumoTier: true,
+            appSumoActivatedAt: true,
 
+            trialStartedAt: true,
             trialEndsAt: true,
 
             currentPeriodStart: true,
-
             currentPeriodEnd: true,
 
             cancelAtPeriodEnd: true,
-
             cancelledAt: true,
+          },
+        },
+        customerEmailUsages: {
+          where: {
+            periodStart: customerEmailPeriodStart,
+          },
+
+          take: 1,
+
+          select: {
+            customerEmailsSent: true,
+          },
+        },
+        storageUsage: {
+          select: {
+            bytesUsed: true,
           },
         },
       },
@@ -529,6 +557,58 @@ export class SubscriptionsBillingService {
     const subscription = organization.subscription;
 
     const effective = resolveSubscriptionState(subscription);
+
+    const entitlements =
+      subscription.source === 'APPSUMO' &&
+      subscription.accessType === 'LIFETIME' &&
+      subscription.appSumoTier
+        ? getAppSumoEntitlements(subscription.appSumoTier)
+        : null;
+
+    const customerEmailsUsed =
+      organization.customerEmailUsages[0]?.customerEmailsSent ?? 0;
+
+    const customerEmailUsage = entitlements
+      ? {
+          used: customerEmailsUsed,
+
+          limit: entitlements.monthlyCustomerEmailLimit,
+
+          remaining: Math.max(
+            0,
+
+            entitlements.monthlyCustomerEmailLimit - customerEmailsUsed,
+          ),
+
+          periodStart: customerEmailPeriodStart,
+
+          resetsAt: customerEmailResetsAt,
+        }
+      : null;
+
+    const storageBytesUsed = Number(organization.storageUsage?.bytesUsed ?? 0n);
+
+    const storageUsage = entitlements
+      ? {
+          usedBytes: storageBytesUsed,
+
+          limitBytes: entitlements.maxStorageBytes,
+
+          remainingBytes: Math.max(
+            0,
+
+            entitlements.maxStorageBytes - storageBytesUsed,
+          ),
+
+          percentageUsed: Math.min(
+            100,
+
+            entitlements.maxStorageBytes > 0
+              ? (storageBytesUsed / entitlements.maxStorageBytes) * 100
+              : 0,
+          ),
+        }
+      : null;
 
     const price = this.pricingService.getStandardMonthlyPrice(
       organization.countryCode,
@@ -545,6 +625,10 @@ export class SubscriptionsBillingService {
         trialDaysRemaining: effective.trialDaysRemaining,
       },
 
+      entitlements,
+      customerEmailUsage,
+      storageUsage,
+
       pricing: {
         plan: price.plan,
 
@@ -555,9 +639,15 @@ export class SubscriptionsBillingService {
         periodMonths: price.periodMonths,
       },
 
-      canRenew: ['TRIALING', 'ACTIVE', 'PAST_DUE', 'EXPIRED'].includes(
-        effective.status,
-      ),
+      /*
+       * Lifetime customers must not
+       * see recurring renewal actions.
+       */
+      canRenew:
+        subscription.accessType === 'RECURRING' &&
+        ['TRIALING', 'ACTIVE', 'PAST_DUE', 'EXPIRED'].includes(
+          effective.status,
+        ),
     };
   }
 
@@ -585,15 +675,17 @@ export class SubscriptionsBillingService {
             id: true,
 
             plan: true,
-
             status: true,
 
-            trialStartedAt: true,
+            source: true,
+            accessType: true,
+            appSumoTier: true,
+            appSumoActivatedAt: true,
 
+            trialStartedAt: true,
             trialEndsAt: true,
 
             currentPeriodStart: true,
-
             currentPeriodEnd: true,
           },
         },
@@ -607,6 +699,15 @@ export class SubscriptionsBillingService {
     const subscription = organization.subscription;
 
     const effective = resolveSubscriptionState(subscription, now);
+
+    if (
+      subscription.accessType === 'LIFETIME' &&
+      subscription.status === 'ACTIVE'
+    ) {
+      throw new BadRequestException(
+        'This workspace already has active lifetime access.',
+      );
+    }
 
     const price = this.pricingService.getStandardMonthlyPrice(
       organization.countryCode,

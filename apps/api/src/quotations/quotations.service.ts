@@ -28,6 +28,7 @@ import { CustomerQuotationFeedbackDto } from './dto/customer-quotation-feedback.
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
 import { JobsService } from '../jobs/jobs.service';
+import { UploadsService } from '../uploads/uploads.service';
 
 @Injectable()
 export class QuotationsService {
@@ -37,7 +38,38 @@ export class QuotationsService {
     private readonly realtimeGateway: RealtimeGateway,
     private readonly notificationsService: NotificationsService,
     private readonly jobsService: JobsService,
+    private readonly uploadsService: UploadsService,
   ) {}
+
+  private async cleanupUnusedQuotationImages(imageKeys: string[]) {
+    const uniqueKeys = [...new Set(imageKeys.filter(Boolean))];
+
+    for (const imageKey of uniqueKeys) {
+      try {
+        /*
+         * deleteImage() must:
+         * 1. Delete the storage object.
+         * 2. Remove its OrganizationStoredAsset row.
+         * 3. Release its recorded storage bytes.
+         */
+        await this.uploadsService.deleteImage(imageKey);
+      } catch (error) {
+        /*
+         * The quotation update has already succeeded.
+         * A cleanup failure must not invalidate it.
+         *
+         * Keeping the ledger entry temporarily is safer
+         * than releasing bytes for a file that may still
+         * exist in storage.
+         */
+        this.logger.warn(
+          `Unable to clean up quotation image "${imageKey}": ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
+  }
 
   private hashPublicToken(token: string) {
     return createHash('sha256').update(token).digest('hex');
@@ -569,7 +601,6 @@ export class QuotationsService {
     const quotation = await this.prisma.quotation.findFirst({
       where: {
         id,
-
         organizationId: tenant.organizationId,
       },
 
@@ -590,6 +621,34 @@ export class QuotationsService {
       await this.ensureCustomerExists(tenant.organizationId, dto.customerId);
     }
 
+    /*
+     * Existing image keys before the update.
+     */
+    const previousImageKeys = new Set(
+      quotation.items
+        .map((item) => item.imageKey)
+        .filter((imageKey): imageKey is string => Boolean(imageKey)),
+    );
+
+    /*
+     * Image keys that remain after the update.
+     *
+     * We only compare images when dto.items exists,
+     * because absence of dto.items means the existing
+     * quotation items were not changed.
+     */
+    const nextImageKeys = new Set(
+      (dto.items ?? [])
+        .map((item) => item.imageKey?.trim())
+        .filter((imageKey): imageKey is string => Boolean(imageKey)),
+    );
+
+    const unusedImageKeys = dto.items
+      ? [...previousImageKeys].filter(
+          (imageKey) => !nextImageKeys.has(imageKey),
+        )
+      : [];
+
     const items =
       dto.items ??
       quotation.items.map((item) => ({
@@ -602,6 +661,7 @@ export class QuotationsService {
         unit: item.unit,
 
         unitPrice: item.unitPrice.toNumber(),
+
         imageUrl: item.imageUrl ?? undefined,
 
         imageKey: item.imageKey ?? undefined,
@@ -627,7 +687,10 @@ export class QuotationsService {
       taxRate,
     });
 
-    return this.prisma.$transaction(async (tx) => {
+    /*
+     * Complete the database update first.
+     */
+    const updatedQuotation = await this.prisma.$transaction(async (tx) => {
       if (dto.items) {
         await tx.quotationItem.deleteMany({
           where: {
@@ -674,10 +737,9 @@ export class QuotationsService {
             terms: dto.terms.trim() || null,
           }),
 
-          footerNote:
-            dto.footerNote !== undefined
-              ? dto.footerNote.trim() || null
-              : undefined,
+          ...(dto.footerNote !== undefined && {
+            footerNote: dto.footerNote.trim() || null,
+          }),
 
           ...(dto.items
             ? {
@@ -699,6 +761,7 @@ export class QuotationsService {
                       unitPrice,
 
                       total: quantity.mul(unitPrice).toDecimalPlaces(2),
+
                       imageUrl: item.imageUrl?.trim() || null,
 
                       imageKey: item.imageKey?.trim() || null,
@@ -728,6 +791,16 @@ export class QuotationsService {
         },
       });
     });
+
+    /*
+     * Delete unused images only after the transaction
+     * commits successfully.
+     */
+    if (unusedImageKeys.length > 0) {
+      await this.cleanupUnusedQuotationImages(unusedImageKeys);
+    }
+
+    return updatedQuotation;
   }
 
   private calculateTotals(input: {
@@ -899,6 +972,8 @@ export class QuotationsService {
 
     if (customerEmailAllowed && customerEmail) {
       emailSent = await this.notificationsService.sendQuotationToCustomer({
+        organizationId: tenant.organizationId,
+
         recipientEmail: customerEmail,
 
         customerName: quotation.customer.name ?? 'Customer',
@@ -2330,6 +2405,7 @@ export class QuotationsService {
     );
 
     const emailSent = await this.notificationsService.sendJobConfirmation({
+      organizationId: quotation.organizationId,
       recipientEmail: quotation.customer.email,
 
       customerName: quotation.customer.name,

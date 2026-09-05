@@ -1,38 +1,41 @@
 import {
   Body,
   Controller,
-  Get,
-  Post,
-  Patch,
-  UseGuards,
   Delete,
+  Get,
+  Patch,
+  Post,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 
+import { FileInterceptor } from '@nestjs/platform-express';
+
 import { CurrentTenant } from '../auth/decorators/current-tenant.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { TenantGuard } from '../auth/guards/tenant.guard';
 import { SubscriptionGuard } from '../auth/guards/subscription.guard';
+import { TenantGuard } from '../auth/guards/tenant.guard';
 
+import type { JwtPayload } from '../auth/types/jwt-payload.type';
 import type { TenantContext } from '../auth/types/tenant-context.type';
 
 import { UpdateBusinessSettingsDto } from './dto/update-business-settings.dto';
 import { UpdateProfileSettingsDto } from './dto/update-profile-settings.dto';
 import { UpdateQuotationSignatureSettingsDto } from './dto/update-quotation-signature-settings.dto';
+
 import { SettingsService } from './settings.service';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtPayload } from '../auth/types/jwt-payload.type';
-import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('settings')
 @UseGuards(AuthGuard, TenantGuard, SubscriptionGuard, RolesGuard)
 export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
 
+  @Roles('OWNER', 'ADMIN')
   @Get('business')
   getBusinessSettings(
     @CurrentUser()
@@ -75,6 +78,7 @@ export class SettingsController {
     return this.settingsService.updateProfileSettings(user, dto);
   }
 
+  @Roles('OWNER')
   @Get('subscription')
   getSubscriptionSettings(
     @CurrentTenant()
@@ -83,6 +87,7 @@ export class SettingsController {
     return this.settingsService.getSubscriptionSettings(tenant);
   }
 
+  @Roles('OWNER', 'ADMIN')
   @Patch('business/logo')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -91,7 +96,7 @@ export class SettingsController {
       },
     }),
   )
-  async uploadBusinessLogo(
+  uploadBusinessLogo(
     @CurrentTenant()
     tenant: TenantContext,
 
@@ -101,16 +106,17 @@ export class SettingsController {
     return this.settingsService.uploadBusinessLogo(tenant.organizationId, file);
   }
 
+  @Roles('OWNER', 'ADMIN')
   @Delete('business/logo')
-  async removeBusinessLogo(
+  removeBusinessLogo(
     @CurrentTenant()
     tenant: TenantContext,
   ) {
     return this.settingsService.removeBusinessLogo(tenant.organizationId);
   }
 
-  @Post('quotation-signature')
   @Roles('OWNER', 'ADMIN')
+  @Post('quotation-signature')
   @UseInterceptors(
     FileInterceptor('file', {
       limits: {
@@ -131,8 +137,8 @@ export class SettingsController {
     );
   }
 
-  @Delete('quotation-signature')
   @Roles('OWNER', 'ADMIN')
+  @Delete('quotation-signature')
   removeQuotationSignature(
     @CurrentTenant()
     tenant: TenantContext,
@@ -140,8 +146,8 @@ export class SettingsController {
     return this.settingsService.removeQuotationSignature(tenant.organizationId);
   }
 
-  @Patch('quotation-signature')
   @Roles('OWNER', 'ADMIN')
+  @Patch('quotation-signature')
   updateQuotationSignatureSettings(
     @CurrentTenant()
     tenant: TenantContext,

@@ -16,12 +16,15 @@ import { PlatformAdminModule } from './platform-admin/platform-admin.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { UploadsModule } from './uploads/uploads.module';
-
+import { AppSumoModule } from './appsumo/appsumo.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { TeamModule } from './team/team.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ScheduleModule.forRoot(),
 
     PrismaModule,
     AuthModule,
@@ -37,6 +40,8 @@ import { UploadsModule } from './uploads/uploads.module';
     OrganizationsModule,
     SubscriptionsModule,
     UploadsModule,
+    AppSumoModule,
+    TeamModule,
   ],
   controllers: [AppController],
   providers: [AppService],

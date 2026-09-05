@@ -4,6 +4,9 @@ import { Resend } from 'resend';
 import { JobStatus } from '../generated/prisma/enums';
 import { buildQufoEmail } from './templates/qufo-email-layout';
 import QRCode from 'qrcode';
+import { CustomerEmailQuotaService } from './customer-email-quota.service';
+
+import type { CustomerEmailReservation } from './customer-email-quota.service';
 
 type QuotationNotificationData = {
   recipientEmail: string;
@@ -28,6 +31,7 @@ type QuotationApprovedNotification = {
 };
 
 type QuotationCustomerEmailData = {
+  organizationId: string;
   recipientEmail: string;
   customerName: string;
   businessName: string;
@@ -50,6 +54,7 @@ type QuotationBusinessNotificationData = {
 };
 
 type JobStatusNotificationData = {
+  organizationId: string;
   recipientEmail: string;
   customerName: string;
   businessName: string;
@@ -63,6 +68,8 @@ type JobStatusNotificationData = {
 };
 
 type JobConfirmationNotificationData = {
+  organizationId: string;
+
   recipientEmail: string;
   customerName: string;
   businessName: string;
@@ -86,7 +93,10 @@ export class NotificationsService {
     return this.emailEnabled && this.resend !== null;
   }
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly customerEmailQuotaService: CustomerEmailQuotaService,
+  ) {
     if (!this.emailEnabled) {
       this.resend = null;
 
@@ -443,6 +453,92 @@ export class NotificationsService {
     });
   }
 
+  private async withCustomerEmailQuota(
+    organizationId: string,
+    description: string,
+    sendEmail: () => Promise<boolean>,
+  ): Promise<boolean> {
+    /*
+     * Do not reserve quota when
+     * email is globally unavailable.
+     */
+    if (!this.canSendEmail()) {
+      this.logger.debug(
+        `Customer email skipped because email is disabled: "${description}"`,
+      );
+
+      return false;
+    }
+
+    let reservation: CustomerEmailReservation;
+
+    try {
+      reservation =
+        await this.customerEmailQuotaService.reserve(organizationId);
+    } catch (error) {
+      /*
+       * Quota infrastructure failure
+       * must not break the business
+       * operation that triggered it.
+       */
+      this.logger.error(
+        `Unable to reserve customer email quota for "${description}".`,
+
+        error instanceof Error ? error.stack : String(error),
+      );
+
+      return false;
+    }
+
+    if (!reservation.allowed) {
+      const usage =
+        reservation.limit !== undefined
+          ? ` (${reservation.used ?? reservation.limit}/${reservation.limit})`
+          : '';
+
+      this.logger.warn(
+        `Customer email skipped for "${description}": ${reservation.reason}${usage}`,
+      );
+
+      return false;
+    }
+
+    try {
+      const sent = await sendEmail();
+
+      if (!sent) {
+        await this.releaseCustomerEmailReservation(reservation, description);
+      }
+
+      return sent;
+    } catch (error) {
+      await this.releaseCustomerEmailReservation(reservation, description);
+
+      this.logger.error(
+        `Customer email preparation failed for "${description}".`,
+
+        error instanceof Error ? error.stack : String(error),
+      );
+
+      return false;
+    }
+  }
+
+  private async releaseCustomerEmailReservation(
+    reservation: CustomerEmailReservation,
+    description: string,
+  ) {
+    try {
+      await this.customerEmailQuotaService.release(reservation);
+    } catch (error) {
+      this.logger.error(
+        `Unable to release customer email quota for "${description}".`,
+
+        error instanceof Error ? error.stack : String(error),
+      );
+    }
+  }
+
   private async sendSafely(params: {
     to: string;
     subject: string;
@@ -511,30 +607,36 @@ export class NotificationsService {
   async sendQuotationToCustomer(
     data: QuotationCustomerEmailData,
   ): Promise<boolean> {
-    const customerName = this.escapeHtml(data.customerName);
+    return this.withCustomerEmailQuota(
+      data.organizationId,
 
-    const businessName = this.escapeHtml(data.businessName);
+      `quotation ${data.quotationNumber}`,
 
-    const quotationNumber = this.escapeHtml(data.quotationNumber);
+      async () => {
+        const customerName = this.escapeHtml(data.customerName);
 
-    const validUntil = data.validUntil
-      ? new Intl.DateTimeFormat('en', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        }).format(data.validUntil)
-      : null;
+        const businessName = this.escapeHtml(data.businessName);
 
-    const html = buildQufoEmail({
-      title: 'Your quotation is ready',
+        const quotationNumber = this.escapeHtml(data.quotationNumber);
 
-      preheader: `${data.businessName} sent you quotation ${data.quotationNumber}.`,
+        const validUntil = data.validUntil
+          ? new Intl.DateTimeFormat('en', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            }).format(data.validUntil)
+          : null;
 
-      businessName,
+        const html = buildQufoEmail({
+          title: 'Your quotation is ready',
 
-      businessLogoUrl: data.businessLogoUrl,
+          preheader: `${data.businessName} sent you quotation ${data.quotationNumber}.`,
 
-      content: `
+          businessName,
+
+          businessLogoUrl: data.businessLogoUrl,
+
+          content: `
       <p
         style="
           margin: 0 0 14px;
@@ -563,8 +665,8 @@ export class NotificationsService {
       </p>
     `,
 
-      infoCard: validUntil
-        ? `
+          infoCard: validUntil
+            ? `
           <div
             style="
               font-size: 14px;
@@ -576,59 +678,71 @@ export class NotificationsService {
             ${validUntil}
           </div>
         `
-        : null,
+            : null,
 
-      actionLabel: 'Review quotation',
+          actionLabel: 'Review quotation',
 
-      actionUrl: data.publicUrl,
-    });
+          actionUrl: data.publicUrl,
+        });
 
-    return this.sendSafely({
-      to: data.recipientEmail,
+        return this.sendSafely({
+          to: data.recipientEmail,
 
-      subject: `${data.quotationNumber} from ${data.businessName}`,
+          subject: `${data.quotationNumber} from ${data.businessName}`,
 
-      html,
-      attachments: data.pdfAttachment
-        ? [
-            {
-              filename: data.pdfAttachment.filename,
+          html,
 
-              content: data.pdfAttachment.content.toString('base64'),
-            },
-          ]
-        : undefined,
-    });
+          attachments: data.pdfAttachment
+            ? [
+                {
+                  filename: data.pdfAttachment.filename,
+
+                  content: data.pdfAttachment.content.toString('base64'),
+                },
+              ]
+            : undefined,
+        });
+      },
+    );
   }
 
   async sendJobStatusUpdated(
     data: JobStatusNotificationData,
   ): Promise<boolean> {
-    const customerName = this.escapeHtml(data.customerName);
+    return this.withCustomerEmailQuota(
+      data.organizationId,
 
-    const businessName = this.escapeHtml(data.businessName);
+      `job status update ${data.jobNumber}`,
 
-    const jobNumber = this.escapeHtml(data.jobNumber);
+      async () => {
+        const customerName = this.escapeHtml(data.customerName);
 
-    const businessLogoUrl = data.businessLogoUrl
-      ? this.escapeHtml(data.businessLogoUrl)
-      : null;
+        const businessName = this.escapeHtml(data.businessName);
 
-    const message = data.message ? this.escapeHtml(data.message) : null;
+        const jobNumber = this.escapeHtml(data.jobNumber);
 
-    const statusLabel = this.formatJobStatus(data.status);
+        const businessLogoUrl = data.businessLogoUrl
+          ? this.escapeHtml(data.businessLogoUrl)
+          : null;
 
-    const subject = this.getJobStatusEmailSubject(data.jobNumber, data.status);
+        const message = data.message ? this.escapeHtml(data.message) : null;
 
-    const html = buildQufoEmail({
-      title: 'Your job has been updated',
+        const statusLabel = this.formatJobStatus(data.status);
 
-      preheader: `${data.jobNumber} is now ${statusLabel}.`,
+        const subject = this.getJobStatusEmailSubject(
+          data.jobNumber,
+          data.status,
+        );
 
-      businessName,
-      businessLogoUrl,
+        const html = buildQufoEmail({
+          title: 'Your job has been updated',
 
-      content: `
+          preheader: `${data.jobNumber} is now ${statusLabel}.`,
+
+          businessName,
+          businessLogoUrl,
+
+          content: `
       <p
         style="
           margin: 0 0 14px;
@@ -647,7 +761,7 @@ export class NotificationsService {
       </p>
     `,
 
-      infoCard: `
+          infoCard: `
       <div
         style="
           font-size: 11px;
@@ -691,76 +805,71 @@ export class NotificationsService {
       }
     `,
 
-      actionLabel: data.trackingUrl ? 'Track your job' : null,
+          actionLabel: data.trackingUrl ? 'Track your job' : null,
 
-      actionUrl: data.trackingUrl ?? null,
-    });
+          actionUrl: data.trackingUrl ?? null,
+        });
 
-    return this.sendSafely({
-      to: data.recipientEmail,
+        return this.sendSafely({
+          to: data.recipientEmail,
 
-      subject,
+          subject,
 
-      html,
-    });
+          html,
+        });
+      },
+    );
   }
 
   async sendJobConfirmation(
     data: JobConfirmationNotificationData,
   ): Promise<boolean> {
-    /*
-     * Avoid generating the QR when
-     * email is globally disabled,
-     * including self-hosted mode.
-     */
-    if (!this.canSendEmail()) {
-      this.logger.debug(
-        `Job confirmation skipped because email is disabled: "${data.jobNumber}"`,
-      );
+    return this.withCustomerEmailQuota(
+      data.organizationId,
 
-      return false;
-    }
+      `job confirmation ${data.jobNumber}`,
 
-    const customerName = this.escapeHtml(data.customerName);
+      async () => {
+        const customerName = this.escapeHtml(data.customerName);
 
-    const businessName = this.escapeHtml(data.businessName);
+        const businessName = this.escapeHtml(data.businessName);
 
-    const jobNumber = this.escapeHtml(data.jobNumber);
+        const jobNumber = this.escapeHtml(data.jobNumber);
 
-    const dueDate = data.dueDate
-      ? new Intl.DateTimeFormat('en', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        }).format(data.dueDate)
-      : null;
+        const dueDate = data.dueDate
+          ? new Intl.DateTimeFormat('en', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            }).format(data.dueDate)
+          : null;
 
-    const qrCodeBuffer = await QRCode.toBuffer(data.trackingUrl, {
-      type: 'png',
+        const qrCodeBuffer = await QRCode.toBuffer(data.trackingUrl, {
+          type: 'png',
 
-      errorCorrectionLevel: 'H',
+          errorCorrectionLevel: 'H',
 
-      width: 360,
+          width: 360,
 
-      margin: 1,
+          margin: 1,
 
-      color: {
-        dark: '#020617',
+          color: {
+            dark: '#020617',
 
-        light: '#FFFFFF',
-      },
-    });
+            light: '#FFFFFF',
+          },
+        });
 
-    const html = buildQufoEmail({
-      title: 'Your job is confirmed',
+        const html = buildQufoEmail({
+          title: 'Your job is confirmed',
 
-      preheader: `${data.businessName} confirmed your job ${data.jobNumber}.`,
+          preheader: `${data.businessName} confirmed your job ${data.jobNumber}.`,
 
-      businessName,
+          businessName,
 
-      businessLogoUrl: data.businessLogoUrl,
+          businessLogoUrl: data.businessLogoUrl,
 
-      content: `
+          content: `
         <p
           style="
             margin: 0 0 14px;
@@ -815,7 +924,7 @@ export class NotificationsService {
         </div>
       `,
 
-      infoCard: `
+          infoCard: `
         <div
           style="
             font-size: 11px;
@@ -860,37 +969,39 @@ export class NotificationsService {
         }
       `,
 
-      actionLabel: 'Track your job',
+          actionLabel: 'Track your job',
 
-      actionUrl: data.trackingUrl,
-    });
+          actionUrl: data.trackingUrl,
+        });
 
-    return this.sendSafely({
-      to: data.recipientEmail,
+        return this.sendSafely({
+          to: data.recipientEmail,
 
-      subject: `Your job ${data.jobNumber} is confirmed`,
+          subject: `Your job ${data.jobNumber} is confirmed`,
 
-      html,
+          html,
 
-      attachments: [
-        {
-          filename: `${data.jobNumber}-tracking-qr.png`,
+          attachments: [
+            {
+              filename: `${data.jobNumber}-tracking-qr.png`,
 
-          content: qrCodeBuffer.toString('base64'),
+              content: qrCodeBuffer.toString('base64'),
 
-          contentId: 'job-tracking-qr',
-        },
+              contentId: 'job-tracking-qr',
+            },
 
-        ...(data.pdfAttachment
-          ? [
-              {
-                filename: data.pdfAttachment.filename,
+            ...(data.pdfAttachment
+              ? [
+                  {
+                    filename: data.pdfAttachment.filename,
 
-                content: data.pdfAttachment.content.toString('base64'),
-              },
-            ]
-          : []),
-      ],
-    });
+                    content: data.pdfAttachment.content.toString('base64'),
+                  },
+                ]
+              : []),
+          ],
+        });
+      },
+    );
   }
 }

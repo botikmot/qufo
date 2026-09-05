@@ -6,7 +6,7 @@ import type {
   BusinessSettings,
   ProfileSettings,
   UpdateBusinessSettingsData,
-  UpdateBusinessSettingsResponse,
+  //UpdateBusinessSettingsResponse,
   UpdateProfileSettingsData,
   UpdateProfileSettingsResponse,
   ChangePasswordData,
@@ -23,6 +23,7 @@ import type {
   SubscriptionCheckoutResponse, 
   SubscriptionPaymentHistoryResponse,
   CapturePayPalSubscriptionResponse,
+  RedeemAppSumoCodeResponse,
 } from "@/types/subscription";
 
 export const settingsService = {
@@ -223,6 +224,22 @@ export const settingsService = {
       "/settings/quotation-signature",
       {
         method: "DELETE",
+      },
+    );
+  },
+
+  async redeemAppSumoCode(
+    code: string,
+  ) {
+    return apiFetch<RedeemAppSumoCodeResponse>(
+      "/appsumo/redeem",
+      {
+        method: "POST",
+
+        body: JSON.stringify({
+          code:
+            code.trim(),
+        }),
       },
     );
   },

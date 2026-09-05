@@ -115,6 +115,38 @@ export function useBusinessSettings() {
     };
   }, []);
 
+  useEffect(() => {
+    if (
+      !error &&
+      !success
+    ) {
+      return;
+    }
+
+    const timeout =
+      window.setTimeout(
+        () => {
+          setError(
+            null,
+          );
+
+          setSuccess(
+            null,
+          );
+        },
+        5000,
+      );
+
+    return () => {
+      window.clearTimeout(
+        timeout,
+      );
+    };
+  }, [
+    error,
+    success,
+  ]);
+
   async function update(
     data: UpdateBusinessSettingsData,
   ) {

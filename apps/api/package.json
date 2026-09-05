@@ -20,7 +20,10 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "appsumo:codes": "ts-node src/scripts/generate-appsumo-codes.ts",
+    "appsumo:manage": "ts-node src/scripts/manage-appsumo-code.ts",
+    "uploads:cleanup": "ts-node src/scripts/cleanup-orphaned-uploads.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

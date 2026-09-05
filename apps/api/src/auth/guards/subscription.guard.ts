@@ -59,6 +59,51 @@ export class SubscriptionGuard implements CanActivate {
       );
     }
 
+    /*
+     * AppSumo lifetime subscriptions
+     * do not expire based on trial or
+     * billing period dates.
+     *
+     * A refunded or revoked AppSumo
+     * subscription will no longer have
+     * ACTIVE status, so it will not
+     * pass this condition.
+     */
+    const hasAppSumoLifetimeAccess =
+      subscription.source === 'APPSUMO' &&
+      subscription.accessType === 'LIFETIME' &&
+      subscription.status === 'ACTIVE' &&
+      subscription.appSumoTier !== null;
+
+    if (hasAppSumoLifetimeAccess) {
+      return true;
+    }
+
+    /*
+     * AppSumo subscriptions must
+     * have a complete and active
+     * lifetime entitlement.
+     *
+     * This separate branch prevents
+     * an invalid AppSumo subscription
+     * from falling through as an
+     * ordinary ACTIVE subscription.
+     */
+    if (subscription.source === 'APPSUMO') {
+      const hasValidLifetimeAccess =
+        subscription.accessType === 'LIFETIME' &&
+        subscription.status === 'ACTIVE' &&
+        subscription.appSumoTier !== null;
+
+      if (hasValidLifetimeAccess) {
+        return true;
+      }
+
+      this.throwSubscriptionRequired(
+        'Your AppSumo lifetime access is currently inactive.',
+      );
+    }
+
     const effective = resolveSubscriptionState(subscription);
 
     /*
