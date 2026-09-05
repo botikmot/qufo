@@ -22,14 +22,30 @@ import { PrismaService } from '../prisma/prisma.service';
  *
  * The existing tier column remains in the
  * database for backward compatibility with
- * codes that were generated before stacking.
+ * codes generated before stacking.
  */
 const BASE_CODE_TIER = 'TIER_1' as const;
 
+const MIN_APPSUMO_CODES = 100;
+
+const MAX_APPSUMO_CODES = 10_000;
+
 type GeneratorOptions = {
   count: number;
+
   batchLabel: string;
+
+  /*
+   * AppSumo-ready CSV containing only
+   * one code per row with no header.
+   */
   outputPath: string;
+
+  /*
+   * Private internal reference containing
+   * the code, tier, and batch label.
+   */
+  auditOutputPath: string;
 };
 
 function normalizeCode(code: string) {
@@ -42,28 +58,54 @@ function hashCode(code: string) {
 
 function createCode() {
   /*
-   * 18 random bytes = 144 bits
-   * of randomness.
+   * AppSumo codes must be completely
+   * alphanumeric.
+   *
+   * QUFOAS prefix: 6 characters
+   * Random portion: 36 hexadecimal characters
+   * Total length: 42 characters
+   *
+   * 18 random bytes = 144 bits of randomness.
    */
-  const randomPart = randomBytes(18)
-    .toString('hex')
-    .toUpperCase()
-    .match(/.{1,6}/g)
-    ?.join('-');
+  const randomPart = randomBytes(18).toString('hex').toUpperCase();
 
-  if (!randomPart) {
-    throw new Error('Unable to generate AppSumo code.');
-  }
-
-  return `QUFO-AS-${randomPart}`;
+  return `QUFOAS${randomPart}`;
 }
 
 function createCodeHint(code: string) {
-  return `${code.slice(0, 7)}...${code.slice(-6)}`;
+  return `${code.slice(0, 8)}...${code.slice(-6)}`;
 }
 
 function escapeCsvValue(value: string) {
   return `"${value.replace(/"/g, '""')}"`;
+}
+
+function createAuditOutputPath(outputPath: string) {
+  if (outputPath.toLowerCase().endsWith('.csv')) {
+    return `${outputPath.slice(0, -4)}-audit.csv`;
+  }
+
+  return `${outputPath}-audit.csv`;
+}
+
+function validateGeneratedCodes(codes: string[]) {
+  if (new Set(codes).size !== codes.length) {
+    throw new Error('Duplicate codes were generated. Run the command again.');
+  }
+
+  for (const code of codes) {
+    /*
+     * AppSumo accepts only letters and
+     * numbers, with a length of 3-200.
+     */
+    if (!/^[A-Z0-9]{3,200}$/.test(code)) {
+      throw new Error(
+        `Generated code does not meet AppSumo requirements: ${createCodeHint(
+          code,
+        )}`,
+      );
+    }
+  }
 }
 
 function parseOptions(): GeneratorOptions {
@@ -71,7 +113,8 @@ function parseOptions(): GeneratorOptions {
     options: {
       count: {
         type: 'string',
-        default: '1',
+
+        default: String(MIN_APPSUMO_CODES),
       },
 
       batch: {
@@ -86,8 +129,14 @@ function parseOptions(): GeneratorOptions {
 
   const count = Number(values.count);
 
-  if (!Number.isInteger(count) || count < 1 || count > 10_000) {
-    throw new Error('--count must be an integer between 1 and 10000.');
+  if (
+    !Number.isInteger(count) ||
+    count < MIN_APPSUMO_CODES ||
+    count > MAX_APPSUMO_CODES
+  ) {
+    throw new Error(
+      `--count must be an integer between ${MIN_APPSUMO_CODES} and ${MAX_APPSUMO_CODES}.`,
+    );
   }
 
   const batchLabel = values.batch?.trim();
@@ -106,10 +155,22 @@ function parseOptions(): GeneratorOptions {
     throw new Error('--output is required.');
   }
 
+  const outputPath = resolve(process.cwd(), output);
+
+  const auditOutputPath = createAuditOutputPath(outputPath);
+
+  if (outputPath === auditOutputPath) {
+    throw new Error('AppSumo and audit output paths must be different.');
+  }
+
   return {
     count,
+
     batchLabel,
-    outputPath: resolve(process.cwd(), output),
+
+    outputPath,
+
+    auditOutputPath,
   };
 }
 
@@ -124,43 +185,73 @@ async function main() {
     () => createCode(),
   );
 
-  /*
-   * Ensure there are no duplicate
-   * plaintext codes in this batch.
-   */
-  if (new Set(codes).size !== codes.length) {
-    throw new Error('Duplicate codes were generated. Run the command again.');
-  }
+  validateGeneratedCodes(codes);
 
-  const csvRows = [
+  /*
+   * Official AppSumo upload file:
+   *
+   * - No header
+   * - No additional columns
+   * - One code per row
+   * - No blank rows
+   */
+  const appSumoCsv = `${codes.join('\n')}\n`;
+
+  /*
+   * Private internal reference file.
+   * Do not upload this file to AppSumo.
+   */
+  const auditRows = [
     ['code', 'tier', 'batchLabel'],
 
     ...codes.map((code) => [code, BASE_CODE_TIER, options.batchLabel]),
   ];
 
-  const csv = csvRows
+  const auditCsv = `${auditRows
     .map((row) => row.map(escapeCsvValue).join(','))
-    .join('\n');
+    .join('\n')}\n`;
 
-  await mkdir(dirname(options.outputPath), {
-    recursive: true,
-  });
+  let appSumoFileCreated = false;
 
-  /*
-   * "wx" refuses to overwrite an
-   * existing file.
-   */
-  await writeFile(options.outputPath, `${csv}\n`, {
-    encoding: 'utf8',
-    flag: 'wx',
-    mode: 0o600,
-  });
+  let auditFileCreated = false;
 
   let application: Awaited<
     ReturnType<typeof NestFactory.createApplicationContext>
   > | null = null;
 
   try {
+    await mkdir(dirname(options.outputPath), {
+      recursive: true,
+    });
+
+    await mkdir(dirname(options.auditOutputPath), {
+      recursive: true,
+    });
+
+    /*
+     * "wx" refuses to overwrite an
+     * existing file.
+     */
+    await writeFile(options.outputPath, appSumoCsv, {
+      encoding: 'utf8',
+
+      flag: 'wx',
+
+      mode: 0o600,
+    });
+
+    appSumoFileCreated = true;
+
+    await writeFile(options.auditOutputPath, auditCsv, {
+      encoding: 'utf8',
+
+      flag: 'wx',
+
+      mode: 0o600,
+    });
+
+    auditFileCreated = true;
+
     application = await NestFactory.createApplicationContext(AppModule, {
       logger: ['error', 'warn'],
     });
@@ -170,20 +261,29 @@ async function main() {
     await prisma.appSumoCode.createMany({
       data: codes.map((code) => ({
         codeHash: hashCode(code),
+
         codeHint: createCodeHint(code),
+
         tier: BASE_CODE_TIER,
+
         status: 'AVAILABLE' as const,
+
         batchLabel: options.batchLabel,
       })),
     });
   } catch (error) {
     /*
-     * Remove the CSV if the database
-     * insert failed. This prevents us
-     * from keeping codes that cannot
-     * actually be redeemed.
+     * Delete only the files created by
+     * this execution. Existing files are
+     * never removed.
      */
-    await unlink(options.outputPath).catch(() => undefined);
+    if (auditFileCreated) {
+      await unlink(options.auditOutputPath).catch(() => undefined);
+    }
+
+    if (appSumoFileCreated) {
+      await unlink(options.outputPath).catch(() => undefined);
+    }
 
     throw error;
   } finally {
@@ -198,8 +298,11 @@ async function main() {
       'Each code adds one tier, up to Tier 3.',
       `Stored tier value: ${BASE_CODE_TIER}`,
       `Batch: ${options.batchLabel}`,
-      `CSV: ${options.outputPath}`,
-      'Keep this CSV private. Plaintext codes cannot be recovered from the database.',
+      `AppSumo CSV: ${options.outputPath}`,
+      `Private audit CSV: ${options.auditOutputPath}`,
+      '',
+      'Upload only the AppSumo CSV.',
+      'Never commit or publicly share either CSV.',
     ].join('\n'),
   );
 }
