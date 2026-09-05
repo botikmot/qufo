@@ -1,85 +1,69 @@
-"use client";
+'use client';
 
 import {
   Building2,
   CreditCard,
-  UserRound,
   Headphones,
-} from "lucide-react";
+  UserRound,
+  Users,
+} from 'lucide-react';
 
-import {
-  BusinessSettingsForm,
-} from "@/components/settings/business-settings-form";
+import { useSearchParams } from 'next/navigation';
 
-import {
-  ProfileSettingsForm,
-} from "@/components/settings/profile-settings-form";
-
-import { ChangePasswordForm } from "@/components/settings/change-password-form";
-import { ProfilePhotoCard } from "@/components/settings/profile-photo-card";
+import { BusinessSettingsTab } from '@/components/settings/business-settings-tab';
+import { ChangePasswordForm } from '@/components/settings/change-password-form';
+import { ProfilePhotoCard } from '@/components/settings/profile-photo-card';
+import { ProfileSettingsForm } from '@/components/settings/profile-settings-form';
+import { SettingsTabTrigger } from '@/components/settings/settings-tab-trigger';
+import { SubscriptionSettingsTab } from '@/components/settings/subscription-settings-tab';
+import { SupportForm } from '@/components/settings/support-form';
+import { TeamSettingsTab } from '@/components/settings/team-settings-tab';
 
 import {
   Tabs,
   TabsContent,
   TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+} from '@/components/ui/tabs';
 
-import {
-  useBusinessSettings,
-} from "@/hooks/use-business-settings";
+import { useProfileSettings } from '@/hooks/use-profile-settings';
 
-import {
-  useProfileSettings,
-} from "@/hooks/use-profile-settings";
+import { useAuthSession } from '@/lib/auth-storage';
 
-import {
-  SubscriptionSettingsCard,
-} from "@/components/settings/subscription-settings-card";
-
-import {
-  useSubscriptionSettings,
-} from "@/hooks/use-subscription-settings";
-
-import {
-  SupportForm,
-} from "@/components/settings/support-form";
-
-import {
-  useSearchParams,
-} from "next/navigation";
-
-const SUBSCRIPTION_ENABLED = process.env.NEXT_PUBLIC_SUBSCRIPTION_ENABLED !== "false";
+const SUBSCRIPTION_ENABLED =
+  process.env.NEXT_PUBLIC_SUBSCRIPTION_ENABLED !== 'false';
 
 export default function SettingsPage() {
-  const business =
-    useBusinessSettings();
+  const session = useAuthSession();
 
-  const profile =
-    useProfileSettings();
+  const profile = useProfileSettings();
 
-  const subscription =
-    useSubscriptionSettings();
+  const searchParams = useSearchParams();
 
-  const searchParams =
-    useSearchParams();
+  const role = session?.organization.role;
 
-  const requestedTab =
-    searchParams.get(
-      "tab",
-    );
+  const canManageBusiness = role === 'OWNER' || role === 'ADMIN';
+
+  const canManageTeam = role === 'OWNER' || role === 'ADMIN';
+
+  const canManageSubscription =
+    SUBSCRIPTION_ENABLED && role === 'OWNER';
+
+  const requestedTab = searchParams.get('tab');
 
   const defaultTab =
-    requestedTab ===
-      "subscription"
-      ? "subscription"
-      : requestedTab ===
-          "profile"
-        ? "profile"
-        : requestedTab ===
-            "support"
-          ? "support"
-          : "business";
+    requestedTab === 'business' && canManageBusiness
+      ? 'business'
+      : requestedTab === 'team' && canManageTeam
+        ? 'team'
+        : requestedTab === 'subscription' && canManageSubscription
+          ? 'subscription'
+          : requestedTab === 'support'
+            ? 'support'
+            : requestedTab === 'profile'
+              ? 'profile'
+              : canManageBusiness
+                ? 'business'
+                : 'profile';
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6">
@@ -93,12 +77,12 @@ export default function SettingsPage() {
         </h1>
 
         <p className="mt-2 text-sm text-slate-500">
-          Manage your business,
-          account, and QUFO workspace.
+          Manage your account and available workspace settings.
         </p>
       </div>
 
       <Tabs
+        key={`${session?.organization.id ?? 'loading'}:${defaultTab}`}
         defaultValue={defaultTab}
         className="w-full"
       >
@@ -119,192 +103,41 @@ export default function SettingsPage() {
             md:!w-auto
           "
         >
-          <TabsTrigger
-            value="business"
-            className="
-              !h-auto
-              !w-full
-              min-w-0
-              justify-center
-              gap-2
-              rounded-xl
-              px-3
-              py-2.5
-              text-slate-400
-              data-[state=active]:bg-emerald-400/10
-              data-[state=active]:text-emerald-300
-
-              md:!w-auto
-            "
-          >
-            <Building2
-              size={16}
-              className="shrink-0"
-            />
-
-            <span className="truncate">
+          {canManageBusiness && (
+            <SettingsTabTrigger value="business" icon={<Building2 size={16} />}>
               Business
-            </span>
-          </TabsTrigger>
-
-          <TabsTrigger
-            value="profile"
-            className="
-              !h-auto
-              !w-full
-              min-w-0
-              justify-center
-              gap-2
-              rounded-xl
-              px-3
-              py-2.5
-              text-slate-400
-              data-[state=active]:bg-emerald-400/10
-              data-[state=active]:text-emerald-300
-
-              md:!w-auto
-            "
-          >
-            <UserRound
-              size={16}
-              className="shrink-0"
-            />
-
-            <span className="truncate">
-              My Profile
-            </span>
-          </TabsTrigger>
-
-          {SUBSCRIPTION_ENABLED && (
-            <TabsTrigger
-              value="subscription"
-              className="
-                !h-auto
-                !w-full
-                min-w-0
-                justify-center
-                gap-2
-                rounded-xl
-                px-3
-                py-2.5
-                text-slate-400
-                data-[state=active]:bg-emerald-400/10
-                data-[state=active]:text-emerald-300
-
-                md:!w-auto
-              "
-            >
-              <CreditCard
-                size={16}
-                className="shrink-0"
-              />
-
-              <span className="truncate">
-                Subscription
-              </span>
-            </TabsTrigger>
+            </SettingsTabTrigger>
           )}
 
-          <TabsTrigger
-            value="support"
-            className="
-              !h-auto
-              !w-full
-              min-w-0
-              justify-center
-              gap-2
-              rounded-xl
-              px-3
-              py-2.5
-              text-slate-400
-              data-[state=active]:bg-emerald-400/10
-              data-[state=active]:text-emerald-300
+          <SettingsTabTrigger value="profile" icon={<UserRound size={16} />}>
+            My Profile
+          </SettingsTabTrigger>
 
-              md:!w-auto
-            "
-          >
-            <Headphones
-              size={16}
-              className="shrink-0"
-            />
+          {canManageTeam && (
+            <SettingsTabTrigger value="team" icon={<Users size={16} />}>
+              Team
+            </SettingsTabTrigger>
+          )}
 
-            <span className="truncate">
-              Support
-            </span>
-          </TabsTrigger>
+          {canManageSubscription && (
+            <SettingsTabTrigger
+              value="subscription"
+              icon={<CreditCard size={16} />}
+            >
+              Subscription
+            </SettingsTabTrigger>
+          )}
+
+          <SettingsTabTrigger value="support" icon={<Headphones size={16} />}>
+            Support
+          </SettingsTabTrigger>
         </TabsList>
 
-        <TabsContent value="business">
-          {business.loading ? (
-            <div className="qufo-surface rounded-3xl p-8 text-sm text-slate-500">
-              Loading business settings...
-            </div>
-          ) : business.settings ? (
-            <BusinessSettingsForm
-              key={
-                business.settings
-                  .updatedAt
-              }
-              settings={
-                business.settings
-              }
-              saving={
-                business.saving
-              }
-              uploadingLogo={
-                business.uploadingLogo
-              }
-              removingLogo={
-                business.removingLogo
-              }
-              error={
-                business.error
-              }
-              success={
-                business.success
-              }
-              onSave={
-                business.update
-              }
-              onUploadLogo={
-                business.uploadLogo
-              }
-              onRemoveLogo={
-                business.removeLogo
-              }
-
-              uploadingSignature={
-                business.uploadingSignature
-              }
-
-              removingSignature={
-                business.removingSignature
-              }
-
-              savingSignature={
-                business.savingSignature
-              }
-
-              onUploadSignature={
-                business.uploadSignature
-              }
-
-              onRemoveSignature={
-                business.removeSignature
-              }
-
-              onSaveSignature={
-                business.updateSignature
-              }
-
-            />
-          ) : (
-            <div className="rounded-2xl border border-red-400/15 bg-red-400/[0.05] p-5 text-sm text-red-300">
-              {business.error ??
-                "Unable to load business settings."}
-            </div>
-          )}
-        </TabsContent>
+        {canManageBusiness && (
+          <TabsContent value="business">
+            <BusinessSettingsTab />
+          </TabsContent>
+        )}
 
         <TabsContent value="profile">
           {profile.loading ? (
@@ -314,112 +147,45 @@ export default function SettingsPage() {
           ) : profile.profile ? (
             <div className="space-y-6">
               <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-                <ProfilePhotoCard
-                  profile={profile.profile}
-                />
+                <ProfilePhotoCard profile={profile.profile} />
 
                 <ProfileSettingsForm
-                  key={
-                    profile.profile
-                      .updatedAt
-                  }
-                  profile={
-                    profile.profile
-                  }
-                  saving={
-                    profile.saving
-                  }
-                  error={
-                    profile.error
-                  }
-                  success={
-                    profile.success
-                  }
-                  onSave={
-                    profile.update
-                  }
+                  key={profile.profile.updatedAt}
+                  profile={profile.profile}
+                  saving={profile.saving}
+                  error={profile.error}
+                  success={profile.success}
+                  onSave={profile.update}
                 />
               </div>
 
-              {profile.profile && (
-                <ChangePasswordForm
-                  hasPassword={
-                    profile.profile.security
-                      .hasPassword
-                  }
-                  googleLinked={
-                    profile.profile.security
-                      .googleLinked
-                  }
-                />
-              )}
+              <ChangePasswordForm
+                hasPassword={profile.profile.security.hasPassword}
+                googleLinked={profile.profile.security.googleLinked}
+              />
             </div>
           ) : (
             <div className="rounded-2xl border border-red-400/15 bg-red-400/[0.05] p-5 text-sm text-red-300">
-              {profile.error ??
-                "Unable to load profile."}
+              {profile.error ?? 'Unable to load profile.'}
             </div>
           )}
         </TabsContent>
 
-        {SUBSCRIPTION_ENABLED && (
-          <TabsContent value="subscription">
-            {subscription.loading ? (
-              <div className="qufo-surface rounded-3xl p-8 text-sm text-slate-500">
-                Loading subscription...
-              </div>
-            ) : subscription.billing ? (
-              <SubscriptionSettingsCard
-                billing={
-                  subscription.billing
-                }
-                payments={
-                  subscription.payments
-                }
-                renewing={
-                  subscription.renewing
-                }
-                confirmingPayment={
-                  subscription.confirmingPayment
-                }
-                paymentResult={
-                  subscription.paymentResult
-                }
-                appSumoEnabled={
-                  subscription.appSumoEnabled
-                }
-                redeemingAppSumo={
-                  subscription.redeemingAppSumo
-                }
-                appSumoSuccess={
-                  subscription.appSumoSuccess
-                }
-                error={
-                  subscription.error
-                }
-                onRenew={
-                  subscription.renew
-                }
-                onRefresh={
-                  subscription.refresh
-                }
-                onRedeemAppSumo={
-                  subscription.redeemAppSumo
-                }
-              />
-            ) : (
-              <div className="rounded-2xl border border-red-400/15 bg-red-400/[0.05] p-5 text-sm text-red-300">
-                {subscription.error ??
-                  "Unable to load subscription."}
-              </div>
-            )}
+        {canManageTeam && (
+          <TabsContent value="team">
+            <TeamSettingsTab />
           </TabsContent>
         )}
-        
+
+        {canManageSubscription && (
+          <TabsContent value="subscription">
+            <SubscriptionSettingsTab />
+          </TabsContent>
+        )}
+
         <TabsContent value="support">
           <SupportForm />
         </TabsContent>
-
       </Tabs>
     </div>
   );

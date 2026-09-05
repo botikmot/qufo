@@ -8,16 +8,25 @@ import { parseArgs } from 'node:util';
 
 import { NestFactory } from '@nestjs/core';
 
-import type { AppSumoTier } from '../generated/prisma/client';
-
 import { AppModule } from '../app.module';
 
 import { PrismaService } from '../prisma/prisma.service';
 
-const VALID_TIERS = new Set<AppSumoTier>(['TIER_1', 'TIER_2', 'TIER_3']);
+/*
+ * Every newly generated AppSumo code is
+ * worth exactly one stacking unit.
+ *
+ * 1 redeemed code  -> Tier 1
+ * 2 redeemed codes -> Tier 2
+ * 3 redeemed codes -> Tier 3
+ *
+ * The existing tier column remains in the
+ * database for backward compatibility with
+ * codes that were generated before stacking.
+ */
+const BASE_CODE_TIER = 'TIER_1' as const;
 
 type GeneratorOptions = {
-  tier: AppSumoTier;
   count: number;
   batchLabel: string;
   outputPath: string;
@@ -31,9 +40,7 @@ function hashCode(code: string) {
   return createHash('sha256').update(normalizeCode(code), 'utf8').digest('hex');
 }
 
-function createCode(tier: AppSumoTier) {
-  const tierPrefix = tier.replace('TIER_', 'T');
-
+function createCode() {
   /*
    * 18 random bytes = 144 bits
    * of randomness.
@@ -48,11 +55,11 @@ function createCode(tier: AppSumoTier) {
     throw new Error('Unable to generate AppSumo code.');
   }
 
-  return `QUFO-${tierPrefix}-${randomPart}`;
+  return `QUFO-AS-${randomPart}`;
 }
 
 function createCodeHint(code: string) {
-  return `${code.slice(0, 7)}…${code.slice(-6)}`;
+  return `${code.slice(0, 7)}...${code.slice(-6)}`;
 }
 
 function escapeCsvValue(value: string) {
@@ -62,10 +69,6 @@ function escapeCsvValue(value: string) {
 function parseOptions(): GeneratorOptions {
   const { values } = parseArgs({
     options: {
-      tier: {
-        type: 'string',
-      },
-
       count: {
         type: 'string',
         default: '1',
@@ -80,10 +83,6 @@ function parseOptions(): GeneratorOptions {
       },
     },
   });
-
-  if (!values.tier || !VALID_TIERS.has(values.tier as AppSumoTier)) {
-    throw new Error('--tier must be TIER_1, TIER_2, or TIER_3.');
-  }
 
   const count = Number(values.count);
 
@@ -108,12 +107,8 @@ function parseOptions(): GeneratorOptions {
   }
 
   return {
-    tier: values.tier as AppSumoTier,
-
     count,
-
     batchLabel,
-
     outputPath: resolve(process.cwd(), output),
   };
 }
@@ -126,7 +121,7 @@ async function main() {
       length: options.count,
     },
 
-    () => createCode(options.tier),
+    () => createCode(),
   );
 
   /*
@@ -140,7 +135,7 @@ async function main() {
   const csvRows = [
     ['code', 'tier', 'batchLabel'],
 
-    ...codes.map((code) => [code, options.tier, options.batchLabel]),
+    ...codes.map((code) => [code, BASE_CODE_TIER, options.batchLabel]),
   ];
 
   const csv = csvRows
@@ -175,13 +170,9 @@ async function main() {
     await prisma.appSumoCode.createMany({
       data: codes.map((code) => ({
         codeHash: hashCode(code),
-
         codeHint: createCodeHint(code),
-
-        tier: options.tier,
-
-        status: 'AVAILABLE',
-
+        tier: BASE_CODE_TIER,
+        status: 'AVAILABLE' as const,
         batchLabel: options.batchLabel,
       })),
     });
@@ -203,8 +194,9 @@ async function main() {
 
   console.log(
     [
-      `Generated ${options.count} AppSumo code(s).`,
-      `Tier: ${options.tier}`,
+      `Generated ${options.count} AppSumo stacking code(s).`,
+      'Each code adds one tier, up to Tier 3.',
+      `Stored tier value: ${BASE_CODE_TIER}`,
       `Batch: ${options.batchLabel}`,
       `CSV: ${options.outputPath}`,
       'Keep this CSV private. Plaintext codes cannot be recovered from the database.',

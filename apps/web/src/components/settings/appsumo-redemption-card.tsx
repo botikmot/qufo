@@ -16,6 +16,9 @@ import type {
   SubscriptionBillingSummary,
 } from "@/types/subscription";
 
+const APP_SUMO_MAX_CODES =
+  3;
+
 type Props = {
   enabled: boolean;
 
@@ -48,6 +51,26 @@ function formatTier(
   );
 }
 
+function getRedeemedCodeCount(
+  tier:
+    | string
+    | null,
+) {
+  if (tier === "TIER_3") {
+    return 3;
+  }
+
+  if (tier === "TIER_2") {
+    return 2;
+  }
+
+  if (tier === "TIER_1") {
+    return 1;
+  }
+
+  return 0;
+}
+
 export function AppSumoRedemptionCard({
   enabled,
   billing,
@@ -73,22 +96,31 @@ export function AppSumoRedemptionCard({
     subscription.accessType ===
       "LIFETIME";
 
+  const redeemedCodeCount =
+    lifetime
+      ? getRedeemedCodeCount(
+          subscription.appSumoTier,
+        )
+      : 0;
+
   const canUpgrade =
     lifetime &&
     subscription.status ===
       "ACTIVE" &&
-    subscription.appSumoTier !==
-      "TIER_3";
+    redeemedCodeCount <
+      APP_SUMO_MAX_CODES;
 
-  const upgradePlaceholder =
-    subscription.appSumoTier ===
-    "TIER_1"
-      ? "Enter a Tier 2 or Tier 3 code"
-      : "Enter a Tier 3 code";
+  const nextTier =
+    Math.min(
+      redeemedCodeCount + 1,
+      APP_SUMO_MAX_CODES,
+    );
 
-  const entitlements = billing.entitlements;
+  const entitlements =
+    billing.entitlements;
 
-  const customerEmailUsage = billing.customerEmailUsage;
+  const customerEmailUsage =
+    billing.customerEmailUsage;
 
   async function handleSubmit(
     event:
@@ -108,39 +140,45 @@ export function AppSumoRedemptionCard({
 
   if (lifetime) {
     return (
-        <section className="rounded-2xl border border-emerald-400/15 bg-emerald-400/[0.04] p-5">
-
-          <div className="flex items-start gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-400/[0.1] text-emerald-300">
-              <Sparkles
-                size={18}
-              />
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-sm font-medium text-emerald-200">
-                  AppSumo lifetime access
-                </h3>
-
-                <span className="rounded-full border border-emerald-400/15 bg-emerald-400/[0.08] px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-emerald-300">
-                  {formatTier(
-                    subscription
-                      .appSumoTier,
-                  )}
-                </span>
-              </div>
-
-              <p className="mt-1 text-xs leading-5 text-slate-500">
-                Your workspace has
-                permanent access to
-                QUFO under your AppSumo
-                license.
-              </p>
-            </div>
-
-            <CheckCircle2 className="size-5 shrink-0 text-emerald-300" />
+      <section className="rounded-2xl border border-emerald-400/15 bg-emerald-400/[0.04] p-5">
+        <div className="flex items-start gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-400/[0.1] text-emerald-300">
+            <Sparkles
+              size={18}
+            />
           </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-sm font-medium text-emerald-200">
+                AppSumo lifetime access
+              </h3>
+
+              <span className="rounded-full border border-emerald-400/15 bg-emerald-400/[0.08] px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-emerald-300">
+                {formatTier(
+                  subscription
+                    .appSumoTier,
+                )}
+              </span>
+
+              <span className="rounded-full border border-slate-400/10 bg-slate-950/20 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-slate-400">
+                {redeemedCodeCount}
+                /{APP_SUMO_MAX_CODES}
+                {" "}
+                codes
+              </span>
+            </div>
+
+            <p className="mt-1 text-xs leading-5 text-slate-500">
+              Your workspace has
+              permanent access to
+              QUFO under your AppSumo
+              license.
+            </p>
+          </div>
+
+          <CheckCircle2 className="size-5 shrink-0 text-emerald-300" />
+        </div>
 
         {canUpgrade && (
           <div className="mt-5 border-t border-emerald-400/10 pt-5">
@@ -153,13 +191,24 @@ export function AppSumoRedemptionCard({
 
               <div>
                 <h4 className="text-sm font-medium text-slate-200">
-                  Upgrade AppSumo tier
+                  Redeem another
+                  AppSumo code
                 </h4>
 
                 <p className="mt-1 text-xs leading-5 text-slate-500">
-                  Redeem a higher-tier
-                  AppSumo code to increase
-                  your workspace limits.
+                  Redeem one more code
+                  to unlock Tier
+                  {" "}
+                  {nextTier} workspace
+                  limits. You have
+                  {" "}
+                  {redeemedCodeCount}
+                  {" "}
+                  of
+                  {" "}
+                  {APP_SUMO_MAX_CODES}
+                  {" "}
+                  codes active.
                 </p>
               </div>
             </div>
@@ -182,9 +231,7 @@ export function AppSumoRedemptionCard({
                 autoCapitalize="characters"
                 autoComplete="off"
                 spellCheck={false}
-                placeholder={
-                  upgradePlaceholder
-                }
+                placeholder="QUFO-AS-XXXXXX-XXXXXX"
                 className="qufo-input min-w-0 flex-1 font-mono text-sm uppercase"
               />
 
@@ -209,16 +256,17 @@ export function AppSumoRedemptionCard({
                 )}
 
                 {redeeming
-                  ? "Upgrading..."
-                  : "Upgrade tier"}
+                  ? "Redeeming..."
+                  : "Redeem code"}
               </button>
             </form>
           </div>
         )}
 
-        {subscription.appSumoTier ===
-          "TIER_3" && (
+        {redeemedCodeCount ===
+          APP_SUMO_MAX_CODES && (
           <div className="mt-5 border-t border-emerald-400/10 pt-4 text-xs text-emerald-300/80">
+            3 of 3 codes active.
             Highest AppSumo tier
             active.
           </div>
@@ -234,60 +282,54 @@ export function AppSumoRedemptionCard({
           </div>
         )}
 
-          {entitlements && (
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              {/* <Entitlement
-                label="Team members"
-                value={String(
-                  entitlements
-                    .maxMembers,
-                )}
-              /> */}
+        {entitlements && (
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {/* Team member usage will be shown here after Team Members v1. */}
 
-              <Entitlement
-                label="Storage"
-                value={
-                  billing.storageUsage
-                    ? `${formatBytes(
-                        billing
-                          .storageUsage
-                          .usedBytes,
-                      )} of ${formatBytes(
-                        billing
-                          .storageUsage
-                          .limitBytes,
-                      )} used`
-                    : `${formatBytes(
-                        entitlements
-                          .maxStorageBytes,
-                      )} available`
-                }
-                detail={
-                  billing.storageUsage
-                    ? `${formatBytes(
-                        billing
-                          .storageUsage
-                          .remainingBytes,
-                      )} remaining`
-                    : undefined
-                }
-              />
+            <Entitlement
+              label="Storage"
+              value={
+                billing.storageUsage
+                  ? `${formatBytes(
+                      billing
+                        .storageUsage
+                        .usedBytes,
+                    )} of ${formatBytes(
+                      billing
+                        .storageUsage
+                        .limitBytes,
+                    )} used`
+                  : `${formatBytes(
+                      entitlements
+                        .maxStorageBytes,
+                    )} available`
+              }
+              detail={
+                billing.storageUsage
+                  ? `${formatBytes(
+                      billing
+                        .storageUsage
+                        .remainingBytes,
+                    )} remaining`
+                  : undefined
+              }
+            />
 
-              <Entitlement
-                label="Customer emails"
-                value={
-                  customerEmailUsage
-                    ? `${customerEmailUsage.used.toLocaleString()} of ${customerEmailUsage.limit.toLocaleString()} used`
-                    : `${entitlements.monthlyCustomerEmailLimit.toLocaleString()}/month`
-                }
-                detail={
-                  customerEmailUsage
-                    ? `${customerEmailUsage.remaining.toLocaleString()} remaining this month`
-                    : undefined
-                }
-              />
-            </div>
-          )}
+            <Entitlement
+              label="Customer emails"
+              value={
+                customerEmailUsage
+                  ? `${customerEmailUsage.used.toLocaleString()} of ${customerEmailUsage.limit.toLocaleString()} used`
+                  : `${entitlements.monthlyCustomerEmailLimit.toLocaleString()}/month`
+              }
+              detail={
+                customerEmailUsage
+                  ? `${customerEmailUsage.remaining.toLocaleString()} remaining this month`
+                  : undefined
+              }
+            />
+          </div>
+        )}
       </section>
     );
   }
@@ -307,9 +349,11 @@ export function AppSumoRedemptionCard({
           </h3>
 
           <p className="mt-1 text-xs leading-5 text-slate-500">
-            Enter your AppSumo code
-            to activate lifetime
-            access for this workspace.
+            Redeem your first
+            AppSumo code to activate
+            Tier 1 lifetime access.
+            Additional codes unlock
+            up to Tier 3.
           </p>
         </div>
       </div>
@@ -332,7 +376,7 @@ export function AppSumoRedemptionCard({
           autoCapitalize="characters"
           autoComplete="off"
           spellCheck={false}
-          placeholder="QUFO-T1-XXXXXX-XXXXXX"
+          placeholder="QUFO-AS-XXXXXX-XXXXXX"
           className="qufo-input min-w-0 flex-1 font-mono text-sm uppercase"
         />
 

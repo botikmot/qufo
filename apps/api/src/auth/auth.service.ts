@@ -161,15 +161,16 @@ export class AuthService {
 
   async register(dto: RegisterDto) {
     const email = dto.email.trim().toLowerCase();
+
     const name = dto.name.trim();
-    const businessName = dto.businessName.trim();
-    const countryCode = dto.countryCode.trim().toUpperCase();
-    const currency = dto.currency.trim().toUpperCase();
+
+    const invitationToken = dto.invitationToken?.trim() || null;
 
     const existingUser = await this.prisma.user.findUnique({
       where: {
         email,
       },
+
       select: {
         id: true,
       },
@@ -187,6 +188,206 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
 
+    /*
+     * Invitation registration creates only the user and
+     * membership. The pending invitation already reserves
+     * the AppSumo team seat.
+     */
+    if (invitationToken) {
+      const tokenHash = createHash('sha256')
+        .update(invitationToken, 'utf8')
+        .digest('hex');
+
+      const now = new Date();
+
+      const result = await this.prisma.$transaction(async (tx) => {
+        const invitation = await tx.organizationInvitation.findUnique({
+          where: {
+            tokenHash,
+          },
+
+          select: {
+            id: true,
+            organizationId: true,
+            email: true,
+            role: true,
+            status: true,
+            expiresAt: true,
+
+            organization: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                businessType: true,
+                countryCode: true,
+                currency: true,
+                status: true,
+
+                subscription: {
+                  select: {
+                    plan: true,
+                    status: true,
+                    trialStartedAt: true,
+                    trialEndsAt: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        if (!invitation) {
+          throw new BadRequestException('This team invitation is invalid.');
+        }
+
+        if (invitation.status !== 'PENDING' || invitation.expiresAt <= now) {
+          throw new BadRequestException(
+            invitation.expiresAt <= now
+              ? 'This team invitation has expired.'
+              : 'This team invitation is no longer available.',
+          );
+        }
+
+        if (invitation.organization.status !== 'ACTIVE') {
+          throw new BadRequestException(
+            'This organization is currently unavailable.',
+          );
+        }
+
+        if (invitation.email.trim().toLowerCase() !== email) {
+          throw new BadRequestException(
+            'Register using the email address that received this invitation.',
+          );
+        }
+
+        /*
+         * OWNER is never an invitational role. Keep this
+         * defense even though the invitation DTO also blocks it.
+         */
+        if (invitation.role === 'OWNER') {
+          throw new BadRequestException('This team invitation is invalid.');
+        }
+
+        const user = await tx.user.create({
+          data: {
+            name,
+            email,
+            passwordHash,
+          },
+
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            status: true,
+            createdAt: true,
+          },
+        });
+
+        /*
+         * Claim first using status + expiry conditions. If a
+         * concurrent request changed the invitation, throwing
+         * here rolls back the newly created user as well.
+         */
+        const claimed = await tx.organizationInvitation.updateMany({
+          where: {
+            id: invitation.id,
+            status: 'PENDING',
+            expiresAt: {
+              gt: now,
+            },
+          },
+
+          data: {
+            status: 'ACCEPTED',
+            acceptedById: user.id,
+            acceptedAt: now,
+          },
+        });
+
+        if (claimed.count !== 1) {
+          throw new ConflictException(
+            'This team invitation changed while it was being accepted.',
+          );
+        }
+
+        const membership = await tx.organizationMember.create({
+          data: {
+            organizationId: invitation.organizationId,
+            userId: user.id,
+            role: invitation.role,
+            isActive: true,
+          },
+
+          select: {
+            id: true,
+            role: true,
+            joinedAt: true,
+          },
+        });
+
+        await tx.legalConsent.createMany({
+          data: [
+            {
+              userId: user.id,
+              type: LegalConsentType.TERMS_OF_SERVICE,
+              version: LEGAL_VERSIONS.TERMS_OF_SERVICE,
+            },
+            {
+              userId: user.id,
+              type: LegalConsentType.PRIVACY_POLICY,
+              version: LEGAL_VERSIONS.PRIVACY_POLICY,
+            },
+          ],
+        });
+
+        return {
+          user,
+          organization: invitation.organization,
+          membership,
+        };
+      });
+
+      return {
+        message: `QUFO account created and joined ${result.organization.name} successfully.`,
+        joinedViaInvitation: true,
+        user: result.user,
+
+        organization: {
+          id: result.organization.id,
+          name: result.organization.name,
+          slug: result.organization.slug,
+          businessType: result.organization.businessType,
+          countryCode: result.organization.countryCode,
+          currency: result.organization.currency,
+          role: result.membership.role,
+        },
+
+        subscription: {
+          plan: result.organization.subscription?.plan,
+          status: result.organization.subscription?.status,
+          trialStartedAt: result.organization.subscription?.trialStartedAt,
+          trialEndsAt: result.organization.subscription?.trialEndsAt,
+        },
+      };
+    }
+
+    /*
+     * Existing normal owner registration flow.
+     */
+    const businessName = dto.businessName?.trim();
+
+    const countryCode = dto.countryCode?.trim().toUpperCase();
+
+    const currency = dto.currency?.trim().toUpperCase();
+
+    if (!businessName || !countryCode || !currency) {
+      throw new BadRequestException(
+        'Business name, country, and currency are required.',
+      );
+    }
+
     const slug = await this.generateUniqueOrganizationSlug(businessName);
 
     const trialStartedAt = new Date();
@@ -202,6 +403,7 @@ export class AuthService {
           email,
           passwordHash,
         },
+
         select: {
           id: true,
           name: true,
@@ -215,9 +417,7 @@ export class AuthService {
         data: {
           name: businessName,
           slug,
-
           businessType: dto.businessType?.trim() || null,
-
           countryCode,
           currency,
 
@@ -282,7 +482,7 @@ export class AuthService {
 
     return {
       message: 'QUFO account created successfully.',
-
+      joinedViaInvitation: false,
       user: result.user,
 
       organization: {
