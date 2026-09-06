@@ -231,7 +231,7 @@ export function AppSumoRedemptionCard({
                 autoCapitalize="characters"
                 autoComplete="off"
                 spellCheck={false}
-                placeholder="QUFO-AS-XXXXXX-XXXXXX"
+                placeholder="ENTER YOUR APPSUMO CODE"
                 className="qufo-input min-w-0 flex-1 font-mono text-sm uppercase"
               />
 
@@ -283,8 +283,12 @@ export function AppSumoRedemptionCard({
         )}
 
         {entitlements && (
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            {/* Team member usage will be shown here after Team Members v1. */}
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <Entitlement
+              label="Team members"
+              value={`Up to ${entitlements.maxMembers.toLocaleString()} members`}
+              detail="Includes the workspace owner"
+            />
 
             <Entitlement
               label="Storage"
