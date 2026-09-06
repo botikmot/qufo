@@ -36,10 +36,17 @@ import type {
   GoogleAuthResponse,
 } from "@/types/auth";
 
+import {
+  buildAuthUrl,
+  getSafeAuthRedirect,
+} from "@/lib/auth-redirect";
+
 type Props = {
   onError?: (
     message: string | null,
   ) => void;
+
+  nextPath?: string;
 };
 
 const GOOGLE_AUTH_ENABLED =
@@ -49,6 +56,7 @@ const GOOGLE_AUTH_ENABLED =
 
 export function GoogleContinueButton({
   onError,
+  nextPath,
 }: Props) {
   /*
    * Self-hosted deployment:
@@ -64,15 +72,22 @@ export function GoogleContinueButton({
   return (
     <GoogleContinueButtonInner
       onError={onError}
+      nextPath={nextPath}
     />
   );
 }
 
 function GoogleContinueButtonInner({
   onError,
+  nextPath,
 }: Props) {
   const router =
     useRouter();
+
+  const redirectPath =
+    getSafeAuthRedirect(
+      nextPath,
+    );
 
   const [
     loading,
@@ -184,7 +199,10 @@ function GoogleContinueButtonInner({
         });
 
         router.push(
-          "/register/google",
+          buildAuthUrl(
+            "/register/google",
+            redirectPath,
+          ),
         );
 
         return;
@@ -209,7 +227,7 @@ function GoogleContinueButtonInner({
       );
 
       router.replace(
-        "/dashboard",
+        redirectPath,
       );
     } catch (error) {
       onError?.(

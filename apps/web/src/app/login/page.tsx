@@ -2,10 +2,20 @@
 
 import {
   FormEvent,
+  Suspense,
   useState,
 } from "react";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+
+import {
+  LoadingState,
+} from "@/components/shared/loading-state";
+
+import {
+  buildAuthUrl,
+  getSafeAuthRedirect,
+} from "@/lib/auth-redirect";
 
 import { apiFetch } from "@/lib/api";
 import { saveLoginSession } from "@/lib/auth-storage";
@@ -18,7 +28,31 @@ import { GoogleContinueButton } from "@/components/shared/google-continue-button
 const GOOGLE_AUTH_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED !== "false";
 
 export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="qufo-background flex min-h-screen items-center justify-center text-white">
+          <LoadingState label="Loading QUFO..." />
+        </main>
+      }
+    >
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+function LoginPageContent() {
   const router = useRouter();
+
+  const searchParams =
+    useSearchParams();
+
+  const nextPath =
+    getSafeAuthRedirect(
+      searchParams.get(
+        "next",
+      ),
+    );
 
   const [email, setEmail] =
     useState("");
@@ -71,7 +105,7 @@ export default function LoginPage() {
       );
 
       router.push(
-        "/dashboard",
+        nextPath,
       );
     } catch (error) {
       setError(
@@ -116,6 +150,7 @@ export default function LoginPage() {
         {GOOGLE_AUTH_ENABLED && (
           <GoogleContinueButton
             onError={setError}
+            nextPath={nextPath}
           />
         )}
 
@@ -210,7 +245,10 @@ export default function LoginPage() {
         <p className="mt-6 text-center text-sm text-slate-500">
           Don&apos;t have an account?{" "}
           <Link
-            href="/register"
+            href={buildAuthUrl(
+              "/register",
+              nextPath,
+            )}
             className="font-medium text-emerald-300 transition hover:text-emerald-200"
           >
             Create an account

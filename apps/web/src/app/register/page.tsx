@@ -2,12 +2,22 @@
 
 import {
   FormEvent,
+  Suspense,
   useState,
 } from "react";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
+
+import {
+  buildAuthUrl,
+  getSafeAuthRedirect,
+} from "@/lib/auth-redirect";
+
+import {
+  LoadingState,
+} from "@/components/shared/loading-state";
 
 import {
   Building2,
@@ -66,7 +76,32 @@ type RegisterResponse = {
 };
 
 export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="qufo-background flex min-h-screen items-center justify-center text-white">
+          <LoadingState label="Loading QUFO..." />
+        </main>
+      }
+    >
+      <RegisterPageContent />
+    </Suspense>
+  );
+}
+
+
+function RegisterPageContent() {
   const router = useRouter();
+
+  const searchParams =
+    useSearchParams();
+
+  const nextPath =
+    getSafeAuthRedirect(
+      searchParams.get(
+        "next",
+      ),
+    );
 
   const [name, setName] =
     useState("");
@@ -228,7 +263,9 @@ export default function RegisterPage() {
       );
 
       // 5. Go directly to the dashboard
-      router.replace("/dashboard");
+      router.replace(
+        nextPath,
+      );
     } catch (error) {
       setError(
         error instanceof Error
@@ -290,6 +327,7 @@ export default function RegisterPage() {
           {GOOGLE_AUTH_ENABLED && (
             <GoogleContinueButton
               onError={setError}
+              nextPath={nextPath}
             />
           )}
 
@@ -646,7 +684,10 @@ export default function RegisterPage() {
         <p className="mt-6 text-center text-sm text-slate-500">
           Already have an account?{" "}
           <Link
-            href="/login"
+            href={buildAuthUrl(
+              "/login",
+              nextPath,
+            )}
             className="text-emerald-300 transition hover:text-emerald-200"
           >
             Sign in

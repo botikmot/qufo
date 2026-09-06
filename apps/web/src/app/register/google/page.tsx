@@ -2,16 +2,27 @@
 
 import {
   FormEvent,
+  Suspense,
   useEffect,
   useState,
 } from "react";
 
 import {
   useRouter,
+  useSearchParams,
 } from "next/navigation";
 
 import Link from "next/link";
 import Image from "next/image";
+
+import {
+  buildAuthUrl,
+  getSafeAuthRedirect,
+} from "@/lib/auth-redirect";
+
+import {
+  LoadingState,
+} from "@/components/shared/loading-state";
 
 import {
   Building2,
@@ -51,8 +62,32 @@ import {
 } from "@/components/ui/select";
 
 export default function GoogleRegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="qufo-background flex min-h-screen items-center justify-center text-white">
+          <LoadingState label="Loading QUFO..." />
+        </main>
+      }
+    >
+      <GoogleRegisterPageContent />
+    </Suspense>
+  );
+}
+
+function GoogleRegisterPageContent() {
   const router =
     useRouter();
+
+  const searchParams =
+    useSearchParams();
+
+  const nextPath =
+    getSafeAuthRedirect(
+      searchParams.get(
+        "next",
+      ),
+    );
 
   const [
     businessName,
@@ -98,10 +133,13 @@ export default function GoogleRegisterPage() {
 
     if (!pending) {
       router.replace(
-        "/register",
+        buildAuthUrl(
+          "/register",
+          nextPath,
+        ),
       );
     }
-  }, [router]);
+  }, [nextPath, router]);
 
   function handleCountryChange(
     value: string,
@@ -212,7 +250,7 @@ export default function GoogleRegisterPage() {
       clearPendingGoogleRegistration();
 
       router.replace(
-        "/dashboard",
+        nextPath,
       );
     } catch (error) {
       setError(
