@@ -161,6 +161,10 @@ export function LandingFooter() {
                 <img src="https://launchstag.com/badge-dark.svg" alt="Featured on Launchstag" width="198" height="62" />
               </a>
 
+              <a href="https://launchbuck.com/p/qufo" target="_blank" rel="noopener noreferrer">
+                <img src="https://launchbuck.com/badges/card-dark.png" alt="QUFO — Featured on LaunchBuck" width="190" height="58" />
+              </a>
+
             </div>
           </div>
         </div>
