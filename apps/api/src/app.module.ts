@@ -19,6 +19,7 @@ import { UploadsModule } from './uploads/uploads.module';
 import { AppSumoModule } from './appsumo/appsumo.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TeamModule } from './team/team.module';
+import { BusinessProfilesModule } from './business-profiles/business-profiles.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -42,6 +43,7 @@ import { TeamModule } from './team/team.module';
     UploadsModule,
     AppSumoModule,
     TeamModule,
+    BusinessProfilesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

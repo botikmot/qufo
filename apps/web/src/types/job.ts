@@ -86,11 +86,52 @@ export type Job = {
 
   organization: JobOrganization;
 
+  business?: {
+    name: string;
+
+    logoUrl:
+      | string
+      | null;
+
+    email:
+      | string
+      | null;
+
+    phone:
+      | string
+      | null;
+
+    address:
+      | string
+      | null;
+  };
+
   customer: JobCustomer;
 
   quotation?: {
     id: string;
+
     quotationNumber: string;
+
+    businessNameSnapshot?:
+      | string
+      | null;
+
+    businessLogoUrlSnapshot?:
+      | string
+      | null;
+
+    businessEmailSnapshot?:
+      | string
+      | null;
+
+    businessPhoneSnapshot?:
+      | string
+      | null;
+
+    businessAddressSnapshot?:
+      | string
+      | null;
   } | null;
 
   items?: JobItem[];
@@ -123,6 +164,26 @@ export type PublicJobTimelineEntry = {
   createdAt: string;
 };
 
+export type PublicJobBusinessIdentity = {
+  name: string;
+
+  logoUrl:
+    | string
+    | null;
+
+  phone:
+    | string
+    | null;
+
+  email:
+    | string
+    | null;
+
+  address:
+    | string
+    | null;
+};
+
 export type PublicJob = {
   jobNumber: string;
   title: string;
@@ -133,6 +194,8 @@ export type PublicJob = {
   dueDate: string | null;
   completedAt: string | null;
   createdAt: string;
+
+  business?: PublicJobBusinessIdentity;
 
   organization: {
     name: string;

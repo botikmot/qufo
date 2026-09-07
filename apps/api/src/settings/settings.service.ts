@@ -421,6 +421,7 @@ export class SettingsService {
 
       select: {
         id: true,
+        logoUrl: true,
         logoPublicId: true,
       },
     });
@@ -434,38 +435,91 @@ export class SettingsService {
       organizationId,
     );
 
-    const updated = await this.prisma.organization.update({
-      where: {
-        id: organizationId,
-      },
+    let updated: {
+      logoUrl: string | null;
+      logoPublicId: string | null;
+    };
 
-      data: {
-        logoUrl: uploaded.url,
+    try {
+      updated = await this.prisma.organization.update({
+        where: {
+          id: organizationId,
+        },
 
-        logoPublicId: uploaded.publicId,
-      },
+        data: {
+          logoUrl: uploaded.url,
 
-      select: {
-        logoUrl: true,
-        logoPublicId: true,
-      },
-    });
+          logoPublicId: uploaded.publicId,
+        },
+
+        select: {
+          logoUrl: true,
+          logoPublicId: true,
+        },
+      });
+    } catch (error) {
+      /*
+       * Database update failed.
+       *
+       * The newly uploaded image is not
+       * referenced anywhere yet, so clean
+       * it up to avoid an orphaned asset.
+       */
+      try {
+        await this.uploadsService.deleteImage(uploaded.publicId);
+      } catch {
+        // Preserve the original database error.
+      }
+
+      throw error;
+    }
 
     /*
-     * Only remove previous storage object after
-     * the new upload and database update succeed.
+     * Historical quotation snapshots may
+     * still reference the previous logo URL.
+     *
+     * Only delete the old storage asset when
+     * no quotation snapshot uses it.
      */
+    let oldLogoIsReferenced = true;
+
+    if (organization.logoUrl) {
+      try {
+        const quotation = await this.prisma.quotation.findFirst({
+          where: {
+            organizationId,
+
+            businessLogoUrlSnapshot: organization.logoUrl,
+          },
+
+          select: {
+            id: true,
+          },
+        });
+
+        oldLogoIsReferenced = Boolean(quotation);
+      } catch {
+        /*
+         * If we cannot prove that the old
+         * asset is unused, retain it.
+         */
+        oldLogoIsReferenced = true;
+      }
+    }
+
     if (
       organization.logoPublicId &&
-      organization.logoPublicId !== uploaded.publicId
+      organization.logoPublicId !== uploaded.publicId &&
+      organization.logoUrl &&
+      !oldLogoIsReferenced
     ) {
       try {
         await this.uploadsService.deleteImage(organization.logoPublicId);
       } catch {
         /*
-         * New logo has already been safely stored
-         * and persisted. Cleanup failure should not
-         * make the operation fail.
+         * New logo is already safely stored
+         * and persisted. Cleanup failure
+         * should not fail the operation.
          */
       }
     }
@@ -480,6 +534,7 @@ export class SettingsService {
       },
 
       select: {
+        logoUrl: true,
         logoPublicId: true,
       },
     });
@@ -488,10 +543,13 @@ export class SettingsService {
       throw new NotFoundException('Organization not found');
     }
 
-    if (organization.logoPublicId) {
-      await this.uploadsService.deleteImage(organization.logoPublicId);
-    }
-
+    /*
+     * Clear the active Main Business logo
+     * first.
+     *
+     * Historical quotation snapshots keep
+     * their own old URL.
+     */
     await this.prisma.organization.update({
       where: {
         id: organizationId,
@@ -502,6 +560,54 @@ export class SettingsService {
         logoPublicId: null,
       },
     });
+
+    /*
+     * Retain the physical image whenever an
+     * historical quotation snapshot still
+     * references the old URL.
+     */
+    let oldLogoIsReferenced = true;
+
+    if (organization.logoUrl) {
+      try {
+        const quotation = await this.prisma.quotation.findFirst({
+          where: {
+            organizationId,
+
+            businessLogoUrlSnapshot: organization.logoUrl,
+          },
+
+          select: {
+            id: true,
+          },
+        });
+
+        oldLogoIsReferenced = Boolean(quotation);
+      } catch {
+        /*
+         * Storage cleanup is optional.
+         * When uncertain, preserving the
+         * historical asset is safer.
+         */
+        oldLogoIsReferenced = true;
+      }
+    }
+
+    if (
+      organization.logoPublicId &&
+      organization.logoUrl &&
+      !oldLogoIsReferenced
+    ) {
+      try {
+        await this.uploadsService.deleteImage(organization.logoPublicId);
+      } catch {
+        /*
+         * DB state has already been updated.
+         * Cleanup failure should not fail
+         * the operation.
+         */
+      }
+    }
 
     return {
       removed: true,

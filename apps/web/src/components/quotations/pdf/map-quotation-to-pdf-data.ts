@@ -9,6 +9,55 @@ import type {
 export function mapQuotationToPdfData(
   quotation: QuotationDetail,
 ): QuotationPdfData {
+
+  const snapshotBusinessName =
+    quotation.businessNameSnapshot;
+
+  const business:
+    QuotationPdfData["business"] =
+    snapshotBusinessName !== null &&
+    snapshotBusinessName !== undefined
+      ? {
+          name:
+            snapshotBusinessName,
+
+          logoUrl:
+            quotation.businessLogoUrlSnapshot ??
+            null,
+
+          address:
+            quotation.businessAddressSnapshot ??
+            null,
+
+          email:
+            quotation.businessEmailSnapshot ??
+            null,
+
+          phone:
+            quotation.businessPhoneSnapshot ??
+            null,
+        }
+      : {
+          name:
+            quotation.organization.name,
+
+          logoUrl:
+            quotation.organization.logoUrl ??
+            null,
+
+          address:
+            quotation.organization.address ??
+            null,
+
+          email:
+            quotation.organization.email ??
+            null,
+
+          phone:
+            quotation.organization.phone ??
+            null,
+        };
+
   return {
     quotationNumber:
       quotation.quotationNumber,
@@ -26,27 +75,7 @@ export function mapQuotationToPdfData(
     currency:
       quotation.currency,
 
-    business: {
-      name:
-        quotation.organization
-          .name,
-
-      logoUrl:
-        quotation.organization
-          .logoUrl,
-
-      address:
-        quotation.organization
-          .address,
-
-      email:
-        quotation.organization
-          .email,
-
-      phone:
-        quotation.organization
-          .phone,
-    },
+    business,
 
     customer: {
       name:

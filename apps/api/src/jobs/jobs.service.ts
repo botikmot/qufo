@@ -439,6 +439,11 @@ export class JobsService {
             status: true,
 
             approvedAt: true,
+            businessNameSnapshot: true,
+            businessLogoUrlSnapshot: true,
+            businessEmailSnapshot: true,
+            businessPhoneSnapshot: true,
+            businessAddressSnapshot: true,
           },
         },
 
@@ -659,6 +664,13 @@ export class JobsService {
             },
           },
 
+          quotation: {
+            select: {
+              businessNameSnapshot: true,
+              businessLogoUrlSnapshot: true,
+            },
+          },
+
           updates: {
             orderBy: {
               createdAt: 'asc',
@@ -688,6 +700,17 @@ export class JobsService {
         },
       };
     });
+
+    const hasBusinessSnapshot =
+      result.job.quotation.businessNameSnapshot !== null;
+
+    const businessName = hasBusinessSnapshot
+      ? result.job.quotation.businessNameSnapshot
+      : result.job.organization.name;
+
+    const businessLogoUrl = hasBusinessSnapshot
+      ? result.job.quotation.businessLogoUrlSnapshot
+      : result.job.organization.logoUrl;
 
     /*
      * IMPORTANT:
@@ -726,8 +749,9 @@ export class JobsService {
           result.job.customer.name ??
           'Customer',
 
-        businessName: result.job.organization.name ?? 'QUFO',
-        businessLogoUrl: result.job.organization.logoUrl ?? null,
+        businessName: businessName ?? 'QUFO',
+
+        businessLogoUrl: businessLogoUrl ?? null,
 
         jobNumber: result.job.jobNumber,
 
@@ -947,6 +971,19 @@ export class JobsService {
             address: true,
           },
         },
+        quotation: {
+          select: {
+            businessNameSnapshot: true,
+
+            businessLogoUrlSnapshot: true,
+
+            businessPhoneSnapshot: true,
+
+            businessEmailSnapshot: true,
+
+            businessAddressSnapshot: true,
+          },
+        },
 
         customer: {
           select: {
@@ -991,6 +1028,23 @@ export class JobsService {
       throw new NotFoundException('Job tracking information not found.');
     }
 
+    const snapshotBusinessName = job.quotation.businessNameSnapshot;
+
+    const business =
+      snapshotBusinessName !== null
+        ? {
+            name: snapshotBusinessName,
+
+            logoUrl: job.quotation.businessLogoUrlSnapshot,
+
+            phone: job.quotation.businessPhoneSnapshot,
+
+            email: job.quotation.businessEmailSnapshot,
+
+            address: job.quotation.businessAddressSnapshot,
+          }
+        : job.organization;
+
     return {
       jobNumber: job.jobNumber,
 
@@ -1005,6 +1059,8 @@ export class JobsService {
       completedAt: job.completedAt,
 
       createdAt: job.createdAt,
+
+      business,
 
       organization: job.organization,
 

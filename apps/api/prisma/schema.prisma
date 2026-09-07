@@ -262,6 +262,8 @@ model Organization {
   jobs                 Job[]
   payments             Payment[]
 
+  businessProfiles BusinessProfile[]
+
   customerEmailUsages OrganizationEmailUsage[]
   storageUsage        OrganizationStorageUsage?
   storedAssets        OrganizationStoredAsset[]
@@ -271,6 +273,42 @@ model Organization {
 
   @@index([slug])
   @@index([status])
+}
+
+model BusinessProfile {
+  id String @id @default(cuid())
+
+  organizationId String
+
+  // Example:
+  // label = "Downtown Branch"
+  // name  = "ABC Printing Services"
+  label String
+  name  String
+
+  email   String?
+  phone   String?
+  address String?
+
+  logoUrl      String?
+  logoPublicId String?
+
+  quotationTerms      String? @db.Text
+  quotationFooterNote String? @db.Text
+
+  isDefault Boolean @default(false)
+  isActive  Boolean @default(true)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  quotations Quotation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([organizationId, isActive])
+  @@index([organizationId, isDefault])
 }
 
 // ======================================================
@@ -553,15 +591,27 @@ model Quotation {
   taxAmount      Decimal      @default(0) @db.Decimal(14, 2)
   total          Decimal      @default(0) @db.Decimal(14, 2)
 
+  businessProfileId String?
+
+  businessNameSnapshot    String?
+  businessEmailSnapshot   String?
+  businessPhoneSnapshot   String?
+  businessAddressSnapshot String?
+  businessLogoUrlSnapshot String?
+
+  businessTermsSnapshot      String? @db.Text
+  businessFooterNoteSnapshot String? @db.Text
+
   notes      String?
   terms      String?
   footerNote String? @db.Text
 
   job Job?
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  customer     Customer     @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  createdBy    User         @relation("QuotationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  businessProfile BusinessProfile? @relation(fields: [businessProfileId], references: [id], onDelete: SetNull)
+  customer        Customer         @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  createdBy       User             @relation("QuotationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
 
   items QuotationItem[]
 
@@ -582,6 +632,7 @@ model Quotation {
   @@index([organizationId, customerId])
   @@index([createdById])
   @@index([issueDate])
+  @@index([businessProfileId])
 }
 
 model QuotationItem {

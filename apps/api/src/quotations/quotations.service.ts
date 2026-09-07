@@ -253,6 +253,11 @@ export class QuotationsService {
         },
         select: {
           id: true,
+          name: true,
+          email: true,
+          phone: true,
+          address: true,
+          logoUrl: true,
           currency: true,
           quotationTerms: true,
           quotationFooterNote: true,
@@ -262,6 +267,79 @@ export class QuotationsService {
       if (!organization) {
         throw new NotFoundException('Organization not found.');
       }
+
+      const businessProfile = dto.businessProfileId
+        ? await tx.businessProfile.findFirst({
+            where: {
+              id: dto.businessProfileId,
+
+              organizationId: tenant.organizationId,
+
+              /*
+               * Archived profiles cannot be
+               * selected for new quotations.
+               */
+              isActive: true,
+            },
+
+            select: {
+              id: true,
+
+              name: true,
+              email: true,
+              phone: true,
+              address: true,
+              logoUrl: true,
+
+              quotationTerms: true,
+              quotationFooterNote: true,
+            },
+          })
+        : null;
+
+      if (dto.businessProfileId && !businessProfile) {
+        throw new NotFoundException('Business profile not found.');
+      }
+
+      const businessIdentity = businessProfile
+        ? {
+            id: businessProfile.id,
+
+            name: businessProfile.name,
+            email: businessProfile.email,
+            phone: businessProfile.phone,
+            address: businessProfile.address,
+            logoUrl: businessProfile.logoUrl,
+
+            quotationTerms: businessProfile.quotationTerms,
+
+            quotationFooterNote: businessProfile.quotationFooterNote,
+          }
+        : {
+            /*
+             * Existing Organization remains
+             * the Main Business fallback.
+             */
+            id: null,
+
+            name: organization.name,
+            email: organization.email,
+            phone: organization.phone,
+            address: organization.address,
+            logoUrl: organization.logoUrl,
+
+            quotationTerms: organization.quotationTerms,
+
+            quotationFooterNote: organization.quotationFooterNote,
+          };
+
+      const resolvedTerms =
+        dto.terms?.trim() || businessIdentity.quotationTerms?.trim() || null;
+
+      const resolvedFooterNote =
+        dto.footerNote?.trim() ||
+        businessIdentity.quotationFooterNote?.trim() ||
+        null;
 
       const sequence = await tx.organizationSequence.upsert({
         where: {
@@ -293,6 +371,8 @@ export class QuotationsService {
         data: {
           organizationId: tenant.organizationId,
 
+          businessProfileId: businessIdentity.id,
+
           customerId: dto.customerId,
 
           createdById: user.sub,
@@ -300,6 +380,27 @@ export class QuotationsService {
           quotationNumber,
 
           currency: organization.currency,
+
+          /*
+           * Snapshot the selected business
+           * identity at quotation creation.
+           *
+           * Future edits to the Business Profile
+           * must NOT change this quotation.
+           */
+          businessNameSnapshot: businessIdentity.name,
+
+          businessEmailSnapshot: businessIdentity.email,
+
+          businessPhoneSnapshot: businessIdentity.phone,
+
+          businessAddressSnapshot: businessIdentity.address,
+
+          businessLogoUrlSnapshot: businessIdentity.logoUrl,
+
+          businessTermsSnapshot: businessIdentity.quotationTerms,
+
+          businessFooterNoteSnapshot: businessIdentity.quotationFooterNote,
 
           validUntil: dto.validUntil ? new Date(dto.validUntil) : null,
 
@@ -319,13 +420,9 @@ export class QuotationsService {
 
           notes: dto.notes?.trim() || null,
 
-          terms:
-            dto.terms?.trim() || organization.quotationTerms?.trim() || null,
+          terms: resolvedTerms,
 
-          footerNote:
-            dto.footerNote?.trim() ||
-            organization.quotationFooterNote?.trim() ||
-            null,
+          footerNote: resolvedFooterNote,
 
           items: {
             create: dto.items.map((item, index) => {
@@ -687,6 +784,117 @@ export class QuotationsService {
       taxRate,
     });
 
+    let businessIdentity:
+      | {
+          id: string | null;
+
+          name: string;
+          email: string | null;
+          phone: string | null;
+          address: string | null;
+          logoUrl: string | null;
+
+          quotationTerms: string | null;
+
+          quotationFooterNote: string | null;
+        }
+      | undefined;
+
+    /*
+     * Only resolve the business identity
+     * when the user actually changed
+     * businessProfileId.
+     *
+     * undefined = don't change business
+     * null      = Main Business
+     * string    = Business Profile
+     */
+    if (dto.businessProfileId !== undefined) {
+      if (dto.businessProfileId) {
+        const profile = await this.prisma.businessProfile.findFirst({
+          where: {
+            id: dto.businessProfileId,
+
+            organizationId: tenant.organizationId,
+
+            isActive: true,
+          },
+
+          select: {
+            id: true,
+
+            name: true,
+            email: true,
+            phone: true,
+            address: true,
+            logoUrl: true,
+
+            quotationTerms: true,
+            quotationFooterNote: true,
+          },
+        });
+
+        if (!profile) {
+          throw new NotFoundException('Business profile not found.');
+        }
+
+        businessIdentity = {
+          id: profile.id,
+
+          name: profile.name,
+          email: profile.email,
+          phone: profile.phone,
+          address: profile.address,
+          logoUrl: profile.logoUrl,
+
+          quotationTerms: profile.quotationTerms,
+
+          quotationFooterNote: profile.quotationFooterNote,
+        };
+      } else {
+        /*
+         * Explicit null means:
+         * switch back to Main Business.
+         */
+        const organization = await this.prisma.organization.findUnique({
+          where: {
+            id: tenant.organizationId,
+          },
+
+          select: {
+            id: true,
+
+            name: true,
+            email: true,
+            phone: true,
+            address: true,
+            logoUrl: true,
+
+            quotationTerms: true,
+            quotationFooterNote: true,
+          },
+        });
+
+        if (!organization) {
+          throw new NotFoundException('Organization not found.');
+        }
+
+        businessIdentity = {
+          id: null,
+
+          name: organization.name,
+          email: organization.email,
+          phone: organization.phone,
+          address: organization.address,
+          logoUrl: organization.logoUrl,
+
+          quotationTerms: organization.quotationTerms,
+
+          quotationFooterNote: organization.quotationFooterNote,
+        };
+      }
+    }
+
     /*
      * Complete the database update first.
      */
@@ -705,6 +913,27 @@ export class QuotationsService {
         },
 
         data: {
+          ...(businessIdentity !== undefined
+            ? {
+                businessProfileId: businessIdentity.id,
+
+                businessNameSnapshot: businessIdentity.name,
+
+                businessEmailSnapshot: businessIdentity.email,
+
+                businessPhoneSnapshot: businessIdentity.phone,
+
+                businessAddressSnapshot: businessIdentity.address,
+
+                businessLogoUrlSnapshot: businessIdentity.logoUrl,
+
+                businessTermsSnapshot: businessIdentity.quotationTerms,
+
+                businessFooterNoteSnapshot:
+                  businessIdentity.quotationFooterNote,
+              }
+            : {}),
+
           ...(dto.customerId !== undefined && {
             customerId: dto.customerId,
           }),
@@ -733,13 +962,35 @@ export class QuotationsService {
             notes: dto.notes.trim() || null,
           }),
 
-          ...(dto.terms !== undefined && {
-            terms: dto.terms.trim() || null,
-          }),
+          ...(dto.terms !== undefined
+            ? {
+                /*
+                 * User explicitly edited terms:
+                 * respect their value.
+                 */
+                terms: dto.terms.trim() || null,
+              }
+            : businessIdentity !== undefined
+              ? {
+                  /*
+                   * Business changed but terms
+                   * weren't explicitly supplied:
+                   * use the new business default.
+                   */
+                  terms: businessIdentity.quotationTerms?.trim() || null,
+                }
+              : {}),
 
-          ...(dto.footerNote !== undefined && {
-            footerNote: dto.footerNote.trim() || null,
-          }),
+          ...(dto.footerNote !== undefined
+            ? {
+                footerNote: dto.footerNote.trim() || null,
+              }
+            : businessIdentity !== undefined
+              ? {
+                  footerNote:
+                    businessIdentity.quotationFooterNote?.trim() || null,
+                }
+              : {}),
 
           ...(dto.items
             ? {
@@ -900,6 +1151,9 @@ export class QuotationsService {
         status: true,
         validUntil: true,
 
+        businessNameSnapshot: true,
+        businessLogoUrlSnapshot: true,
+
         customer: {
           select: {
             name: true,
@@ -928,6 +1182,30 @@ export class QuotationsService {
     if (quotation.validUntil && quotation.validUntil < new Date()) {
       throw new BadRequestException('This quotation has already expired.');
     }
+
+    /*
+     * New quotations use the business
+     * identity snapshot.
+     *
+     * Old quotations fall back to the
+     * Organization.
+     *
+     * IMPORTANT:
+     * Once a quotation has a business
+     * snapshot, nullable fields such as
+     * logo must stay null. Do not fall
+     * back individual snapshot fields
+     * to the Main Business.
+     */
+    const hasBusinessSnapshot = quotation.businessNameSnapshot !== null;
+
+    const businessName = hasBusinessSnapshot
+      ? quotation.businessNameSnapshot
+      : quotation.organization.name;
+
+    const businessLogoUrl = hasBusinessSnapshot
+      ? quotation.businessLogoUrlSnapshot
+      : quotation.organization.logoUrl;
 
     const token = randomBytes(32).toString('base64url');
 
@@ -978,9 +1256,9 @@ export class QuotationsService {
 
         customerName: quotation.customer.name ?? 'Customer',
 
-        businessName: quotation.organization.name ?? 'QUFO',
+        businessName: businessName ?? 'QUFO',
 
-        businessLogoUrl: quotation.organization.logoUrl ?? null,
+        businessLogoUrl: businessLogoUrl ?? null,
 
         quotationNumber: updated.quotationNumber,
 
@@ -1143,6 +1421,33 @@ export class QuotationsService {
       });
     }
 
+    /*
+     * New quotations have a business
+     * identity snapshot.
+     *
+     * Old quotations do not, so they
+     * continue using Organization.
+     *
+     * IMPORTANT:
+     * Do not fallback individual fields.
+     * A Business Profile may intentionally
+     * have no logo/email/phone/address.
+     */
+    const business =
+      quotation.businessNameSnapshot !== null
+        ? {
+            name: quotation.businessNameSnapshot,
+
+            logoUrl: quotation.businessLogoUrlSnapshot,
+
+            phone: quotation.businessPhoneSnapshot,
+
+            email: quotation.businessEmailSnapshot,
+
+            address: quotation.businessAddressSnapshot,
+          }
+        : quotation.organization;
+
     return {
       quotationNumber: quotation.quotationNumber,
 
@@ -1153,6 +1458,8 @@ export class QuotationsService {
       issueDate: quotation.issueDate,
 
       validUntil: quotation.validUntil,
+
+      business,
 
       organization: quotation.organization,
 
@@ -1235,6 +1542,11 @@ export class QuotationsService {
         approvedAt: true,
 
         customerResponseNote: true,
+        businessNameSnapshot: true,
+        businessLogoUrlSnapshot: true,
+        businessAddressSnapshot: true,
+        businessEmailSnapshot: true,
+        businessPhoneSnapshot: true,
 
         customer: {
           select: {
@@ -1379,6 +1691,34 @@ export class QuotationsService {
           return null;
         }
 
+        const hasBusinessSnapshot =
+          updated.businessNameSnapshot !== null &&
+          updated.businessNameSnapshot !== undefined;
+
+        const business = hasBusinessSnapshot
+          ? {
+              name: updated.businessNameSnapshot,
+
+              logoUrl: updated.businessLogoUrlSnapshot,
+
+              address: updated.businessAddressSnapshot,
+
+              email: updated.businessEmailSnapshot,
+
+              phone: updated.businessPhoneSnapshot,
+            }
+          : {
+              name: updated.organization.name,
+
+              logoUrl: updated.organization.logoUrl,
+
+              address: updated.organization.address,
+
+              email: updated.organization.email,
+
+              phone: updated.organization.phone,
+            };
+
         /*
          * Return only the customer-safe
          * data needed by the web app to
@@ -1408,17 +1748,7 @@ export class QuotationsService {
 
             currency: job.currency,
 
-            business: {
-              name: updated.organization.name,
-
-              logoUrl: updated.organization.logoUrl,
-
-              address: updated.organization.address,
-
-              email: updated.organization.email,
-
-              phone: updated.organization.phone,
-            },
+            business,
 
             customer: {
               name: job.customer.name,
@@ -2098,6 +2428,22 @@ export class QuotationsService {
         data: {
           organizationId: tenant.organizationId,
 
+          businessProfileId: quotation.businessProfileId,
+
+          businessNameSnapshot: quotation.businessNameSnapshot,
+
+          businessEmailSnapshot: quotation.businessEmailSnapshot,
+
+          businessPhoneSnapshot: quotation.businessPhoneSnapshot,
+
+          businessAddressSnapshot: quotation.businessAddressSnapshot,
+
+          businessLogoUrlSnapshot: quotation.businessLogoUrlSnapshot,
+
+          businessTermsSnapshot: quotation.businessTermsSnapshot,
+
+          businessFooterNoteSnapshot: quotation.businessFooterNoteSnapshot,
+
           customerId: quotation.customerId,
 
           createdById: user.sub,
@@ -2312,6 +2658,8 @@ export class QuotationsService {
             customerEmailNotificationsEnabled: true,
           },
         },
+        businessNameSnapshot: true,
+        businessLogoUrlSnapshot: true,
 
         customer: {
           select: {
@@ -2393,6 +2741,19 @@ export class QuotationsService {
       };
     }
 
+    const snapshotBusinessName = quotation.businessNameSnapshot;
+
+    const hasBusinessSnapshot =
+      snapshotBusinessName !== null && snapshotBusinessName !== undefined;
+
+    const businessName = hasBusinessSnapshot
+      ? snapshotBusinessName
+      : quotation.organization.name;
+
+    const businessLogoUrl = hasBusinessSnapshot
+      ? quotation.businessLogoUrlSnapshot
+      : quotation.organization.logoUrl;
+
     /*
      * This restores the existing
      * tracking URL when one already
@@ -2410,9 +2771,9 @@ export class QuotationsService {
 
       customerName: quotation.customer.name,
 
-      businessName: quotation.organization.name,
+      businessName: businessName ?? 'QUFO',
 
-      businessLogoUrl: quotation.organization.logoUrl,
+      businessLogoUrl: businessLogoUrl ?? null,
 
       jobNumber: quotation.job.jobNumber,
 

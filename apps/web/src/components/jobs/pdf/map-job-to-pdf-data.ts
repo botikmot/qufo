@@ -19,6 +19,61 @@ export function mapJobToPdfData(
     qrCodeDataUrl,
   }: MapJobToPdfDataOptions,
 ): JobPdfData {
+
+  console.log('Job PDF:', job)
+
+  const snapshotBusinessName =
+    job.quotation?.businessNameSnapshot;
+
+  const hasBusinessSnapshot =
+    snapshotBusinessName !== null &&
+    snapshotBusinessName !== undefined;
+
+  const business: JobPdfData["business"] =
+    hasBusinessSnapshot
+      ? {
+          name:
+            snapshotBusinessName,
+
+          logoUrl:
+            job.quotation
+              ?.businessLogoUrlSnapshot ??
+            null,
+
+          address:
+            job.quotation
+              ?.businessAddressSnapshot ??
+            null,
+
+          email:
+            job.quotation
+              ?.businessEmailSnapshot ??
+            null,
+
+          phone:
+            job.quotation
+              ?.businessPhoneSnapshot ??
+            null,
+        }
+      : {
+          name:
+            job.organization.name,
+
+          logoUrl:
+            job.organization.logoUrl,
+
+          address:
+            job.organization.address,
+
+          email:
+            job.organization.email,
+
+          phone:
+            job.organization.phone,
+        };
+
+
+
   return {
     jobNumber:
       job.jobNumber,
@@ -49,22 +104,7 @@ export function mapJobToPdfData(
     currency:
       job.currency,
 
-    business: {
-      name:
-        job.organization.name,
-
-      logoUrl:
-        job.organization.logoUrl,
-
-      address:
-        job.organization.address,
-
-      email:
-        job.organization.email,
-
-      phone:
-        job.organization.phone,
-    },
+    business,
 
     customer: {
       name:

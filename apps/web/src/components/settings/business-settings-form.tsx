@@ -277,8 +277,6 @@ export function BusinessSettingsForm({
     });
   }
 
-  console.log('settings:', settings)
-
   const formSaving =
     saving ||
     savingSignature;

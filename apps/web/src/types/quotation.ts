@@ -77,6 +77,38 @@ export type Quotation = {
 
   quotationNumber: string;
 
+  businessProfileId:
+    | string
+    | null;
+
+  businessNameSnapshot:
+    | string
+    | null;
+
+  businessEmailSnapshot:
+    | string
+    | null;
+
+  businessPhoneSnapshot:
+    | string
+    | null;
+
+  businessAddressSnapshot:
+    | string
+    | null;
+
+  businessLogoUrlSnapshot:
+    | string
+    | null;
+
+  businessTermsSnapshot:
+    | string
+    | null;
+
+  businessFooterNoteSnapshot:
+    | string
+    | null;
+
   status:
     QuotationStatus;
 
@@ -203,6 +235,8 @@ export type QuotationFormData = {
 export type PublicQuotation = {
   quotationNumber: string;
   status: QuotationStatus;
+
+  business?: QuotationBusinessIdentity;
 
   revisionInfo: PublicQuotationRevisionInfo;
 
@@ -368,3 +402,24 @@ export type WarrantyUnit =
   | "WEEKS"
   | "MONTHS"
   | "YEARS";
+
+
+export type QuotationBusinessIdentity = {
+  name: string;
+
+  logoUrl:
+    | string
+    | null;
+
+  phone:
+    | string
+    | null;
+
+  email:
+    | string
+    | null;
+
+  address:
+    | string
+    | null;
+};

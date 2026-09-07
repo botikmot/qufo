@@ -49,13 +49,28 @@ import type {
   QuotationFormPayload,
 } from "@/types/quotation-form";
 
+import type {
+  BusinessProfilesResponse,
+} from "@/types/business-profile";
+
 import { settingsService } from "@/services/settings.service";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 import { uploadsService } from "@/services/uploads.service";
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
+
 type QuotationFormModalProps = {
   customers: Customer[];
+
+  businessProfiles:
+    | BusinessProfilesResponse
+    | null;
 
   quotation?: Quotation | null;
 
@@ -68,21 +83,121 @@ type QuotationFormModalProps = {
   ) => Promise<void>;
 };
 
+const MAIN_BUSINESS_VALUE = "__MAIN_BUSINESS__";
+
 export function QuotationFormModal({
   customers,
+  businessProfiles,
   quotation,
   loading = false,
   onClose,
   onSubmit,
 }: QuotationFormModalProps) {
+  
+  const editing =
+    Boolean(quotation);
+
+  const [
+    businessSelection,
+    setBusinessSelection,
+  ] = useState<{
+    contextKey: string;
+    value: string;
+  } | null>(null);
+
+  /*
+  * A different quotation means
+  * a different selection context.
+  */
+  const businessContextKey =
+    quotation?.id ??
+    "__NEW_QUOTATION__";
+
+  /*
+  * EDIT / REVISION
+  * → preserve saved business.
+  *
+  * CREATE
+  * → use configured default profile.
+  *
+  * No profile default
+  * → Main Business.
+  */
+  const defaultBusinessValue =
+    quotation?.businessProfileId ??
+    businessProfiles?.profiles.find(
+      (profile) =>
+        profile.isDefault,
+    )?.id ??
+    MAIN_BUSINESS_VALUE;
+
+  /*
+  * Manual user selection wins.
+  *
+  * Otherwise we simply derive the
+  * value above — no Effect needed.
+  */
+  const selectedBusinessValue =
+    businessSelection?.contextKey ===
+    businessContextKey
+      ? businessSelection.value
+      : defaultBusinessValue;
+
+  const selectedBusinessProfile =
+    selectedBusinessValue ===
+    MAIN_BUSINESS_VALUE
+      ? undefined
+      : businessProfiles?.profiles.find(
+          (profile) =>
+            profile.id ===
+            selectedBusinessValue,
+        );
+
+  const selectedBusinessLabel =
+    selectedBusinessValue ===
+    MAIN_BUSINESS_VALUE
+      ? businessProfiles
+        ? `${businessProfiles.mainBusiness.label} — ${businessProfiles.mainBusiness.name}`
+        : "Main Business"
+      : selectedBusinessProfile
+        ? `${selectedBusinessProfile.label} — ${selectedBusinessProfile.name}`
+        : quotation?.businessNameSnapshot ??
+          "Select business or store";
+
+  const selectedBusinessProfileId =
+    selectedBusinessValue ===
+    MAIN_BUSINESS_VALUE
+      ? null
+      : selectedBusinessValue;
+
+  const handleQuotationSubmit =
+    useCallback(
+      async (
+        data: QuotationFormPayload,
+      ) => {
+        await onSubmit({
+          ...data,
+
+          businessProfileId: selectedBusinessProfileId,
+
+        });
+      },
+      [
+        onSubmit,
+        selectedBusinessProfileId,
+      ],
+    );
+
   const form =
     useQuotationForm({
       quotation,
-      onSubmit,
-    });
 
-  const editing =
-    Boolean(quotation);
+      businessProfileId:
+        selectedBusinessProfileId,
+
+      onSubmit:
+        handleQuotationSubmit,
+    });
 
   const [
     uploadingImageKey,
@@ -95,21 +210,19 @@ export function QuotationFormModal({
   ] = useState("PHP");
 
   useEffect(() => {
+    /*
+    * Editing quotations already use
+    * their saved currency below.
+    *
+    * No state update needed here.
+    */
+    if (quotation?.currency) {
+      return;
+    }
+
     let cancelled = false;
 
     async function loadOrganizationCurrency() {
-      /*
-      * Existing quotations must always use
-      * their saved currency snapshot.
-      */
-      if (quotation?.currency) {
-        setOrganizationCurrency(
-          quotation.currency,
-        );
-
-        return;
-      }
-
       try {
         const organization =
           await settingsService.getBusiness();
@@ -123,7 +236,7 @@ export function QuotationFormModal({
         );
       } catch {
         /*
-        * Keep PHP as a safe fallback.
+        * Keep PHP as the safe fallback.
         */
       }
     }
@@ -218,6 +331,7 @@ export function QuotationFormModal({
             onClick={onClose}
             disabled={
               loading ||
+              !businessProfiles ||
               Boolean(uploadingImageKey)
             }
             className="
@@ -244,6 +358,7 @@ export function QuotationFormModal({
             form="quotation-form"
             disabled={
               loading ||
+              !businessProfiles ||
               Boolean(uploadingImageKey)
             }
             className="
@@ -301,7 +416,92 @@ export function QuotationFormModal({
         }
         className="min-w-0 space-y-8"
       >
-        <div className="grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2">
+        <div className="grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+
+          <div className="min-w-0">
+            <label
+              htmlFor="quotation-business"
+              className="mb-2 block text-sm font-medium text-slate-300"
+            >
+              Business / Store
+              <span className="text-red-300">
+                {" *"}
+              </span>
+            </label>
+
+            <Select
+              value={
+                selectedBusinessValue
+              }
+              disabled={
+                loading ||
+                !businessProfiles
+              }
+              onValueChange={(value) => {
+                if (value === null) {
+                  return;
+                }
+
+                setBusinessSelection({
+                  contextKey:
+                    businessContextKey,
+
+                  value,
+                });
+              }}
+            >
+              <SelectTrigger
+                id="quotation-business"
+                className="w-full"
+              >
+                <span className="truncate">
+                  {selectedBusinessLabel}
+                </span>
+              </SelectTrigger>
+
+              <SelectContent>
+                {businessProfiles && (
+                  <>
+                    <SelectItem
+                      value={
+                        MAIN_BUSINESS_VALUE
+                      }
+                    >
+                      {businessProfiles
+                        .mainBusiness.label}
+                      {" — "}
+                      {businessProfiles
+                        .mainBusiness.name}
+
+                      {businessProfiles
+                        .mainBusiness
+                        .isDefault
+                        ? " · Default"
+                        : ""}
+                    </SelectItem>
+
+                    {businessProfiles.profiles.map(
+                      (profile) => (
+                        <SelectItem
+                          key={profile.id}
+                          value={profile.id}
+                        >
+                          {profile.label}
+                          {" — "}
+                          {profile.name}
+
+                          {profile.isDefault
+                            ? " · Default"
+                            : ""}
+                        </SelectItem>
+                      ),
+                    )}
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
           <QuotationFormCustomer
             customers={
               customers

@@ -4,6 +4,10 @@ import { BusinessSettingsForm } from '@/components/settings/business-settings-fo
 
 import { useBusinessSettings } from '@/hooks/use-business-settings';
 
+import {
+  BusinessProfilesSection,
+} from "@/components/settings/business-profiles-section";
+
 export function BusinessSettingsTab() {
   const business = useBusinessSettings();
 
@@ -24,23 +28,39 @@ export function BusinessSettingsTab() {
   }
 
   return (
-    <BusinessSettingsForm
-      key={business.settings.updatedAt}
-      settings={business.settings}
-      saving={business.saving}
-      uploadingLogo={business.uploadingLogo}
-      removingLogo={business.removingLogo}
-      error={business.error}
-      success={business.success}
-      onSave={business.update}
-      onUploadLogo={business.uploadLogo}
-      onRemoveLogo={business.removeLogo}
-      uploadingSignature={business.uploadingSignature}
-      removingSignature={business.removingSignature}
-      savingSignature={business.savingSignature}
-      onUploadSignature={business.uploadSignature}
-      onRemoveSignature={business.removeSignature}
-      onSaveSignature={business.updateSignature}
-    />
+    <div>
+      <BusinessSettingsForm
+        key={business.settings.updatedAt}
+        settings={business.settings}
+        saving={business.saving}
+        uploadingLogo={business.uploadingLogo}
+        removingLogo={business.removingLogo}
+        error={business.error}
+        success={business.success}
+        onSave={business.update}
+        onUploadLogo={business.uploadLogo}
+        onRemoveLogo={business.removeLogo}
+        uploadingSignature={
+          business.uploadingSignature
+        }
+        removingSignature={
+          business.removingSignature
+        }
+        savingSignature={
+          business.savingSignature
+        }
+        onUploadSignature={
+          business.uploadSignature
+        }
+        onRemoveSignature={
+          business.removeSignature
+        }
+        onSaveSignature={
+          business.updateSignature
+        }
+      />
+
+      <BusinessProfilesSection />
+    </div>
   );
 }

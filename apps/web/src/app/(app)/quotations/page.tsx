@@ -213,6 +213,9 @@ export default function QuotationsPage() {
           customers={
             quotations.customers
           }
+          businessProfiles={
+            quotations.businessProfiles
+          }
           quotation={
             quotations.editingQuotation
           }

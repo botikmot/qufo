@@ -44,6 +44,10 @@ import type {
 
 import { generateQuotationPdfBlob } from "@/components/quotations/pdf/generate-quotation-pdf";
 
+import { businessProfilesService } from "@/services/business-profiles.service";
+
+import type { BusinessProfilesResponse } from "@/types/business-profile";
+
 
 export function useQuotations() {
   const [
@@ -130,6 +134,14 @@ export function useQuotations() {
     useState<Customer[]>([]);
 
   const [
+    businessProfiles,
+    setBusinessProfiles,
+  ] =
+    useState<BusinessProfilesResponse | null>(
+      null,
+    );
+
+  const [
     sentQuotationUrl,
     setSentQuotationUrl,
   ] =
@@ -174,11 +186,14 @@ export function useQuotations() {
         1,
         100,
       ),
+
+      businessProfilesService.getAll(),
     ])
       .then(
         ([
           quotationData,
           customerData,
+          businessProfileData,
         ]) => {
           if (cancelled) {
             return;
@@ -205,6 +220,10 @@ export function useQuotations() {
 
           setCustomers(
             customerData.items,
+          );
+
+          setBusinessProfiles(
+            businessProfileData,
           );
         },
       )
@@ -1102,6 +1121,7 @@ export function useQuotations() {
     quotations,
     selectedQuotation,
     customers,
+    businessProfiles,
 
     search,
     status,

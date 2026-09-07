@@ -3,6 +3,7 @@
 import {
   type FormEvent,
   useMemo,
+  useEffect,
   useState,
 } from "react";
 
@@ -31,13 +32,74 @@ import type {
 type UseQuotationFormProps = {
   quotation?: Quotation | null;
 
+  businessProfileId?: string | null;
+
   onSubmit: (
     data: QuotationFormPayload,
   ) => Promise<void>;
 };
 
+const QUOTATION_NOTES_STORAGE_PREFIX =
+  "qufo:quotation-notes:";
+
+function getQuotationNotesStorageKey(
+  businessProfileId?: string | null,
+) {
+  return `${QUOTATION_NOTES_STORAGE_PREFIX}${
+    businessProfileId ?? "main"
+  }`;
+}
+
+function getRememberedQuotationNotes(
+  businessProfileId?: string | null,
+) {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  try {
+    return (
+      window.localStorage.getItem(
+        getQuotationNotesStorageKey(
+          businessProfileId,
+        ),
+      ) ?? ""
+    );
+  } catch {
+    return "";
+  }
+}
+
+function rememberQuotationNotes(
+  businessProfileId: string | null | undefined,
+  notes: string,
+) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const key =
+    getQuotationNotesStorageKey(
+      businessProfileId,
+    );
+
+  try {
+    if (notes.trim()) {
+      window.localStorage.setItem(
+        key,
+        notes,
+      );
+    } else {
+      window.localStorage.removeItem(key);
+    }
+  } catch {
+    // Ignore localStorage failures.
+  }
+}
+
 export function useQuotationForm({
   quotation,
+  businessProfileId,
   onSubmit,
 }: UseQuotationFormProps) {
   const [
@@ -101,6 +163,37 @@ export function useQuotationForm({
   ] = useState(
     quotation?.notes ?? "",
   );
+
+  useEffect(() => {
+    if (quotation) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadRememberedNotes() {
+      await Promise.resolve();
+
+      if (cancelled) {
+        return;
+      }
+
+      setNotes(
+        getRememberedQuotationNotes(
+          businessProfileId,
+        ),
+      );
+    }
+
+    void loadRememberedNotes();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    quotation,
+    businessProfileId,
+  ]);
 
   const [
     terms,
@@ -438,6 +531,12 @@ export function useQuotationForm({
             },
           ),
       });
+
+      rememberQuotationNotes(
+        businessProfileId,
+        notes,
+      );
+
     } catch (error) {
       setError(
         error instanceof Error

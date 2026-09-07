@@ -24,6 +24,8 @@ export type QuotationFormItem = {
 export type QuotationFormPayload = {
   customerId: string;
 
+  businessProfileId?: string | null;
+
   validUntil?: string;
 
   discountType: QuotationDiscountType;

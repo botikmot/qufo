@@ -22,6 +22,10 @@ export class CreateQuotationDto {
   customerId: string;
 
   @IsOptional()
+  @IsString()
+  businessProfileId?: string | null;
+
+  @IsOptional()
   @IsDateString()
   validUntil?: string;
 

@@ -495,6 +495,92 @@ export class UploadsService {
     );
   }
 
+  async uploadBusinessProfileLogo(
+    file: Express.Multer.File,
+    organizationId: string,
+    profileId: string,
+  ) {
+    this.validateImage(file, 'Business profile logo', 5 * 1024 * 1024);
+
+    /*
+     * IMPORTANT:
+     * Every upload gets a unique asset.
+     *
+     * Do not overwrite the previous image because
+     * historical quotations may still reference it.
+     */
+    const version = randomBytes(8).toString('hex');
+
+    if (this.storageDriver === 'local') {
+      const uploaded = await this.saveLocalImage(
+        file,
+        `business-profile-logos/${organizationId}/${profileId}`,
+      );
+
+      return {
+        url: uploaded.url,
+        publicId: uploaded.key,
+      };
+    }
+
+    const result = await new Promise<{
+      secure_url: string;
+      public_id: string;
+    }>((resolvePromise, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: `qufo/business-profile-logos/${organizationId}`,
+
+          public_id: `${profileId}-${version}`,
+
+          overwrite: false,
+
+          resource_type: 'image',
+
+          transformation: [
+            {
+              width: 1000,
+              height: 1000,
+              crop: 'limit',
+              quality: 'auto',
+            },
+          ],
+        },
+
+        (error, uploadResult) => {
+          if (error) {
+            reject(
+              new Error(
+                error.message || 'Business profile logo upload failed.',
+              ),
+            );
+
+            return;
+          }
+
+          if (!uploadResult) {
+            reject(new Error('Business profile logo upload failed.'));
+
+            return;
+          }
+
+          resolvePromise({
+            secure_url: uploadResult.secure_url,
+
+            public_id: uploadResult.public_id,
+          });
+        },
+      );
+
+      stream.end(file.buffer);
+    });
+
+    return {
+      url: result.secure_url,
+      publicId: result.public_id,
+    };
+  }
+
   /*
    * ----------------------------------------------------------------
    * Quotation item image

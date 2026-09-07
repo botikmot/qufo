@@ -4,6 +4,7 @@ import {
   MapPin,
   RefreshCcw,
 } from "lucide-react";
+
 import Image from "next/image";
 
 import type {
@@ -21,38 +22,43 @@ export function PublicJobHeader({
   refreshing,
   onRefresh,
 }: PublicJobHeaderProps) {
-
-  console.log('track:',job)
+  const business =
+    job.business ??
+    job.organization;
 
   return (
     <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-center gap-3">
-
-         <div className="relative flex size-14 items-center justify-center overflow-hidden rounded-2xl border border-cyan-400/15 bg-[var(--qufo-surface)]">
-          {job.organization?.logoUrl ? (
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="relative flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-cyan-400/15 bg-[var(--qufo-surface)]">
+          {business.logoUrl ? (
             <Image
-                src={job.organization.logoUrl}
-                alt={`${job.organization.name} logo`}
-                fill
-                sizes="112px"
-                className="object-contain p-3"
+              src={
+                business.logoUrl
+              }
+              alt={`${business.name} logo`}
+              fill
+              sizes="56px"
+              className="object-contain p-3"
             />
           ) : (
             <>
               <div className="absolute -left-3 -top-3 size-10 rounded-full bg-cyan-400/10 blur-xl" />
+
               <div className="absolute -bottom-4 -right-3 size-10 rounded-full bg-emerald-400/10 blur-xl" />
-                <MapPin
-                  size={19}
-                  className="relative text-cyan-300"
-                />
+
+              <MapPin
+                size={19}
+                className="relative text-cyan-300"
+              />
             </>
           )}
-         </div>
-        
+        </div>
 
-        <div>
-          <p className="text-lg font-semibold text-white">
-            {job.organization.name}
+        <div className="min-w-0">
+          <p className="truncate text-lg font-semibold text-white">
+            {
+              business.name
+            }
           </p>
 
           <p className="text-xs uppercase tracking-[0.22em] text-slate-600">

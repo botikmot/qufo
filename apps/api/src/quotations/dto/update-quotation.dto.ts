@@ -21,6 +21,10 @@ export class UpdateQuotationDto {
   customerId?: string;
 
   @IsOptional()
+  @IsString()
+  businessProfileId?: string | null;
+
+  @IsOptional()
   @IsDateString()
   validUntil?: string;
 
