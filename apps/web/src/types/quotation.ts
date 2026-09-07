@@ -166,6 +166,14 @@ export type Quotation = {
     | string
     | null;
 
+  subject:
+    | string
+    | null;
+
+  quotationMessage:
+    | string
+    | null;
+
   organization?:
     QuotationOrganization;
 

@@ -17,6 +17,9 @@ import {
   WalletCards,
   CheckCircle2,
   TriangleAlert,
+  FileText,
+  MessageSquareText,
+  CheckSquare2,
 } from "lucide-react";
 
 import {
@@ -49,6 +52,12 @@ import {
 import {
   CustomerEmailNotificationsSettings,
 } from "./customer-email-notifications-settings";
+
+import {
+  QuotationPdfPreferences,
+  getQuotationPdfPreferences,
+  saveQuotationPdfPreferences,
+} from "@/lib/quotation-pdf-preferences";
 
 type BusinessSettingsFormProps = {
   settings: BusinessSettings;
@@ -176,6 +185,11 @@ export function BusinessSettingsForm({
       "",
   );
 
+  const [quotationPdfPreferences, setQuotationPdfPreferences] =
+  useState<QuotationPdfPreferences>(() =>
+    getQuotationPdfPreferences(),
+  );
+
   const [
     customerEmailNotificationsEnabled,
     setCustomerEmailNotificationsEnabled,
@@ -213,6 +227,20 @@ export function BusinessSettingsForm({
         .quotationSignatureUrl,
     ),
   );
+
+  function updateQuotationPdfPreference(
+    key:
+      keyof typeof quotationPdfPreferences,
+    value: boolean,
+  ) {
+    const next = {
+      ...quotationPdfPreferences,
+      [key]: value,
+    };
+
+    setQuotationPdfPreferences(next);
+    saveQuotationPdfPreferences(next);
+  }
 
   function handleCountryChange(
     value: string,
@@ -754,6 +782,178 @@ export function BusinessSettingsForm({
                   </span>
                 </div>
               </div>
+            </div>
+          </div>
+
+
+          <div className="mt-6 border-t border-[var(--qufo-border)] pt-6">
+            <div className="mb-5">
+              <div className="flex items-center gap-3">
+                <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-400/[0.08] text-emerald-300">
+                  <FileText size={17} />
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-white">
+                    Quotation PDF display
+                  </h3>
+
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    Choose which optional sections appear
+                    on your generated quotation PDFs.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {/* Subject */}
+              <button
+                type="button"
+                onClick={() =>
+                  updateQuotationPdfPreference(
+                    "showSubject",
+                    !quotationPdfPreferences.showSubject,
+                  )
+                }
+                className="flex w-full items-center justify-between rounded-2xl border border-[var(--qufo-border)] bg-white/[0.02] px-4 py-3 text-left transition hover:bg-white/[0.04]"
+              >
+                <div className="flex items-center gap-3">
+                  <FileText
+                    size={16}
+                    className="text-slate-500"
+                  />
+
+                  <div>
+                    <p className="text-sm text-slate-200">
+                      Show subject
+                    </p>
+
+                    <p className="mt-0.5 text-xs text-slate-600">
+                      Display the quotation subject when provided.
+                    </p>
+                  </div>
+                </div>
+
+                <div
+                  className={[
+                    "relative h-6 w-11 rounded-full transition",
+                    quotationPdfPreferences.showSubject
+                      ? "bg-emerald-400"
+                      : "bg-slate-700",
+                  ].join(" ")}
+                >
+                  <span
+                    className={[
+                      "absolute top-1 size-4 rounded-full bg-white transition",
+                      quotationPdfPreferences.showSubject
+                        ? "left-6"
+                        : "left-1",
+                    ].join(" ")}
+                  />
+                </div>
+              </button>
+
+              {/* Message */}
+              <button
+                type="button"
+                onClick={() =>
+                  updateQuotationPdfPreference(
+                    "showMessage",
+                    !quotationPdfPreferences.showMessage,
+                  )
+                }
+                className="flex w-full items-center justify-between rounded-2xl border border-[var(--qufo-border)] bg-white/[0.02] px-4 py-3 text-left transition hover:bg-white/[0.04]"
+              >
+                <div className="flex items-center gap-3">
+                  <MessageSquareText
+                    size={16}
+                    className="text-slate-500"
+                  />
+
+                  <div>
+                    <p className="text-sm text-slate-200">
+                      Show quotation message
+                    </p>
+
+                    <p className="mt-0.5 text-xs text-slate-600">
+                      Display the introductory message above the items.
+                    </p>
+                  </div>
+                </div>
+
+                <div
+                  className={[
+                    "relative h-6 w-11 rounded-full transition",
+                    quotationPdfPreferences.showMessage
+                      ? "bg-emerald-400"
+                      : "bg-slate-700",
+                  ].join(" ")}
+                >
+                  <span
+                    className={[
+                      "absolute top-1 size-4 rounded-full bg-white transition",
+                      quotationPdfPreferences.showMessage
+                        ? "left-6"
+                        : "left-1",
+                    ].join(" ")}
+                  />
+                </div>
+              </button>
+
+              {/* Accepted / Conforme */}
+              <button
+                type="button"
+                onClick={() =>
+                  updateQuotationPdfPreference(
+                    "showAcceptedConforme",
+                    !quotationPdfPreferences.showAcceptedConforme,
+                  )
+                }
+                className="flex w-full items-center justify-between rounded-2xl border border-[var(--qufo-border)] bg-white/[0.02] px-4 py-3 text-left transition hover:bg-white/[0.04]"
+              >
+                <div className="flex items-center gap-3">
+                  <CheckSquare2
+                    size={16}
+                    className="text-slate-500"
+                  />
+
+                  <div>
+                    <p className="text-sm text-slate-200">
+                      Show ACCEPTED / CONFORME
+                    </p>
+
+                    <p className="mt-0.5 text-xs text-slate-600">
+                      Display the customer acceptance section.
+                    </p>
+                  </div>
+                </div>
+
+                <div
+                  className={[
+                    "relative h-6 w-11 rounded-full transition",
+                    quotationPdfPreferences.showAcceptedConforme
+                      ? "bg-emerald-400"
+                      : "bg-slate-700",
+                  ].join(" ")}
+                >
+                  <span
+                    className={[
+                      "absolute top-1 size-4 rounded-full bg-white transition",
+                      quotationPdfPreferences.showAcceptedConforme
+                        ? "left-6"
+                        : "left-1",
+                    ].join(" ")}
+                  />
+                </div>
+              </button>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-emerald-400/10 bg-emerald-400/[0.03] px-4 py-3">
+              <p className="text-xs leading-5 text-slate-500">
+                These preferences are saved only in this browser
+                and do not affect your quotation data.
+              </p>
             </div>
           </div>
 

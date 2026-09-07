@@ -20,7 +20,7 @@ import {
 const styles =
   StyleSheet.create({
     table: {
-      marginTop: 22,
+      marginTop: 5,
 
       borderWidth: 1,
 

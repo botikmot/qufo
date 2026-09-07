@@ -109,6 +109,22 @@ export type QuotationPdfData = {
 
   preparedBy: string;
 
+  subject:
+    | string
+    | null;
+
+  quotationMessage:
+    | string
+    | null;
+
+  pdfOptions: {
+    showSubject: boolean;
+
+    showMessage: boolean;
+
+    showAcceptedConforme: boolean;
+  };
+
   authorizedSignatureUrl:
   string | null;
 

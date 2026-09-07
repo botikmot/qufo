@@ -180,14 +180,14 @@ export function QuotationPdfSignatures({
             </Text>
           )}
 
-          <Text
+          {/* <Text
             style={
               styles.dateLine
             }
           >
             Date:
             __________________
-          </Text>
+          </Text> */}
         </View>
       </View>
 
@@ -197,44 +197,48 @@ export function QuotationPdfSignatures({
           styles.block
         }
       >
-        <Text
-          style={
-            styles.heading
-          }
-        >
-          Accepted /
-          Conforme
-        </Text>
+        {data.pdfOptions.showAcceptedConforme && (
+          <>
+            <Text
+              style={
+                styles.heading
+              }
+            >
+              Accepted /
+              Conforme
+            </Text>
 
-        <View
-          style={
-            styles.signatureArea
-          }
-        />
+            <View
+              style={
+                styles.signatureArea
+              }
+            />
 
-        <View
-          style={
-            styles.line
-          }
-        >
-          <Text
-            style={
-              styles.name
-            }
-          >
-            Signature over
-            Printed Name
-          </Text>
+            <View
+              style={
+                styles.line
+              }
+            >
+              <Text
+                style={
+                  styles.name
+                }
+              >
+                Signature over
+                Printed Name
+              </Text>
 
-          <Text
-            style={
-              styles.dateLine
-            }
-          >
-            Date:
-            __________________
-          </Text>
-        </View>
+              {/* <Text
+                style={
+                  styles.dateLine
+                }
+              >
+                Date:
+                __________________
+              </Text> */}
+            </View>
+          </>
+        )}
       </View>
     </View>
   );

@@ -225,6 +225,48 @@ const styles =
 
       color: "#9CA3AF",
     },
+
+    subjectSection: {
+      marginTop: 16,
+    },
+
+    subjectLabel: {
+      marginBottom: 4,
+
+      fontSize: 7.5,
+
+      fontWeight: 700,
+
+      color: "#059669",
+
+      letterSpacing: 0.6,
+
+      textTransform:
+        "uppercase",
+    },
+
+    subjectText: {
+      fontSize: 10,
+
+      fontWeight: 600,
+
+      color: "#111827",
+
+      lineHeight: 1.4,
+    },
+
+    messageSection: {
+      marginTop: 10,
+    },
+
+    messageText: {
+      fontSize: 8,
+
+      color: "#4B5563",
+
+      lineHeight: 1.55,
+    },
+
   });
 
 type Props = {
@@ -350,8 +392,57 @@ export function QuotationPdfDocument({
               </Text>
             )}
           </View>
-
         </View>
+
+        {/* -----------------------------------------
+         * OPTIONAL SUBJECT
+         * -----------------------------------------
+         */}
+        {data.pdfOptions.showSubject &&
+          data.subject?.trim() && (
+            <View
+              style={
+                styles.subjectSection
+              }
+            >
+              <Text
+                style={
+                  styles.subjectLabel
+                }
+              >
+                Subject
+              </Text>
+
+              <Text
+                style={
+                  styles.subjectText
+                }
+              >
+                {data.subject.trim()}
+              </Text>
+            </View>
+          )}
+
+        {/* -----------------------------------------
+         * OPTIONAL QUOTATION MESSAGE
+         * -----------------------------------------
+         */}
+        {data.pdfOptions.showMessage &&
+          data.quotationMessage?.trim() && (
+            <View
+              style={
+                styles.messageSection
+              }
+            >
+              <Text
+                style={
+                  styles.messageText
+                }
+              >
+                {data.quotationMessage.trim()}
+              </Text>
+            </View>
+          )}
 
         {/*
          * -----------------------------------------

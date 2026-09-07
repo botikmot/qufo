@@ -2,6 +2,15 @@ import type {
   QuotationDetail,
 } from "@/types/quotation";
 
+import {
+  getQuotationPdfPreferences,
+} from "@/lib/quotation-pdf-preferences";
+
+import {
+  getRememberedQuotationSubject,
+  getRememberedQuotationMessage,
+} from "@/lib/quotation-local-storage";
+
 import type {
   QuotationPdfData,
 } from "./quotation-pdf-types";
@@ -58,6 +67,19 @@ export function mapQuotationToPdfData(
             null,
         };
 
+  const pdfOptions =
+    getQuotationPdfPreferences();
+
+  const subject =
+    getRememberedQuotationSubject(
+      quotation.businessProfileId,
+    );
+
+  const quotationMessage =
+    getRememberedQuotationMessage(
+      quotation.businessProfileId,
+    );
+
   return {
     quotationNumber:
       quotation.quotationNumber,
@@ -79,26 +101,21 @@ export function mapQuotationToPdfData(
 
     customer: {
       name:
-        quotation.customer
-          .name,
+        quotation.customer.name,
 
       companyName:
-        quotation.customer
-          .companyName,
+        quotation.customer.companyName,
 
       address:
-        quotation.customer
-          .address ??
+        quotation.customer.address ??
         null,
 
       email:
-        quotation.customer
-          .email ??
+        quotation.customer.email ??
         null,
 
       phone:
-        quotation.customer
-          .phone ??
+        quotation.customer.phone ??
         null,
     },
 
@@ -132,8 +149,12 @@ export function mapQuotationToPdfData(
             Number(
               item.total,
             ),
-          imageUrl: item.imageUrl,
-          imageKey: item.imageKey,
+
+          imageUrl:
+            item.imageUrl,
+
+          imageKey:
+            item.imageKey,
 
           warrantyDuration:
             item.warrantyDuration,
@@ -177,6 +198,12 @@ export function mapQuotationToPdfData(
     footerNote:
       quotation.footerNote ??
       null,
+
+    subject,
+
+    quotationMessage,
+
+    pdfOptions,
 
     authorizedSignatureUrl:
       quotation.organization
