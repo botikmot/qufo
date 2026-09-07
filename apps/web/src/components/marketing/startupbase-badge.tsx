@@ -11,7 +11,7 @@ export function StartupBaseBadge() {
         src="https://statics.startupbase.io/site/badges/launched-on-sb-dark.svg"
         alt="Launched on StartupBase"
         height={55}
-        className="h-[55px] w-auto"
+        className="h-[50px] w-auto"
       />
     </a>
   );

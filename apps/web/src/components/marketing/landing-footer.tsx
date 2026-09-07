@@ -138,10 +138,14 @@ export function LandingFooter() {
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <FazierBadge />
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="[&_*]:!h-8 [&_*]:!w-auto">
+                <FazierBadge />
+              </div>
 
-              <StartupBaseBadge />
+              <div className="[&_*]:!h-8 [&_*]:!w-auto">
+                <StartupBaseBadge />
+              </div>
 
               <a
                 href="https://sellwithboost.com"
@@ -153,18 +157,37 @@ export function LandingFooter() {
                 <img
                   src="https://sellwithboost.com/badge/listing-dark.svg"
                   alt="Listed on Sell With Boost"
-                  className="h-10 w-auto"
+                  className="h-8 w-auto"
                 />
               </a>
 
-              <a href="https://launchstag.com/p/qufo" target="_blank" rel="noopener">
-                <img src="https://launchstag.com/badge-dark.svg" alt="Featured on Launchstag" width="198" height="62" />
+              <a
+                href="https://launchstag.com/p/qufo"
+                target="_blank"
+                rel="noopener"
+                className="inline-flex"
+              >
+                <img
+                  src="https://launchstag.com/badge-dark.svg"
+                  alt="Featured on Launchstag"
+                  className="h-8 w-auto"
+                />
               </a>
 
-              <a href="https://launchbuck.com/p/qufo" target="_blank" rel="noopener noreferrer">
-                <img src="https://launchbuck.com/badges/card-dark.png" alt="QUFO — Featured on LaunchBuck" width="190" height="58" />
+              <a
+                href="https://launchbuck.com/p/qufo"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex"
+              >
+                <img
+                  src="https://launchbuck.com/badges/card-dark.png"
+                  alt="QUFO — Featured on LaunchBuck"
+                  className="h-8 w-auto"
+                />
               </a>
 
+              <a href="https://tools.cafe/p/tool-1788772215377" target="_blank" rel="noopener"><img src="https://tools.cafe/b/dark.svg" alt="Listed on tools.cafe" width="100" height="50" /></a>
             </div>
           </div>
         </div>
