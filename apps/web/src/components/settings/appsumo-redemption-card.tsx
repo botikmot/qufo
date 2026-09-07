@@ -380,7 +380,7 @@ export function AppSumoRedemptionCard({
           autoCapitalize="characters"
           autoComplete="off"
           spellCheck={false}
-          placeholder="QUFO-AS-XXXXXX-XXXXXX"
+          placeholder="ENTER YOUR APPSUMO CODE"
           className="qufo-input min-w-0 flex-1 font-mono text-sm uppercase"
         />
 
