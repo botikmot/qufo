@@ -65,6 +65,10 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 
+import {
+  getQuotationPdfPreferences,
+} from "@/lib/quotation-pdf-preferences";
+
 type QuotationFormModalProps = {
   customers: Customer[];
 
@@ -104,6 +108,9 @@ export function QuotationFormModal({
     contextKey: string;
     value: string;
   } | null>(null);
+
+  const pdfOptions =
+    getQuotationPdfPreferences();
 
   /*
   * A different quotation means
@@ -526,84 +533,91 @@ export function QuotationFormModal({
 
         {/* Quotation Subject & Message */}
         <div className="grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2">
-          <div className="min-w-0">
-            <label
-              htmlFor="quotation-subject"
-              className="mb-2 block text-sm font-medium text-slate-300"
-            >
-              Subject
-            </label>
 
-            <input
-              id="quotation-subject"
-              type="text"
-              value={form.subject}
-              onChange={(event) =>
-                form.setSubject(event.target.value)
-              }
-              placeholder="e.g. Office Signage Project"
-              disabled={loading}
-              className="
-                w-full
-                rounded-xl
-                border
-                border-white/10
-                bg-white/[0.03]
-                px-3
-                py-2.5
-                text-sm
-                text-white
-                outline-none
-                transition
-                placeholder:text-slate-500
-                focus:border-emerald-400/40
-                focus:ring-2
-                focus:ring-emerald-400/10
-                disabled:cursor-not-allowed
-                disabled:opacity-50
-              "
-            />
-          </div>
+          {pdfOptions.showSubject && (
+            <div className="min-w-0">
+              <label
+                htmlFor="quotation-subject"
+                className="mb-2 block text-sm font-medium text-slate-300"
+              >
+                Subject
+              </label>
 
-          <div className="min-w-0">
-            <label
-              htmlFor="quotation-message"
-              className="mb-2 block text-sm font-medium text-slate-300"
-            >
-              Quotation Message
-            </label>
+              <input
+                id="quotation-subject"
+                type="text"
+                value={form.subject}
+                onChange={(event) =>
+                  form.setSubject(event.target.value)
+                }
+                placeholder="e.g. Office Signage Project"
+                disabled={loading}
+                className="
+                  w-full
+                  rounded-xl
+                  border
+                  border-white/10
+                  bg-white/[0.03]
+                  px-3
+                  py-2.5
+                  text-sm
+                  text-white
+                  outline-none
+                  transition
+                  placeholder:text-slate-500
+                  focus:border-emerald-400/40
+                  focus:ring-2
+                  focus:ring-emerald-400/10
+                  disabled:cursor-not-allowed
+                  disabled:opacity-50
+                "
+              />
+            </div>
 
-            <textarea
-              id="quotation-message"
-              value={form.quotationMessage}
-              onChange={(event) =>
-                form.setQuotationMessage(event.target.value)
-              }
-              placeholder="We are pleased to quote to you the following items for your consideration and approval."
-              rows={3}
-              disabled={loading}
-              className="
-                w-full
-                resize-y
-                rounded-xl
-                border
-                border-white/10
-                bg-white/[0.03]
-                px-3
-                py-2.5
-                text-sm
-                text-white
-                outline-none
-                transition
-                placeholder:text-slate-500
-                focus:border-emerald-400/40
-                focus:ring-2
-                focus:ring-emerald-400/10
-                disabled:cursor-not-allowed
-                disabled:opacity-50
-              "
-            />
-          </div>
+          )}
+
+          {pdfOptions.showMessage && (
+
+            <div className="min-w-0">
+              <label
+                htmlFor="quotation-message"
+                className="mb-2 block text-sm font-medium text-slate-300"
+              >
+                Quotation Message
+              </label>
+
+              <textarea
+                id="quotation-message"
+                value={form.quotationMessage}
+                onChange={(event) =>
+                  form.setQuotationMessage(event.target.value)
+                }
+                placeholder="We are pleased to quote to you the following items for your consideration and approval."
+                rows={3}
+                disabled={loading}
+                className="
+                  w-full
+                  resize-y
+                  rounded-xl
+                  border
+                  border-white/10
+                  bg-white/[0.03]
+                  px-3
+                  py-2.5
+                  text-sm
+                  text-white
+                  outline-none
+                  transition
+                  placeholder:text-slate-500
+                  focus:border-emerald-400/40
+                  focus:ring-2
+                  focus:ring-emerald-400/10
+                  disabled:cursor-not-allowed
+                  disabled:opacity-50
+                "
+              />
+            </div>
+          )}
         </div>
 
         <QuotationFormItems
