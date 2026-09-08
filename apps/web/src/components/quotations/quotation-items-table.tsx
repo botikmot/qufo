@@ -27,8 +27,6 @@ export function QuotationItemsTable({
     return null;
   }
 
-  console.log('items::', items)
-
   return (
     <div className="min-w-0">
       <div className="mb-3">
