@@ -63,6 +63,16 @@ export class BusinessProfilesController {
     return this.businessProfilesService.create(tenant, dto);
   }
 
+  @Patch('main/default')
+  @Roles('OWNER', 'ADMIN')
+  @UseGuards(RolesGuard)
+  useMainBusinessAsDefault(
+    @CurrentTenant()
+    tenant: TenantContext,
+  ) {
+    return this.businessProfilesService.useMainBusinessAsDefault(tenant);
+  }
+
   @Post(':id/logo')
   @Roles('OWNER', 'ADMIN')
   @UseGuards(RolesGuard)
@@ -126,16 +136,6 @@ export class BusinessProfilesController {
     id: string,
   ) {
     return this.businessProfilesService.setDefault(tenant, id);
-  }
-
-  @Patch('main/default')
-  @Roles('OWNER', 'ADMIN')
-  @UseGuards(RolesGuard)
-  useMainBusinessAsDefault(
-    @CurrentTenant()
-    tenant: TenantContext,
-  ) {
-    return this.businessProfilesService.useMainBusinessAsDefault(tenant);
   }
 
   /*
