@@ -114,6 +114,11 @@ export default function QuotationsPage() {
             quotation,
           )
         }
+        onDuplicate={(quotation) =>
+          void quotations.copyQuotation(
+            quotation,
+          )
+        }
         onPrevious={() =>
           void quotations.previousPage()
         }

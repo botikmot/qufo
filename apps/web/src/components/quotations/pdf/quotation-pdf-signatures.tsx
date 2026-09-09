@@ -115,8 +115,7 @@ export function QuotationPdfSignatures({
       ?.trim() ||
     null;
 
-  console.log('signatore:: ', data)
-
+  
   return (
     <View
       style={

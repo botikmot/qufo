@@ -2826,4 +2826,187 @@ export class QuotationsService {
       message: 'Job confirmation email sent successfully.',
     };
   }
+
+  async duplicate(user: JwtPayload, tenant: TenantContext, id: string) {
+    const quotation = await this.prisma.quotation.findFirst({
+      where: {
+        id,
+        organizationId: tenant.organizationId,
+      },
+
+      include: {
+        items: {
+          orderBy: {
+            sortOrder: 'asc',
+          },
+        },
+      },
+    });
+
+    if (!quotation) {
+      throw new NotFoundException('Quotation not found.');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const sequence = await tx.organizationSequence.upsert({
+        where: {
+          organizationId: tenant.organizationId,
+        },
+
+        create: {
+          organizationId: tenant.organizationId,
+          quotation: 1,
+        },
+
+        update: {
+          quotation: {
+            increment: 1,
+          },
+        },
+
+        select: {
+          quotation: true,
+        },
+      });
+
+      const quotationNumber = `Q-${new Date().getFullYear()}-${String(
+        sequence.quotation,
+      ).padStart(6, '0')}`;
+
+      const duplicatedQuotation = await tx.quotation.create({
+        data: {
+          organizationId: tenant.organizationId,
+
+          customerId: quotation.customerId,
+
+          createdById: user.sub,
+
+          businessProfileId: quotation.businessProfileId,
+
+          quotationNumber,
+
+          currency: quotation.currency,
+
+          status: 'DRAFT',
+
+          issueDate: new Date(),
+
+          validUntil: null, //quotation.validUntil,
+
+          /*
+           * Keep the quotation's current
+           * pricing/calculation values.
+           */
+          subtotal: quotation.subtotal,
+
+          discountType: quotation.discountType,
+
+          discountValue: quotation.discountValue,
+
+          discountAmount: quotation.discountAmount,
+
+          taxRate: quotation.taxRate,
+
+          taxAmount: quotation.taxAmount,
+
+          total: quotation.total,
+
+          /*
+           * Preserve the business identity snapshot
+           * from the original quotation.
+           */
+          businessNameSnapshot: quotation.businessNameSnapshot,
+
+          businessEmailSnapshot: quotation.businessEmailSnapshot,
+
+          businessPhoneSnapshot: quotation.businessPhoneSnapshot,
+
+          businessAddressSnapshot: quotation.businessAddressSnapshot,
+
+          businessLogoUrlSnapshot: quotation.businessLogoUrlSnapshot,
+
+          businessTermsSnapshot: quotation.businessTermsSnapshot,
+
+          businessFooterNoteSnapshot: quotation.businessFooterNoteSnapshot,
+
+          notes: quotation.notes,
+
+          terms: quotation.terms,
+
+          footerNote: quotation.footerNote,
+
+          /*
+           * A duplicate is a completely new
+           * quotation and a new revision root.
+           */
+          revisionNumber: 1,
+
+          sourceQuotationId: null,
+
+          /*
+           * Intentionally NOT copying:
+           *
+           * publicTokenHash
+           * publicTokenEncrypted
+           * sentAt
+           * viewedAt
+           * approvedAt
+           * rejectedAt
+           * customerResponseNote
+           * changesRequestedAt
+           *
+           * Job is also NOT copied.
+           */
+          items: {
+            create: quotation.items.map((item) => ({
+              name: item.name,
+
+              description: item.description,
+
+              quantity: item.quantity,
+
+              unit: item.unit,
+
+              unitPrice: item.unitPrice,
+
+              total: item.total,
+
+              imageUrl: item.imageUrl,
+
+              imageKey: item.imageKey,
+
+              warrantyDuration: item.warrantyDuration,
+
+              warrantyUnit: item.warrantyUnit,
+
+              warrantyTerms: item.warrantyTerms,
+
+              sortOrder: item.sortOrder,
+            })),
+          },
+        },
+
+        include: {
+          customer: {
+            select: {
+              id: true,
+              type: true,
+              name: true,
+              companyName: true,
+              email: true,
+              phone: true,
+            },
+          },
+
+          items: {
+            orderBy: {
+              sortOrder: 'asc',
+            },
+          },
+        },
+      });
+
+      return duplicatedQuotation;
+    });
+  }
 }

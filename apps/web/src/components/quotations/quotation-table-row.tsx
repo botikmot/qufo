@@ -1,4 +1,5 @@
 import {
+  Copy,
   Eye,
 } from "lucide-react";
 
@@ -28,11 +29,16 @@ type QuotationTableRowProps = {
   onOpen: (
     quotation: Quotation,
   ) => void;
+
+  onDuplicate: (
+    quotation: Quotation,
+  ) => void;
 };
 
 export function QuotationTableRow({
   quotation,
   onOpen,
+  onDuplicate,
 }: QuotationTableRowProps) {
   const customerName =
     quotation.customer
@@ -162,7 +168,7 @@ export function QuotationTableRow({
 
       {/* Action */}
       <td className="w-16 whitespace-nowrap px-2 py-4 sm:w-20 sm:px-4">
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-1">
           <button
             type="button"
             onClick={() =>
@@ -189,6 +195,33 @@ export function QuotationTableRow({
           >
             <Eye size={16} />
           </button>
+          
+          <button
+            type="button"
+            onClick={() =>
+              onDuplicate(quotation)
+            }
+            title="Create a Copy"
+            aria-label={`Duplicate ${quotation.quotationNumber}`}
+            className="
+              flex
+              size-8
+              shrink-0
+              items-center
+              justify-center
+              rounded-lg
+              text-slate-500
+              transition
+              hover:bg-violet-400/[0.07]
+              hover:text-violet-300
+
+              sm:size-9
+            "
+          >
+            <Copy size={16} />
+          </button>
+
+
         </div>
       </td>
     </tr>

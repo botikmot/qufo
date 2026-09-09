@@ -117,6 +117,17 @@ export const quotationsService = {
     );
   },
 
+  copyQuotation(
+    quotationId: string,
+  ): Promise<Quotation> {
+    return apiFetch(
+      `/quotations/${quotationId}/duplicate`,
+      {
+        method: "POST",
+      },
+    );
+  },
+
   send(
     quotationId: string,
     pdfBlob?: Blob,

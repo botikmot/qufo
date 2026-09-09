@@ -87,6 +87,20 @@ export class QuotationsController {
     return this.quotationsService.regeneratePublicLink(tenant, id);
   }
 
+  @Post(':id/duplicate')
+  duplicate(
+    @CurrentUser()
+    user: JwtPayload,
+
+    @CurrentTenant()
+    tenant: TenantContext,
+
+    @Param('id')
+    id: string,
+  ) {
+    return this.quotationsService.duplicate(user, tenant, id);
+  }
+
   @Get(':id')
   findOne(
     @CurrentTenant()

@@ -35,6 +35,10 @@ type QuotationsTableProps = {
     quotation: Quotation,
   ) => void;
 
+  onDuplicate: (
+    quotation: Quotation,
+  ) => void;
+
   onPrevious: () => void;
   onNext: () => void;
 };
@@ -46,6 +50,7 @@ export function QuotationsTable({
   pages,
   total,
   onOpen,
+  onDuplicate,
   onPrevious,
   onNext,
 }: QuotationsTableProps) {
@@ -131,6 +136,9 @@ export function QuotationsTable({
                   }
                   onOpen={
                     onOpen
+                  }
+                  onDuplicate={
+                    onDuplicate
                   }
                 />
               ),

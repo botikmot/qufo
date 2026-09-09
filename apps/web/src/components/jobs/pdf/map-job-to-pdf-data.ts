@@ -20,8 +20,6 @@ export function mapJobToPdfData(
   }: MapJobToPdfDataOptions,
 ): JobPdfData {
 
-  console.log('Job PDF:', job)
-
   const snapshotBusinessName =
     job.quotation?.businessNameSnapshot;
 

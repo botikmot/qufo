@@ -903,6 +903,61 @@ export function useQuotations() {
     }
   }
 
+  async function copyQuotation(
+    quotation: Quotation,
+  ) {
+
+    if (!quotation.id) {
+      return;
+    }
+
+    const confirmed =
+      await confirm({
+        title:
+          "Copy this quotation?",
+        description: `A new quotation will be created from ${quotation.quotationNumber}.`,
+        confirmText:
+          "Copy Quotation",
+      });
+
+    if (!confirmed) {
+      return;
+    }
+
+    setActionLoading(true);
+    setError(null);
+    
+    try {
+      const result = await quotationsService.copyQuotation(
+          quotation.id,
+        );
+
+      setSelectedQuotation(
+        null,
+      );
+
+      setEditingQuotation(
+        result,
+      );
+
+      setShowForm(
+        true,
+      );
+
+      await loadQuotations({
+        page,
+      });
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to load quotation.",
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
   function closeQuotation() {
     setSelectedQuotation(null);
     setSentQuotationUrl(null);
@@ -1170,6 +1225,7 @@ export function useQuotations() {
     changeStatus,
     
     openQuotation,
+    copyQuotation,
     closeQuotation,
 
 

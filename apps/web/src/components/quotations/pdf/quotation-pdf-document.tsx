@@ -318,13 +318,13 @@ export function QuotationPdfDocument({
               styles.customerBlock
             }
           >
-            <Text
+            {/* <Text
               style={
                 styles.sectionEyebrow
               }
             >
               Prepared For
-            </Text>
+            </Text> */}
 
             <Text
               style={
@@ -332,11 +332,14 @@ export function QuotationPdfDocument({
               }
             >
               {
-                data.customer.name
+              data.customer
+                .companyName ??
+                data.customer
+                  .name
               }
             </Text>
 
-            {data.customer
+            {/* {data.customer
               .companyName && (
               <Text
                 style={
@@ -348,7 +351,7 @@ export function QuotationPdfDocument({
                     .companyName
                 }
               </Text>
-            )}
+            )} */}
 
             {data.customer
               .address && (

@@ -299,7 +299,6 @@ export function QuotationFormModal({
     }
   }
 
-
   return (
     <QufoModal
       title={
