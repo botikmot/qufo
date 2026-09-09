@@ -22,9 +22,9 @@ import type {
   SubscriptionBillingSummary,
   SubscriptionPaymentHistoryItem,
 } from "@/types/subscription";
-import {
+/* import {
   AppSumoRedemptionCard,
-} from "@/components/settings/appsumo-redemption-card";
+} from "@/components/settings/appsumo-redemption-card"; */
 
 const SUBSCRIPTION_ENABLED = process.env.NEXT_PUBLIC_SUBSCRIPTION_ENABLED !== "false";
 
@@ -69,13 +69,13 @@ export function SubscriptionSettingsCard({
   renewing,
   confirmingPayment,
   paymentResult,
-  appSumoEnabled,
+  /* appSumoEnabled,
   redeemingAppSumo,
-  appSumoSuccess,
+  appSumoSuccess, */
   error,
   onRenew,
   onRefresh,
-  onRedeemAppSumo,
+  //onRedeemAppSumo,
 }: SubscriptionSettingsCardProps) {
 
   if (!SUBSCRIPTION_ENABLED) {
@@ -289,7 +289,7 @@ export function SubscriptionSettingsCard({
               </div>
             </div>
 
-            <AppSumoRedemptionCard
+            {/* <AppSumoRedemptionCard
               enabled={
                 appSumoEnabled
               }
@@ -305,7 +305,7 @@ export function SubscriptionSettingsCard({
               onRedeem={
                 onRedeemAppSumo
               }
-            />
+            /> */}
 
             {!lifetime && (trialing ||
               active) && (
