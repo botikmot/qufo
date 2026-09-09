@@ -418,6 +418,8 @@ export class QuotationsService {
 
           total: totals.total,
 
+          subject: dto.subject?.trim() || null,
+
           notes: dto.notes?.trim() || null,
 
           terms: resolvedTerms,
@@ -555,6 +557,7 @@ export class QuotationsService {
           discountAmount: true,
           taxAmount: true,
           total: true,
+          subject: true,
           customerResponseNote: true,
           changesRequestedAt: true,
           rejectedAt: true,
@@ -957,6 +960,10 @@ export class QuotationsService {
           taxAmount: totals.taxAmount,
 
           total: totals.total,
+
+          ...(dto.subject !== undefined && {
+            subject: dto.subject.trim() || null,
+          }),
 
           ...(dto.notes !== undefined && {
             notes: dto.notes.trim() || null,

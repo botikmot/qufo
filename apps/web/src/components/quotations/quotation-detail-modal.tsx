@@ -99,6 +99,13 @@ export function QuotationDetailModal({
       }
     >
       <div className="min-w-0 space-y-7">
+
+        {quotation.subject && (
+          <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-400">
+            SUBJECT: {" "}<span className="font-bold text-white">{quotation.subject}</span>
+          </p>
+        )}
+
         <QuotationInfoGrid
           quotation={
             quotation

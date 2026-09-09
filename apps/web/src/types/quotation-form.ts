@@ -33,6 +33,8 @@ export type QuotationFormPayload = {
 
   taxRate: number;
 
+  subject?: string;
+
   notes?: string;
   terms?: string;
 

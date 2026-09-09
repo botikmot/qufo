@@ -22,6 +22,10 @@ import type {
   Quotation,
 } from "@/types/quotation";
 
+import {
+  getQuotationPdfPreferences,
+} from "@/lib/quotation-pdf-preferences";
+
 type QuotationsTableProps = {
   quotations: Quotation[];
 
@@ -54,6 +58,10 @@ export function QuotationsTable({
   onPrevious,
   onNext,
 }: QuotationsTableProps) {
+
+  const pdfOptions =
+      getQuotationPdfPreferences();
+
   if (loading) {
     return (
       <div className="qufo-surface overflow-hidden rounded-2xl">
@@ -107,6 +115,12 @@ export function QuotationsTable({
               <TableHead className="hidden xl:table-cell">
                 Customer Response
               </TableHead>
+
+              {pdfOptions.showSubject && (
+                <TableHead className="hidden xl:table-cell">
+                  Subject
+                </TableHead>
+              )}
 
               <TableHead className="hidden xl:table-cell">
                 Total

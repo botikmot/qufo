@@ -50,6 +50,11 @@ export class UpdateQuotationDto {
   @IsOptional()
   @IsString()
   @MaxLength(5000)
+  subject?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(5000)
   notes?: string;
 
   @IsOptional()

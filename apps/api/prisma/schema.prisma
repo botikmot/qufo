@@ -602,6 +602,7 @@ model Quotation {
   businessTermsSnapshot      String? @db.Text
   businessFooterNoteSnapshot String? @db.Text
 
+  subject    String?
   notes      String?
   terms      String?
   footerNote String? @db.Text

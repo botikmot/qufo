@@ -528,6 +528,10 @@ export function useQuotationForm({
 
         taxRate: tax,
 
+        subject:
+          subject.trim() ||
+          undefined,
+
         notes:
           notes.trim() ||
           undefined,

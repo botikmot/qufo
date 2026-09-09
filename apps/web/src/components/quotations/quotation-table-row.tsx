@@ -23,6 +23,10 @@ import type {
   Quotation,
 } from "@/types/quotation";
 
+import {
+  getQuotationPdfPreferences,
+} from "@/lib/quotation-pdf-preferences";
+
 type QuotationTableRowProps = {
   quotation: Quotation;
 
@@ -57,6 +61,8 @@ export function QuotationTableRow({
           quotation.createdAt,
         )
       : "—";
+
+   const pdfOptions = getQuotationPdfPreferences();
 
   return (
     <tr className="border-b border-[var(--qufo-border)] transition last:border-0 hover:bg-white/[0.018]">
@@ -105,6 +111,11 @@ export function QuotationTableRow({
               }
             />
           </div>
+          {pdfOptions.showSubject && (
+            <p>
+              {quotation.subject}
+            </p>
+          )}
 
           <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
             <p className="text-sm font-medium text-slate-300">
@@ -152,6 +163,12 @@ export function QuotationTableRow({
           }
         />
       </td>
+
+    {pdfOptions.showSubject && (
+      <td className="hidden px-5 py-4 xl:table-cell">
+        {quotation.subject}
+      </td>
+    )}
 
       {/* Total - desktop */}
       <td className="hidden px-5 py-4 font-medium text-slate-300 xl:table-cell">
