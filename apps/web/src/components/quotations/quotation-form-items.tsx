@@ -6,7 +6,28 @@ import {
 } from "react";
 
 import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+
+import {
+  CSS,
+} from "@dnd-kit/utilities";
+
+import {
   Plus,
+  GripVertical,
 } from "lucide-react";
 
 import {
@@ -26,6 +47,10 @@ type QuotationFormItemsProps = {
     key: string,
   ) => void;
 
+  onReorder: (
+    items: QuotationFormItem[],
+  ) => void;
+
   onChange: (
     key: string,
     patch: Partial<QuotationFormItem>,
@@ -41,10 +66,138 @@ type QuotationFormItemsProps = {
   currency: string;
 };
 
+type SortableQuotationFormItemProps = {
+  item: QuotationFormItem;
+
+  canRemove: boolean;
+
+  onChange: (
+    patch: Partial<QuotationFormItem>,
+  ) => void;
+
+  onRemove: () => void;
+
+  onImageSelect: (
+    file: File,
+  ) => void | Promise<void>;
+
+  isUploadingImage: boolean;
+
+  currency: string;
+
+  isLast: boolean;
+
+  lastItemRef:
+    | React.RefObject<HTMLDivElement | null>
+    | undefined;
+};
+
+function SortableQuotationFormItem({
+  item,
+  canRemove,
+  onChange,
+  onRemove,
+  onImageSelect,
+  isUploadingImage,
+  currency,
+  isLast,
+  lastItemRef,
+}: SortableQuotationFormItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: item.key,
+  });
+
+  const style = {
+    transform:
+      CSS.Transform.toString(
+        transform,
+      ),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      className={
+        isDragging
+          ? "relative z-50 opacity-60"
+          : "relative"
+      }
+    >
+      {/* Drag handle */}
+      <div className="mb-2 flex items-center">
+        <button
+          type="button"
+          {...listeners}
+          className="
+            inline-flex
+            cursor-grab
+            touch-none
+            items-center
+            justify-center
+            rounded-lg
+            p-1.5
+            text-slate-700
+            transition
+
+            hover:bg-white/[0.04]
+            hover:text-slate-400
+
+            active:cursor-grabbing
+          "
+          title="Drag to reorder"
+          aria-label="Drag to reorder quotation item"
+        >
+          <GripVertical
+            size={17}
+            strokeWidth={2}
+          />
+        </button>
+
+        <span className="text-[11px] text-slate-700">
+          Drag to reorder
+        </span>
+      </div>
+
+      <div
+        ref={
+          isLast
+            ? lastItemRef
+            : undefined
+        }
+      >
+        <QuotationFormItemRow
+          item={item}
+          canRemove={canRemove}
+          onChange={onChange}
+          onRemove={onRemove}
+          onImageSelect={
+            onImageSelect
+          }
+          isUploadingImage={
+            isUploadingImage
+          }
+          currency={currency}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function QuotationFormItems({
   items,
   onAdd,
   onRemove,
+  onReorder,
   onChange,
   onImageSelect,
   uploadingImageKey,
@@ -59,6 +212,17 @@ export function QuotationFormItems({
     useRef(
       items.length,
     );
+
+  const sensors = useSensors(
+    useSensor(
+      PointerSensor,
+      {
+        activationConstraint: {
+          distance: 6,
+        },
+      },
+    ),
+  );
 
   useEffect(() => {
     const itemAdded =
@@ -87,6 +251,58 @@ export function QuotationFormItems({
     );
   }, [items.length]);
 
+  function handleDragEnd(
+    event: DragEndEvent,
+  ) {
+    const {
+      active,
+      over,
+    } = event;
+
+    if (!over) {
+      return;
+    }
+
+    if (
+      active.id ===
+      over.id
+    ) {
+      return;
+    }
+
+    const oldIndex =
+      items.findIndex(
+        (item) =>
+          item.key ===
+          active.id,
+      );
+
+    const newIndex =
+      items.findIndex(
+        (item) =>
+          item.key ===
+          over.id,
+      );
+
+    if (
+      oldIndex === -1 ||
+      newIndex === -1
+    ) {
+      return;
+    }
+
+    const reorderedItems =
+      arrayMove(
+        items,
+        oldIndex,
+        newIndex,
+      );
+
+    onReorder(
+      reorderedItems,
+    );
+  }
+
   return (
     <div className="min-w-0">
       {/* Header */}
@@ -101,70 +317,90 @@ export function QuotationFormItems({
       </div>
 
       {/* Items */}
-      <div className="min-w-0 space-y-3">
-        {items.map(
-          (
-            item,
-            index,
-          ) => {
-            const isLast =
-              index ===
-              items.length -
-                1;
+      <DndContext
+        sensors={sensors}
+        collisionDetection={
+          closestCenter
+        }
+        onDragEnd={
+          handleDragEnd
+        }
+      >
+        <SortableContext
+          items={items.map(
+            (item) =>
+              item.key,
+          )}
+          strategy={
+            verticalListSortingStrategy
+          }
+        >
+          <div className="min-w-0 space-y-3">
+            {items.map(
+              (
+                item,
+                index,
+              ) => {
+                const isLast =
+                  index ===
+                  items.length -
+                    1;
 
-            return (
-              <div
-                key={
-                  item.key
-                }
-                ref={
-                  isLast
-                    ? lastItemRef
-                    : undefined
-                }
-              >
-                <QuotationFormItemRow
-                  item={
-                    item
-                  }
-                  canRemove={
-                    items.length >
-                    1
-                  }
-                  onChange={(
-                    patch,
-                  ) =>
-                    onChange(
-                      item.key,
+                return (
+                  <SortableQuotationFormItem
+                    key={
+                      item.key
+                    }
+                    item={
+                      item
+                    }
+                    canRemove={
+                      items.length >
+                      1
+                    }
+                    onChange={(
                       patch,
-                    )
-                  }
-                  onRemove={() =>
-                    onRemove(
-                      item.key,
-                    )
-                  }
-                  onImageSelect={(
-                    file,
-                  ) =>
-                    onImageSelect(
-                      item.key,
+                    ) =>
+                      onChange(
+                        item.key,
+                        patch,
+                      )
+                    }
+                    onRemove={() =>
+                      onRemove(
+                        item.key,
+                      )
+                    }
+                    onImageSelect={(
                       file,
-                    )
-                  }
-                  isUploadingImage={
-                    uploadingImageKey ===
-                    item.key
-                  }
-                  currency={
-                    currency
-                  }
-                />
-              </div>
-            );
-          },
-        )}
-      </div>
+                    ) =>
+                      onImageSelect(
+                        item.key,
+                        file,
+                      )
+                    }
+                    isUploadingImage={
+                      uploadingImageKey ===
+                      item.key
+                    }
+                    currency={
+                      currency
+                    }
+                    isLast={
+                      isLast
+                    }
+                    lastItemRef={
+                      isLast
+                        ? lastItemRef
+                        : undefined
+                    }
+                  />
+                );
+              },
+            )}
+          </div>
+        </SortableContext>
+      </DndContext>
 
       {/* Add another item */}
       <button

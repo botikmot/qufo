@@ -225,44 +225,6 @@ export function useQuotationForm({
   ]);
 
 
-  useEffect(() => {
-    if (quotation) {
-      return;
-    }
-
-    let cancelled = false;
-
-    async function loadRememberedQuotationContent() {
-      await Promise.resolve();
-
-      if (cancelled) {
-        return;
-      }
-
-      setSubject(
-        getRememberedQuotationSubject(
-          businessProfileId,
-        ),
-      );
-
-      setQuotationMessage(
-        getRememberedQuotationMessage(
-          businessProfileId,
-        ),
-      );
-    }
-
-    void loadRememberedQuotationContent();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    quotation,
-    businessProfileId,
-  ]);
-
-
   const [
     terms,
     setTerms,
@@ -392,6 +354,12 @@ export function useQuotationForm({
           : item,
       ),
     );
+  }
+
+  function reorderItems(
+    reorderedItems: QuotationFormItem[],
+  ) {
+    setItems(reorderedItems);
   }
 
   async function handleSubmit(
@@ -530,15 +498,15 @@ export function useQuotationForm({
 
         subject:
           subject.trim() ||
-          undefined,
+          null,
 
         notes:
           notes.trim() ||
-          undefined,
+          null,
 
         terms:
           terms.trim() ||
-          undefined,
+          null,
 
         items:
           validItems.map(
@@ -665,6 +633,7 @@ export function useQuotationForm({
     addItem,
     removeItem,
     updateItem,
+    reorderItems,
 
     handleSubmit,
   };

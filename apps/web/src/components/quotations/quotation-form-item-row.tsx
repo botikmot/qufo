@@ -1,3 +1,5 @@
+"use client";
+
 import {
   ImagePlus,
   ShieldCheck,
@@ -282,7 +284,10 @@ export function QuotationFormItemRow({
             <div className="mt-4 flex items-center gap-3">
               <div
                 role="img"
-                aria-label={item.name || "Quotation item image"}
+                aria-label={
+                  item.name ||
+                  "Quotation item image"
+                }
                 className="
                   size-20
                   shrink-0
@@ -329,24 +334,33 @@ export function QuotationFormItemRow({
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
-                    disabled={isUploadingImage}
+                    disabled={
+                      isUploadingImage
+                    }
                     className="hidden"
-                    onChange={(event) => {
+                    onChange={(
+                      event,
+                    ) => {
                       const file =
                         event.target.files?.[0];
 
                       if (file) {
-                        void onImageSelect(file);
+                        void onImageSelect(
+                          file,
+                        );
                       }
 
-                      event.target.value = "";
+                      event.target.value =
+                        "";
                     }}
                   />
                 </label>
 
                 <button
                   type="button"
-                  disabled={isUploadingImage}
+                  disabled={
+                    isUploadingImage
+                  }
                   onClick={() =>
                     onChange({
                       imageUrl: "",
@@ -371,6 +385,7 @@ export function QuotationFormItemRow({
                   "
                 >
                   <X size={14} />
+
                   Remove
                 </button>
               </div>
@@ -408,17 +423,24 @@ export function QuotationFormItemRow({
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
-                disabled={isUploadingImage}
+                disabled={
+                  isUploadingImage
+                }
                 className="hidden"
-                onChange={(event) => {
+                onChange={(
+                  event,
+                ) => {
                   const file =
                     event.target.files?.[0];
 
                   if (file) {
-                    void onImageSelect(file);
+                    void onImageSelect(
+                      file,
+                    );
                   }
 
-                  event.target.value = "";
+                  event.target.value =
+                    "";
                 }}
               />
             </label>
@@ -500,7 +522,9 @@ export function QuotationFormItemRow({
                     value={
                       item.warrantyDuration
                     }
-                    onChange={(event) =>
+                    onChange={(
+                      event,
+                    ) =>
                       onChange({
                         warrantyDuration:
                           event.target.value,
@@ -520,7 +544,9 @@ export function QuotationFormItemRow({
                     value={
                       item.warrantyUnit
                     }
-                    onChange={(event) =>
+                    onChange={(
+                      event,
+                    ) =>
                       onChange({
                         warrantyUnit:
                           event.target
@@ -558,7 +584,9 @@ export function QuotationFormItemRow({
                   value={
                     item.warrantyTerms
                   }
-                  onChange={(event) =>
+                  onChange={(
+                    event,
+                  ) =>
                     onChange({
                       warrantyTerms:
                         event.target.value,

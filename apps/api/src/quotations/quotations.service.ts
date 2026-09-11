@@ -962,11 +962,11 @@ export class QuotationsService {
           total: totals.total,
 
           ...(dto.subject !== undefined && {
-            subject: dto.subject.trim() || null,
+            subject: dto.subject?.trim() || null,
           }),
 
           ...(dto.notes !== undefined && {
-            notes: dto.notes.trim() || null,
+            notes: dto.notes?.trim() || null,
           }),
 
           ...(dto.terms !== undefined
@@ -975,7 +975,7 @@ export class QuotationsService {
                  * User explicitly edited terms:
                  * respect their value.
                  */
-                terms: dto.terms.trim() || null,
+                terms: dto.terms?.trim() || null,
               }
             : businessIdentity !== undefined
               ? {

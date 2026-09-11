@@ -33,10 +33,10 @@ export type QuotationFormPayload = {
 
   taxRate: number;
 
-  subject?: string;
+  subject?: string | null;
 
-  notes?: string;
-  terms?: string;
+  notes?: string | null;
+  terms?: string | null;
 
   imageUrl?: string;
   imageKey?: string;

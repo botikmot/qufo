@@ -629,6 +629,7 @@ export function QuotationFormModal({
           onRemove={
             form.removeItem
           }
+          onReorder={form.reorderItems}
           onChange={
             form.updateItem
           }
