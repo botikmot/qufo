@@ -1,6 +1,7 @@
 import type { ImportedQuotationDraft } from "@/types/quotation-import";
 import { parseXlsxQuotation } from "./parse-xlsx";
 import { parseWordQuotation } from "./parse-word";
+import { parsePdfQuotation } from "./parse-pdf";
 
 const ACCEPTED_EXTENSIONS = [
   ".xlsx",
@@ -48,9 +49,7 @@ export async function importQuotationFile(
       return parseWordQuotation(file);
 
     case ".pdf":
-      throw new Error(
-        "PDF import is not yet enabled. The PDF parser is still being implemented.",
-      );
+      return parsePdfQuotation(file)
 
     case ".png":
     case ".jpg":
