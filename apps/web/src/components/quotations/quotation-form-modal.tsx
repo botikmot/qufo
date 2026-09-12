@@ -54,9 +54,16 @@ import type {
 } from "@/types/business-profile";
 
 import { settingsService } from "@/services/settings.service";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 
 import { uploadsService } from "@/services/uploads.service";
+
+import {
+  importQuotationFile,
+  isSupportedQuotationImportFile,
+} from "@/lib/quotation-import/import-quotation-file";
+import type { ImportedQuotationDraft } from "@/types/quotation-import";
+import type { QuotationFormItem } from "@/types/quotation-form";
 
 import {
   Select,
@@ -100,6 +107,14 @@ export function QuotationFormModal({
   
   const editing =
     Boolean(quotation);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const [isImporting, setIsImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importSuccess, setImportSuccess] = useState<string | null>(null);
+  const [importWarnings, setImportWarnings] = useState<string[]>([]);
+  const [importedFileName, setImportedFileName] = useState<string | null>(null);
 
   const [
     businessSelection,
@@ -299,6 +314,184 @@ export function QuotationFormModal({
     }
   }
 
+
+  function convertImportedItems(
+    draft: ImportedQuotationDraft,
+    currency: string,
+  ): QuotationFormItem[] {
+    return draft.items.map((item) => ({
+      key: crypto.randomUUID(),
+      name: item.name,
+      description: item.description ?? "",
+      quantity: String(item.quantity),
+      unit: item.unit || "pcs",
+      unitPrice: String(item.unitPrice),
+      imageUrl: "",
+      imageKey: "",
+      warrantyDuration: item.warrantyDuration
+        ? String(item.warrantyDuration)
+        : "",
+      warrantyUnit: item.warrantyUnit ?? "",
+      warrantyTerms: item.warrantyTerms ?? "",
+      currency,
+    }));
+  }
+
+  function normalizeMatchValue(value?: string | null): string {
+    return String(value ?? "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, " ");
+  }
+
+  function findMatchingCustomer(
+    draft: ImportedQuotationDraft,
+  ): Customer | null {
+    const importedName = normalizeMatchValue(draft.customer.name);
+    const importedCompanyName = normalizeMatchValue(
+      draft.customer.companyName,
+    );
+    const importedEmail = normalizeMatchValue(draft.customer.email);
+    const importedPhone = normalizeMatchValue(draft.customer.phone);
+
+    if (
+      !importedName &&
+      !importedCompanyName &&
+      !importedEmail &&
+      !importedPhone
+    ) {
+      return null;
+    }
+
+    const exactMatches = customers.filter((customer) => {
+      const customerName = normalizeMatchValue(customer.name);
+      const customerCompanyName = normalizeMatchValue(customer.companyName);
+      const customerEmail = normalizeMatchValue(customer.email);
+      const customerPhone = normalizeMatchValue(customer.phone);
+
+      const emailMatches =
+        importedEmail &&
+        customerEmail &&
+        importedEmail === customerEmail;
+
+      const phoneMatches =
+        importedPhone &&
+        customerPhone &&
+        importedPhone === customerPhone;
+
+      const nameMatches =
+        importedName &&
+        customerName &&
+        importedName === customerName;
+
+      const companyMatches =
+        importedCompanyName &&
+        customerCompanyName &&
+        importedCompanyName === customerCompanyName;
+
+      return Boolean(emailMatches || phoneMatches || nameMatches || companyMatches);
+    });
+
+    if (exactMatches.length === 1) {
+      return exactMatches[0];
+    }
+
+    return null;
+  }
+
+
+  async function handleImportFile(
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = event.target.files?.[0];
+
+    // Allow selecting the same file again later.
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    setImportError(null);
+    setImportSuccess(null);
+    setImportWarnings([]);
+    setImportedFileName(null);
+
+    if (!isSupportedQuotationImportFile(file)) {
+      setImportError(
+        "Unsupported file type. Please upload an Excel, Word, PDF, or image quotation.",
+      );
+      return;
+    }
+
+    try {
+      setIsImporting(true);
+
+      const draft = await importQuotationFile(file);
+
+      const importedItems = convertImportedItems(draft, currency);
+
+      if (!importedItems.length) {
+        throw new Error("No quotation items were found in the file.");
+      }
+
+      form.replaceItems(importedItems);
+
+      if (draft.customer.name || draft.customer.companyName) {
+        const matchedCustomer = findMatchingCustomer(draft);
+
+        if (matchedCustomer) {
+          form.setCustomerId(matchedCustomer.id);
+        } else {
+          setImportWarnings((previous) => [
+            ...previous,
+            "Customer information was found but no exact customer match was detected. Please select the customer manually.",
+          ]);
+        }
+      }
+
+      if (draft.subject) {
+        form.setSubject(draft.subject);
+      }
+
+      if (draft.notes) {
+        form.setNotes(draft.notes);
+      }
+
+      if (draft.terms) {
+        form.setTerms(draft.terms);
+      }
+
+      if (draft.validUntil) {
+        form.setValidUntil(draft.validUntil);
+      }
+
+      if (draft.discountType) {
+        form.setDiscountType(draft.discountType);
+        form.setDiscountValue(String(draft.discountValue ?? 0));
+      }
+
+      form.setTaxRate(String(draft.taxRate ?? 0));
+
+      setImportedFileName(file.name);
+      setImportWarnings(draft.warnings);
+      setImportSuccess(
+        `${importedItems.length} quotation item${
+          importedItems.length === 1 ? "" : "s"
+        } imported successfully.`,
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unable to import the quotation file.";
+
+      setImportError(message);
+    } finally {
+      setIsImporting(false);
+    }
+  }
+
   return (
     <QufoModal
       title={
@@ -415,6 +608,71 @@ export function QuotationFormModal({
         </div>
       }
     >
+
+      {!quotation && (
+        <div className="rounded-xl border border-dashed border-border bg-muted/30 p-4 mb-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium">Import existing quotation</p>
+              <p className="text-xs text-muted-foreground">
+                Upload an Excel, Word, PDF, or image quotation to prefill the form.
+                You can review and edit everything before saving.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isImporting}
+              className="inline-flex items-center justify-center rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isImporting ? "Importing..." : "Import Quotation"}
+            </button>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls,.csv,.docx,.pdf,.png,.jpg,.jpeg,.webp"
+            onChange={handleImportFile}
+            className="hidden"
+          />
+
+          {importedFileName && (
+            <p className="mt-3 text-xs text-muted-foreground">
+              Imported from:{" "}
+              <span className="font-medium text-foreground">
+                {importedFileName}
+              </span>
+            </p>
+          )}
+
+          {importSuccess && (
+            <div className="mt-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300">
+              {importSuccess}
+            </div>
+          )}
+
+          {importError && (
+            <div className="mt-3 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {importError}
+            </div>
+          )}
+
+          {importWarnings.length > 0 && (
+            <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-3 text-sm text-amber-700 dark:text-amber-300">
+              <p className="font-medium">Import warnings</p>
+
+              <ul className="mt-1 list-disc space-y-1 pl-5">
+                {importWarnings.map((warning, index) => (
+                  <li key={`${warning}-${index}`}>{warning}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
       <form
         id="quotation-form"
         onSubmit={
@@ -625,6 +883,12 @@ export function QuotationFormModal({
           }
           onAdd={
             form.addItem
+          }
+          onInsertBefore={
+            form.insertItemBefore
+          }
+          onInsertAfter={
+            form.insertItemAfter
           }
           onRemove={
             form.removeItem

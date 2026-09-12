@@ -5,6 +5,9 @@ import {
   ShieldCheck,
   Trash2,
   X,
+  MoreVertical,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 
 import {
@@ -18,6 +21,7 @@ import {
 import type {
   QuotationFormItem,
 } from "@/types/quotation-form";
+import { useState } from "react";
 
 type QuotationFormItemRowProps = {
   item: QuotationFormItem;
@@ -29,6 +33,9 @@ type QuotationFormItemRowProps = {
   ) => void;
 
   onRemove: () => void;
+
+  onInsertBefore: () => void;
+  onInsertAfter: () => void;
 
   onImageSelect: (
     file: File,
@@ -44,6 +51,8 @@ export function QuotationFormItemRow({
   canRemove,
   onChange,
   onRemove,
+  onInsertBefore,
+  onInsertAfter,
   onImageSelect,
   isUploadingImage = false,
   currency,
@@ -79,6 +88,11 @@ export function QuotationFormItemRow({
     });
   }
 
+  const [
+    showInsertMenu,
+    setShowInsertMenu,
+  ] = useState(false);
+
   return (
     <div
       className="
@@ -90,6 +104,106 @@ export function QuotationFormItemRow({
         p-4
       "
     >
+      <div className="mb-3 flex items-center justify-end">
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() =>
+              setShowInsertMenu((current) => !current)
+            }
+            className="
+              inline-flex
+              h-8
+              w-8
+              items-center
+              justify-center
+              rounded-lg
+              text-slate-500
+              transition
+              hover:bg-white/[0.05]
+              hover:text-slate-200
+            "
+            title="Item actions"
+            aria-label="Item actions"
+          >
+            <MoreVertical size={17} />
+          </button>
+
+          {showInsertMenu && (
+            <div
+              className="
+                absolute
+                right-0
+                top-full
+                z-50
+                mt-1
+                min-w-[190px]
+                overflow-hidden
+                rounded-xl
+                border
+                border-white/10
+                bg-slate-900
+                p-1
+                shadow-2xl
+              "
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  onInsertBefore();
+                  setShowInsertMenu(false);
+                }}
+                className="
+                  flex
+                  w-full
+                  items-center
+                  gap-2
+                  rounded-lg
+                  px-3
+                  py-2
+                  text-left
+                  text-xs
+                  text-slate-300
+                  transition
+                  hover:bg-white/[0.06]
+                  hover:text-white
+                "
+              >
+                <ArrowUp size={14} />
+                Insert item above
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onInsertAfter();
+                  setShowInsertMenu(false);
+                }}
+                className="
+                  flex
+                  w-full
+                  items-center
+                  gap-2
+                  rounded-lg
+                  px-3
+                  py-2
+                  text-left
+                  text-xs
+                  text-slate-300
+                  transition
+                  hover:bg-white/[0.06]
+                  hover:text-white
+                "
+              >
+                <ArrowDown size={14} />
+                Insert item below
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+
       <div
         className="
           grid

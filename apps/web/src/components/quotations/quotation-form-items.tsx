@@ -43,6 +43,9 @@ type QuotationFormItemsProps = {
 
   onAdd: () => void;
 
+  onInsertBefore: (key: string) => void;
+  onInsertAfter: (key: string) => void;
+
   onRemove: (
     key: string,
   ) => void;
@@ -76,6 +79,8 @@ type SortableQuotationFormItemProps = {
   ) => void;
 
   onRemove: () => void;
+  onInsertBefore: () => void;
+  onInsertAfter: () => void;
 
   onImageSelect: (
     file: File,
@@ -97,6 +102,8 @@ function SortableQuotationFormItem({
   canRemove,
   onChange,
   onRemove,
+  onInsertBefore,
+  onInsertAfter,
   onImageSelect,
   isUploadingImage,
   currency,
@@ -180,6 +187,8 @@ function SortableQuotationFormItem({
           canRemove={canRemove}
           onChange={onChange}
           onRemove={onRemove}
+          onInsertBefore={onInsertBefore}
+          onInsertAfter={onInsertAfter}
           onImageSelect={
             onImageSelect
           }
@@ -196,6 +205,8 @@ function SortableQuotationFormItem({
 export function QuotationFormItems({
   items,
   onAdd,
+  onInsertBefore,
+  onInsertAfter,
   onRemove,
   onReorder,
   onChange,
@@ -203,15 +214,10 @@ export function QuotationFormItems({
   uploadingImageKey,
   currency,
 }: QuotationFormItemsProps) {
-  const lastItemRef =
-    useRef<HTMLDivElement | null>(
-      null,
-    );
 
-  const previousItemCount =
-    useRef(
-      items.length,
-    );
+  const lastItemRef = useRef<HTMLDivElement | null>(null);
+  const previousItemCount = useRef(items.length);
+  const shouldScrollToLastItem = useRef(false);
 
   const sensors = useSensors(
     useSensor(
@@ -226,29 +232,25 @@ export function QuotationFormItems({
 
   useEffect(() => {
     const itemAdded =
-      items.length >
-      previousItemCount.current;
+      items.length > previousItemCount.current;
 
-    previousItemCount.current =
-      items.length;
+    previousItemCount.current = items.length;
 
-    if (!itemAdded) {
+    if (
+      !itemAdded ||
+      !shouldScrollToLastItem.current
+    ) {
       return;
     }
 
-    requestAnimationFrame(
-      () => {
-        lastItemRef.current?.scrollIntoView(
-          {
-            behavior:
-              "smooth",
+    shouldScrollToLastItem.current = false;
 
-            block:
-              "center",
-          },
-        );
-      },
-    );
+    requestAnimationFrame(() => {
+      lastItemRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    });
   }, [items.length]);
 
   function handleDragEnd(
@@ -371,6 +373,12 @@ export function QuotationFormItems({
                         item.key,
                       )
                     }
+                    onInsertBefore={() =>
+                      onInsertBefore(item.key)
+                    }
+                    onInsertAfter={() =>
+                      onInsertAfter(item.key)
+                    }
                     onImageSelect={(
                       file,
                     ) =>
@@ -405,7 +413,10 @@ export function QuotationFormItems({
       {/* Add another item */}
       <button
         type="button"
-        onClick={onAdd}
+        onClick={() => {
+          shouldScrollToLastItem.current = true;
+          onAdd();
+        }}
         className="
           cursor-pointer
           mt-3

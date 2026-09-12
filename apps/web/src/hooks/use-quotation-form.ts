@@ -323,6 +323,50 @@ export function useQuotationForm({
     ]);
   }
 
+  function insertItemBefore(
+    targetKey: string,
+  ) {
+    setItems((current) => {
+      const targetIndex = current.findIndex(
+        (item) => item.key === targetKey,
+      );
+
+      if (targetIndex === -1) {
+        return current;
+      }
+
+      const newItem = createQuotationFormItem();
+
+      return [
+        ...current.slice(0, targetIndex),
+        newItem,
+        ...current.slice(targetIndex),
+      ];
+    });
+  }
+
+  function insertItemAfter(
+    targetKey: string,
+  ) {
+    setItems((current) => {
+      const targetIndex = current.findIndex(
+        (item) => item.key === targetKey,
+      );
+
+      if (targetIndex === -1) {
+        return current;
+      }
+
+      const newItem = createQuotationFormItem();
+
+      return [
+        ...current.slice(0, targetIndex + 1),
+        newItem,
+        ...current.slice(targetIndex + 1),
+      ];
+    });
+  }
+
   function removeItem(
     key: string,
   ) {
@@ -360,6 +404,10 @@ export function useQuotationForm({
     reorderedItems: QuotationFormItem[],
   ) {
     setItems(reorderedItems);
+  }
+
+  function replaceItems(nextItems: QuotationFormItem[]) {
+    setItems(nextItems);
   }
 
   async function handleSubmit(
@@ -631,9 +679,12 @@ export function useQuotationForm({
     setTerms,
 
     addItem,
+    insertItemBefore,
+    insertItemAfter,
     removeItem,
     updateItem,
     reorderItems,
+    replaceItems,
 
     handleSubmit,
   };
