@@ -14,7 +14,8 @@ export type QuotationImportFileType =
 export type QuotationImportMethod =
   | "local"
   | "ocr"
-  | "ai";
+  | "ai"
+  | "ocr+ollama";
 
 export type ImportedQuotationItem = {
   name: string;
@@ -56,4 +57,23 @@ export type ImportedQuotationDraft = {
   terms?: string;
 
   warnings: string[];
+};
+
+
+export type VisionQuotationItem = {
+  description: string | null;
+  quantity: number | string | null;
+  unitPrice: number | string | null;
+  total: number | string | null;
+};
+
+export type VisionQuotationResponse = {
+  customerName: string | null;
+  quotationDate: string | null;
+  validUntil: string | null;
+  subject: string | null;
+  items: VisionQuotationItem[];
+  subtotal: number | string | null;
+  tax: number | string | null;
+  grandTotal: number | string | null;
 };

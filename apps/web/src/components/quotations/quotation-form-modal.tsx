@@ -321,18 +321,34 @@ export function QuotationFormModal({
   ): QuotationFormItem[] {
     return draft.items.map((item) => ({
       key: crypto.randomUUID(),
-      name: item.name,
-      description: item.description ?? "",
-      quantity: String(item.quantity),
+
+      name:
+        item.name ??
+        item.description ??
+        "Imported item",
+
+      description:
+        item.description ??
+        item.name ??
+        "",
+
+      quantity: String(item.quantity ?? 1),
+
       unit: item.unit || "pcs",
-      unitPrice: String(item.unitPrice),
+
+      unitPrice: String(item.unitPrice ?? 0),
+
       imageUrl: "",
       imageKey: "",
+
       warrantyDuration: item.warrantyDuration
         ? String(item.warrantyDuration)
         : "",
+
       warrantyUnit: item.warrantyUnit ?? "",
+
       warrantyTerms: item.warrantyTerms ?? "",
+
       currency,
     }));
   }
@@ -427,18 +443,55 @@ export function QuotationFormModal({
     try {
       setIsImporting(true);
 
+      // IMPORTANT:
+      // All import types must return ImportedQuotationDraft.
+      // This keeps Excel, Word, PDF, and image imports compatible.
       const draft = await importQuotationFile(file);
 
-      const importedItems = convertImportedItems(draft, currency);
+      console.log(
+        "[IMPORT RESULT]",
+        JSON.stringify(draft, null, 2),
+      );
+
+      console.log(
+        "[IMPORT RESULT KEYS]",
+        Object.keys(draft),
+      );
+
+      console.log(
+        "[IMPORT CUSTOMER]",
+        draft.customer?.name,
+      );
+
+      console.log(
+        "[IMPORT SUBJECT]",
+        draft.subject,
+      );
+
+      console.log(
+        "[IMPORT ITEMS]",
+        draft.items,
+      );
+
+      const importedItems = convertImportedItems(
+        draft,
+        currency,
+      );
 
       if (!importedItems.length) {
-        throw new Error("No quotation items were found in the file.");
+        throw new Error(
+          "No quotation items were found in the file.",
+        );
       }
 
       form.replaceItems(importedItems);
 
-      if (draft.customer.name || draft.customer.companyName) {
-        const matchedCustomer = findMatchingCustomer(draft);
+      if (
+        draft.customer?.name ||
+        draft.customer?.companyName
+      ) {
+        const matchedCustomer =
+          findMatchingCustomer(draft);
 
         if (matchedCustomer) {
           form.setCustomerId(matchedCustomer.id);
@@ -468,13 +521,22 @@ export function QuotationFormModal({
 
       if (draft.discountType) {
         form.setDiscountType(draft.discountType);
-        form.setDiscountValue(String(draft.discountValue ?? 0));
+
+        form.setDiscountValue(
+          String(draft.discountValue ?? 0),
+        );
       }
 
-      form.setTaxRate(String(draft.taxRate ?? 0));
+      form.setTaxRate(
+        String(draft.taxRate ?? 0),
+      );
 
       setImportedFileName(file.name);
-      setImportWarnings(draft.warnings);
+
+      setImportWarnings(
+        draft.warnings ?? [],
+      );
+
       setImportSuccess(
         `${importedItems.length} quotation item${
           importedItems.length === 1 ? "" : "s"
@@ -485,6 +547,11 @@ export function QuotationFormModal({
         error instanceof Error
           ? error.message
           : "Unable to import the quotation file.";
+
+      console.error(
+        "[IMPORT ERROR]",
+        error,
+      );
 
       setImportError(message);
     } finally {

@@ -4,6 +4,7 @@ import {
 
 import {
   format,
+  isValid,
   parseISO,
 } from "date-fns";
 
@@ -37,9 +38,14 @@ export function QuotationFormDates({
   validUntil,
   onValidUntilChange,
 }: QuotationFormDatesProps) {
-  const selectedDate =
+  const parsedDate =
     validUntil
       ? parseISO(validUntil)
+      : undefined;
+
+  const selectedDate =
+    parsedDate && isValid(parsedDate)
+      ? parsedDate
       : undefined;
 
   return (

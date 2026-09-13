@@ -5,6 +5,8 @@ import type {
   ImportedQuotationItem,
 } from "@/types/quotation-import";
 
+import { parsePdfQuotationWithVision } from "./parse-pdf-vision";
+
 // Configure PDF.js worker.
 // For Next.js/browser usage, use the worker bundled by pdfjs-dist.
 if (typeof window !== "undefined") {
@@ -182,10 +184,6 @@ function parseLineBasedItems(
   );
 
   if (headerIndex === -1) {
-    warnings.push(
-      "PDF quotation header was not detected.",
-    );
-
     return items;
   }
 
@@ -449,9 +447,11 @@ export async function parsePdfQuotation(
     }
 
     if (!items.length) {
-        throw new Error(
-            "No quotation items were detected in the PDF document.",
-        );
+      console.log(
+        "[PDF Import] No local items found. Trying Vision AI fallback...",
+      );
+
+      return parsePdfQuotationWithVision(file);
     }
 
   console.log("[PDF Import Items]", items);
