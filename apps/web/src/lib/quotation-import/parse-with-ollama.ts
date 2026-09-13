@@ -58,7 +58,7 @@ export async function parseQuotationTextWithOllama(
     process.env.OLLAMA_QUOTATION_MODEL || "qwen2.5vl";
 
   const ollamaBaseUrl =
-    process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434";
+    process.env.OLLAMA_URL || "http://127.0.0.1:11434";
 
   const prompt = `
 You are an expert quotation document extraction assistant.
