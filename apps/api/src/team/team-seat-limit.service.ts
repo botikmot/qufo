@@ -4,16 +4,12 @@ import { ConfigService } from '@nestjs/config';
 
 import { Prisma } from '../generated/prisma/client';
 
-import type { AppSumoTier } from '../generated/prisma/client';
-
 import { PrismaService } from '../prisma/prisma.service';
 
-import { getAppSumoEntitlements } from '../subscriptions/constants/appsumo-entitlements';
+import { getLifetimeEntitlements } from '../subscriptions/constants/lifetime-entitlements';
 
 export type TeamSeatUsage = {
   limited: boolean;
-
-  appSumoTier: AppSumoTier | null;
 
   limit: number | null;
 
@@ -37,8 +33,6 @@ export type TeamSeatReconciliation = TeamSeatUsage & {
 };
 
 type SeatLimit = {
-  appSumoTier: AppSumoTier | null;
-
   limit: number | null;
 };
 
@@ -93,33 +87,31 @@ export class TeamSeatLimitService {
   ): Promise<TeamSeatUsage> {
     await this.expirePendingInvitations(tx, organizationId, now);
 
-    const [{ appSumoTier, limit }, activeMembers, pendingInvitations] =
-      await Promise.all([
-        this.getSeatLimitInTransaction(tx, organizationId),
+    const [{ limit }, activeMembers, pendingInvitations] = await Promise.all([
+      this.getSeatLimitInTransaction(tx, organizationId),
 
-        tx.organizationMember.count({
-          where: {
-            organizationId,
-            isActive: true,
-          },
-        }),
+      tx.organizationMember.count({
+        where: {
+          organizationId,
+          isActive: true,
+        },
+      }),
 
-        tx.organizationInvitation.count({
-          where: {
-            organizationId,
-            status: 'PENDING',
-            expiresAt: {
-              gt: now,
-            },
+      tx.organizationInvitation.count({
+        where: {
+          organizationId,
+          status: 'PENDING',
+          expiresAt: {
+            gt: now,
           },
-        }),
-      ]);
+        },
+      }),
+    ]);
 
     const usedSeats = activeMembers + pendingInvitations;
 
     return {
       limited: limit !== null,
-      appSumoTier,
       limit,
       activeMembers,
       pendingInvitations,
@@ -389,7 +381,6 @@ export class TeamSeatLimitService {
   ): Promise<SeatLimit> {
     if (!this.subscriptionEnabled) {
       return {
-        appSumoTier: null,
         limit: null,
       };
     }
@@ -404,24 +395,26 @@ export class TeamSeatLimitService {
         source: true,
         accessType: true,
         appSumoTier: true,
+        dealifyTier: true,
       },
     });
 
-    if (
-      subscription?.status !== 'ACTIVE' ||
-      subscription.source !== 'APPSUMO' ||
-      subscription.accessType !== 'LIFETIME' ||
-      !subscription.appSumoTier
-    ) {
+    if (!subscription) {
       return {
-        appSumoTier: null,
+        limit: null,
+      };
+    }
+
+    const entitlements = getLifetimeEntitlements(subscription);
+
+    if (!entitlements) {
+      return {
         limit: null,
       };
     }
 
     return {
-      appSumoTier: subscription.appSumoTier,
-      limit: getAppSumoEntitlements(subscription.appSumoTier).maxMembers,
+      limit: entitlements.maxMembers,
     };
   }
 
@@ -449,8 +442,7 @@ export class TeamSeatLimitService {
     return new ForbiddenException({
       statusCode: 403,
       code: 'MEMBER_LIMIT_REACHED',
-      message:
-        'Your workspace has reached its AppSumo team member limit. Redeem another AppSumo code to add more members.',
+      message: 'Your workspace has reached its team member limit.',
       seats: {
         activeMembers: usage.activeMembers,
         pendingInvitations: usage.pendingInvitations,

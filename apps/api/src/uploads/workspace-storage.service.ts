@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
   PayloadTooLargeException,
@@ -14,7 +13,7 @@ import type { WorkspaceAssetKind } from '../generated/prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 
-import { getAppSumoEntitlements } from '../subscriptions/constants/appsumo-entitlements';
+import { getLifetimeEntitlements } from '../subscriptions/constants/lifetime-entitlements';
 
 export type StorageReservation =
   | {
@@ -68,12 +67,10 @@ export class WorkspaceStorageService {
           subscription: {
             select: {
               source: true,
-
               accessType: true,
-
               status: true,
-
               appSumoTier: true,
+              dealifyTier: true,
             },
           },
         },
@@ -87,18 +84,12 @@ export class WorkspaceStorageService {
 
       let limitBytes: bigint | null = null;
 
-      if (subscription?.source === 'APPSUMO') {
-        if (
-          subscription.accessType !== 'LIFETIME' ||
-          subscription.status !== 'ACTIVE' ||
-          !subscription.appSumoTier
-        ) {
-          throw new ForbiddenException('AppSumo lifetime access is inactive.');
+      if (subscription) {
+        const entitlements = getLifetimeEntitlements(subscription);
+
+        if (entitlements) {
+          limitBytes = BigInt(entitlements.maxStorageBytes);
         }
-
-        const entitlements = getAppSumoEntitlements(subscription.appSumoTier);
-
-        limitBytes = BigInt(entitlements.maxStorageBytes);
       }
 
       const usage = await tx.organizationStorageUsage.upsert({

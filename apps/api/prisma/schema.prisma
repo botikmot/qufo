@@ -146,6 +146,7 @@ enum WarrantyUnit {
 enum SubscriptionSource {
   DIRECT
   APPSUMO
+  DEALIFY
 }
 
 enum SubscriptionAccessType {
@@ -155,6 +156,11 @@ enum SubscriptionAccessType {
 
 enum AppSumoTier {
   TIER_1
+  TIER_2
+  TIER_3
+}
+
+enum DealifyTier {
   TIER_2
   TIER_3
 }
@@ -267,6 +273,7 @@ model Organization {
   customerEmailUsages OrganizationEmailUsage[]
   storageUsage        OrganizationStorageUsage?
   storedAssets        OrganizationStoredAsset[]
+  quotationUsages     OrganizationQuotationUsage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -425,6 +432,9 @@ model Subscription {
   appSumoTier        AppSumoTier?
   appSumoActivatedAt DateTime?
 
+  dealifyTier        DealifyTier?
+  dealifyActivatedAt DateTime?
+
   payments SubscriptionPayment[]
 
   trialStartedAt DateTime
@@ -445,6 +455,7 @@ model Subscription {
   @@index([source])
   @@index([accessType])
   @@index([appSumoTier])
+  @@index([dealifyTier])
   @@index([trialEndsAt])
   @@index([currentPeriodEnd])
 }
@@ -963,4 +974,23 @@ model OrganizationStoredAsset {
 
   @@index([organizationId])
   @@index([organizationId, kind])
+}
+
+model OrganizationQuotationUsage {
+  id String @id @default(cuid())
+
+  organizationId String
+
+  periodStart DateTime @db.Date
+
+  quotationsCreated Int @default(0)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, periodStart])
+  @@index([organizationId])
+  @@index([periodStart])
 }

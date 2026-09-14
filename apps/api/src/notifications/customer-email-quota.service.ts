@@ -4,7 +4,7 @@ import { Prisma } from '../generated/prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 
-import { getAppSumoEntitlements } from '../subscriptions/constants/appsumo-entitlements';
+import { getLifetimeEntitlements } from '../subscriptions/constants/lifetime-entitlements';
 
 export type CustomerEmailReservation =
   | {
@@ -59,12 +59,10 @@ export class CustomerEmailQuotaService {
                 subscription: {
                   select: {
                     source: true,
-
                     accessType: true,
-
                     status: true,
-
                     appSumoTier: true,
+                    dealifyTier: true,
                   },
                 },
               },
@@ -88,39 +86,20 @@ export class CustomerEmailQuotaService {
 
             const subscription = organization.subscription;
 
-            /*
-             * Direct recurring and trial
-             * subscriptions retain their
-             * existing behavior for now.
-             */
-            if (subscription?.source !== 'APPSUMO') {
+            const entitlements = subscription
+              ? getLifetimeEntitlements(subscription)
+              : null;
+
+            if (!entitlements) {
+              /*
+               * Direct recurring/trial subscriptions
+               * retain their existing behavior.
+               */
               return {
                 allowed: true,
-
                 limited: false,
               };
             }
-
-            /*
-             * Malformed, revoked, or inactive
-             * AppSumo subscriptions cannot
-             * send customer emails.
-             */
-            if (
-              subscription.accessType !== 'LIFETIME' ||
-              subscription.status !== 'ACTIVE' ||
-              !subscription.appSumoTier
-            ) {
-              return {
-                allowed: false,
-
-                reason: 'LIFETIME_INACTIVE',
-              };
-            }
-
-            const entitlements = getAppSumoEntitlements(
-              subscription.appSumoTier,
-            );
 
             const limit = entitlements.monthlyCustomerEmailLimit;
 

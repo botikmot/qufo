@@ -5,7 +5,7 @@ export type SubscriptionPlan = 'STANDARD';
 export type SubscriptionStatus =
   'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELLED' | 'EXPIRED';
 
-export type SubscriptionSource = 'DIRECT' | 'APPSUMO';
+export type SubscriptionSource = 'DIRECT' | 'APPSUMO' | 'DEALIFY';
 
 export type SubscriptionAccessType = 'RECURRING' | 'LIFETIME';
 

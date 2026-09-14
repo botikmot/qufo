@@ -29,6 +29,7 @@ import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
 import { JobsService } from '../jobs/jobs.service';
 import { UploadsService } from '../uploads/uploads.service';
+import { DealifyUsageService } from '../subscriptions/dealify-usage.service';
 
 @Injectable()
 export class QuotationsService {
@@ -39,6 +40,7 @@ export class QuotationsService {
     private readonly notificationsService: NotificationsService,
     private readonly jobsService: JobsService,
     private readonly uploadsService: UploadsService,
+    private readonly dealifyUsageService: DealifyUsageService,
   ) {}
 
   private async cleanupUnusedQuotationImages(imageKeys: string[]) {
@@ -247,6 +249,11 @@ export class QuotationsService {
     });
 
     return this.prisma.$transaction(async (tx) => {
+      await this.dealifyUsageService.consumeQuotationCredit(
+        tx,
+        tenant.organizationId,
+      );
+
       const organization = await tx.organization.findUnique({
         where: {
           id: tenant.organizationId,

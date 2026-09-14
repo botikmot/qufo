@@ -9,6 +9,7 @@ import { PublicQuotationsController } from './public-quotations.controller';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { UploadsModule } from '../uploads/uploads.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 @Module({
   imports: [
     AuthModule,
@@ -16,6 +17,7 @@ import { UploadsModule } from '../uploads/uploads.module';
     NotificationsModule,
     JobsModule,
     UploadsModule,
+    SubscriptionsModule,
   ],
 
   controllers: [QuotationsController, PublicQuotationsController],

@@ -9,8 +9,11 @@ import { PayMongoService } from './providers/paymongo.service';
 import { PayMongoWebhookController } from './webhooks/paymongo-webhook.controller';
 import { PayPalWebhookController } from './webhooks/paypal-webhook.controller';
 import { PayPalService } from './providers/paypal.service';
+import { DealifyUsageService } from './dealify-usage.service';
+import { TeamModule } from '../team/team.module';
 
 @Module({
+  imports: [TeamModule],
   controllers: [
     SubscriptionsBillingController,
     PayMongoWebhookController,
@@ -22,8 +25,13 @@ import { PayPalService } from './providers/paypal.service';
     SubscriptionsBillingService,
     PayMongoService,
     PayPalService,
+    DealifyUsageService,
   ],
 
-  exports: [SubscriptionPricingService, SubscriptionsBillingService],
+  exports: [
+    SubscriptionPricingService,
+    SubscriptionsBillingService,
+    DealifyUsageService,
+  ],
 })
 export class SubscriptionsModule {}

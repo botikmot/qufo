@@ -15,11 +15,15 @@ import type { TenantContext } from '../auth/types/tenant-context.type';
 import { SubscriptionsBillingService } from './subscriptions-billing.service';
 import { CreateSubscriptionCheckoutDto } from './dto/create-subscription-checkout.dto';
 import { CapturePayPalOrderDto } from './dto/capture-paypal-order.dto';
+import { DealifyUsageService } from './dealify-usage.service';
 
 @Controller('subscriptions/billing')
 @UseGuards(AuthGuard, TenantGuard, RolesGuard)
 export class SubscriptionsBillingController {
-  constructor(private readonly billingService: SubscriptionsBillingService) {}
+  constructor(
+    private readonly billingService: SubscriptionsBillingService,
+    private readonly dealifyUsageService: DealifyUsageService,
+  ) {}
 
   @Roles('OWNER', 'ADMIN')
   @Get()
@@ -61,6 +65,17 @@ export class SubscriptionsBillingController {
     return this.billingService.capturePayPalOrder(
       tenant.organizationId,
       dto.orderId,
+    );
+  }
+
+  @Roles('OWNER', 'ADMIN')
+  @Get('dealify/usage')
+  getDealifyUsage(
+    @CurrentTenant()
+    tenant: TenantContext,
+  ) {
+    return this.dealifyUsageService.getCurrentQuotationUsage(
+      tenant.organizationId,
     );
   }
 }

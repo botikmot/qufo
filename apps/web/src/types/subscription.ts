@@ -1,15 +1,10 @@
-export type SubscriptionSource =
-  | "DIRECT"
-  | "APPSUMO";
+export type SubscriptionSource = "DIRECT" | "APPSUMO" | "DEALIFY";
 
-export type SubscriptionAccessType =
-  | "RECURRING"
-  | "LIFETIME";
+export type SubscriptionAccessType = "RECURRING" | "LIFETIME";
 
-export type AppSumoTier =
-  | "TIER_1"
-  | "TIER_2"
-  | "TIER_3";
+export type AppSumoTier = "TIER_1" | "TIER_2" | "TIER_3";
+
+export type DealifyTier = "TIER_2" | "TIER_3";
 
 export type AppSumoEntitlements = {
   label: string;
@@ -18,28 +13,20 @@ export type AppSumoEntitlements = {
 
   maxStorageBytes: number;
 
-  monthlyCustomerEmailLimit:
-    number;
+  monthlyCustomerEmailLimit: number;
 };
 
-export type SubscriptionPlan =
-  | "STANDARD";
+export type SubscriptionPlan = "STANDARD";
 
 export type SubscriptionStatus =
-  | "TRIALING"
-  | "ACTIVE"
-  | "PAST_DUE"
-  | "CANCELLED"
-  | "EXPIRED";
+  "TRIALING" | "ACTIVE" | "PAST_DUE" | "CANCELLED" | "EXPIRED";
 
 export type SubscriptionSnapshot = {
   plan: SubscriptionPlan;
   status: SubscriptionStatus;
 
   trialEndsAt: string;
-  currentPeriodEnd:
-    | string
-    | null;
+  currentPeriodEnd: string | null;
 };
 
 export type SubscriptionPrice = {
@@ -57,19 +44,13 @@ export type SubscriptionDetails = {
   trialStartedAt: string;
   trialEndsAt: string;
 
-  currentPeriodStart:
-    | string
-    | null;
+  currentPeriodStart: string | null;
 
-  currentPeriodEnd:
-    | string
-    | null;
+  currentPeriodEnd: string | null;
 
   cancelAtPeriodEnd: boolean;
 
-  cancelledAt:
-    | string
-    | null;
+  cancelledAt: string | null;
 };
 
 export type SubscriptionSettings = {
@@ -78,83 +59,60 @@ export type SubscriptionSettings = {
   plan: SubscriptionPlan;
   status: SubscriptionStatus;
 
-  source:
-    SubscriptionSource;
+  source: SubscriptionSource;
 
-  accessType:
-    SubscriptionAccessType;
+  accessType: SubscriptionAccessType;
 
-  appSumoTier:
-    | AppSumoTier
-    | null;
+  appSumoTier: AppSumoTier | null;
 
-  appSumoActivatedAt:
-    | string
-    | null;
+  appSumoActivatedAt: string | null;
 
-  trialStartedAt:
-    | string
-    | null;
+  dealifyTier: DealifyTier | null;
 
-  trialEndsAt:
-    | string
-    | null;
+  dealifyActivatedAt: string | null;
 
-  currentPeriodStart:
-    | string
-    | null;
+  trialStartedAt: string | null;
 
-  currentPeriodEnd:
-    | string
-    | null;
+  trialEndsAt: string | null;
 
-  cancelAtPeriodEnd:
-    boolean;
+  currentPeriodStart: string | null;
 
-  cancelledAt:
-    | string
-    | null;
+  currentPeriodEnd: string | null;
+
+  cancelAtPeriodEnd: boolean;
+
+  cancelledAt: string | null;
 
   createdAt?: string;
   updatedAt?: string;
 
-  effectiveStatus:
-    SubscriptionStatus;
+  effectiveStatus: SubscriptionStatus;
 
   /*
    * Lifetime subscriptions have
    * no expiration date.
    */
-  trialDaysRemaining:
-    | number
-    | null;
+  trialDaysRemaining: number | null;
 
-  daysRemaining:
-    | number
-    | null;
+  daysRemaining: number | null;
 };
 
 export type SubscriptionBillingSummary = {
-  subscription:
-    SubscriptionSettings;
+  subscription: SubscriptionSettings;
 
-  entitlements:
-    | AppSumoEntitlements
-    | null;
+  entitlements: AppSumoEntitlements | null;
 
-  customerEmailUsage:
-    | CustomerEmailUsage
-    | null;
+  customerEmailUsage: CustomerEmailUsage | null;
 
-  storageUsage:
-    | SubscriptionStorageUsage
-    | null;
+  storageUsage: SubscriptionStorageUsage | null;
 
-  pricing:
-    SubscriptionPrice;
+  teamSeatUsage: TeamSeatUsage | null;
 
-  canRenew:
-    boolean;
+  quotationUsage: DealifyQuotationUsage | null;
+
+  pricing: SubscriptionPrice;
+
+  canRenew: boolean;
 };
 
 export type SubscriptionCheckoutResponse = {
@@ -163,96 +121,59 @@ export type SubscriptionCheckoutResponse = {
   payment: {
     id: string;
 
-    provider:
-      | "PAYMONGO"
-      | "PAYPAL";
+    provider: "PAYMONGO" | "PAYPAL";
 
-    providerReference:
-      | string
-      | null;
+    providerReference: string | null;
 
     amount: string;
 
     currency: string;
 
-    status:
-      | "PENDING"
-      | "PAID"
-      | "FAILED"
-      | "CANCELLED"
-      | "REFUNDED";
+    status: "PENDING" | "PAID" | "FAILED" | "CANCELLED" | "REFUNDED";
 
-    checkoutUrl:
-      | string
-      | null;
+    checkoutUrl: string | null;
 
-    periodStart:
-      | string
-      | null;
+    periodStart: string | null;
 
-    periodEnd:
-      | string
-      | null;
+    periodEnd: string | null;
   };
 };
 
 export type SubscriptionPaymentStatus =
-  | "PENDING"
-  | "PAID"
-  | "FAILED"
-  | "CANCELLED"
-  | "REFUNDED";
+  "PENDING" | "PAID" | "FAILED" | "CANCELLED" | "REFUNDED";
 
 export type SubscriptionPaymentHistoryItem = {
   id: string;
 
-  provider:
-    | "PAYMONGO"
-    | "PAYPAL";
+  provider: "PAYMONGO" | "PAYPAL";
 
-  providerReference:
-    | string
-    | null;
+  providerReference: string | null;
 
   amount: string;
 
   currency: string;
 
-  status:
-    SubscriptionPaymentStatus;
+  status: SubscriptionPaymentStatus;
 
   periodMonths: number;
 
-  periodStart:
-    | string
-    | null;
+  periodStart: string | null;
 
-  periodEnd:
-    | string
-    | null;
+  periodEnd: string | null;
 
-  paidAt:
-    | string
-    | null;
+  paidAt: string | null;
 
-  failedAt:
-    | string
-    | null;
+  failedAt: string | null;
 
-  cancelledAt:
-    | string
-    | null;
+  cancelledAt: string | null;
 
-  refundedAt:
-    | string
-    | null;
+  refundedAt: string | null;
 
   createdAt: string;
 };
 
 export type SubscriptionPaymentHistoryResponse = {
-  payments:
-    SubscriptionPaymentHistoryItem[];
+  payments: SubscriptionPaymentHistoryItem[];
 };
 
 export type CapturePayPalSubscriptionResponse = {
@@ -271,33 +192,23 @@ export type RedeemAppSumoCodeResponse = {
 
   redeemed: boolean;
 
-  alreadyRedeemed:
-    boolean;
+  alreadyRedeemed: boolean;
 
   subscription: {
-    plan:
-      SubscriptionPlan;
+    plan: SubscriptionPlan;
 
-    status:
-      SubscriptionStatus;
+    status: SubscriptionStatus;
 
-    source:
-      SubscriptionSource;
+    source: SubscriptionSource;
 
-    accessType:
-      SubscriptionAccessType;
+    accessType: SubscriptionAccessType;
 
-    appSumoTier:
-      | AppSumoTier
-      | null;
+    appSumoTier: AppSumoTier | null;
 
-    appSumoActivatedAt:
-      | string
-      | null;
+    appSumoActivatedAt: string | null;
   };
 
-  entitlements:
-    AppSumoEntitlements;
+  entitlements: AppSumoEntitlements;
 };
 
 export type CustomerEmailUsage = {
@@ -320,4 +231,25 @@ export type SubscriptionStorageUsage = {
   remainingBytes: number;
 
   percentageUsed: number;
+};
+
+export type DealifyQuotationUsage = {
+  used: number;
+
+  limit: number;
+
+  remaining: number;
+
+  periodStart: string;
+
+  resetsAt: string;
+};
+
+export type TeamSeatUsage = {
+  limited: boolean;
+  limit: number | null;
+  activeMembers: number;
+  pendingInvitations: number;
+  usedSeats: number;
+  remainingSeats: number | null;
 };

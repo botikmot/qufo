@@ -18,7 +18,10 @@ import { ConfigService } from '@nestjs/config';
 import { PayMongoService } from './providers/paymongo.service';
 import { PayPalService } from './providers/paypal.service';
 import { Prisma } from '../generated/prisma/client';
-import { getAppSumoEntitlements } from './constants/appsumo-entitlements';
+//import { getAppSumoEntitlements } from './constants/appsumo-entitlements';
+import { getDealifyEntitlements } from './constants/dealify-entitlements';
+import { getLifetimeEntitlements } from './constants/lifetime-entitlements';
+import { TeamSeatLimitService } from '../team/team-seat-limit.service';
 
 @Injectable()
 export class SubscriptionsBillingService {
@@ -28,6 +31,7 @@ export class SubscriptionsBillingService {
     private readonly payMongoService: PayMongoService,
     private readonly payPalService: PayPalService,
     private readonly configService: ConfigService,
+    private readonly teamSeatLimitService: TeamSeatLimitService,
   ) {}
 
   private readonly pendingCheckoutReuseMs = 30 * 60 * 1000; // 30 minutes
@@ -497,6 +501,18 @@ export class SubscriptionsBillingService {
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
     );
 
+    const quotationUsagePeriodStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+    );
+
+    const quotationUsageResetsAt = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
+    );
+
+    const teamSeatUsage = await this.teamSeatLimitService.getUsage(
+      tenant.organizationId,
+    );
+
     const organization = await this.prisma.organization.findUnique({
       where: {
         id: tenant.organizationId,
@@ -521,6 +537,9 @@ export class SubscriptionsBillingService {
             appSumoTier: true,
             appSumoActivatedAt: true,
 
+            dealifyTier: true,
+            dealifyActivatedAt: true,
+
             trialStartedAt: true,
             trialEndsAt: true,
 
@@ -529,6 +548,17 @@ export class SubscriptionsBillingService {
 
             cancelAtPeriodEnd: true,
             cancelledAt: true,
+          },
+        },
+        quotationUsages: {
+          where: {
+            periodStart: quotationUsagePeriodStart,
+          },
+
+          take: 1,
+
+          select: {
+            quotationsCreated: true,
           },
         },
         customerEmailUsages: {
@@ -556,14 +586,36 @@ export class SubscriptionsBillingService {
 
     const subscription = organization.subscription;
 
+    const dealifyEntitlements =
+      subscription.source === 'DEALIFY' &&
+      subscription.accessType === 'LIFETIME' &&
+      subscription.dealifyTier
+        ? getDealifyEntitlements(subscription.dealifyTier)
+        : null;
+
+    const quotationUsed =
+      organization.quotationUsages[0]?.quotationsCreated ?? 0;
+
+    const quotationUsage = dealifyEntitlements
+      ? {
+          used: quotationUsed,
+
+          limit: dealifyEntitlements.monthlyQuotationCredits,
+
+          remaining: Math.max(
+            0,
+            dealifyEntitlements.monthlyQuotationCredits - quotationUsed,
+          ),
+
+          periodStart: quotationUsagePeriodStart,
+
+          resetsAt: quotationUsageResetsAt,
+        }
+      : null;
+
     const effective = resolveSubscriptionState(subscription);
 
-    const entitlements =
-      subscription.source === 'APPSUMO' &&
-      subscription.accessType === 'LIFETIME' &&
-      subscription.appSumoTier
-        ? getAppSumoEntitlements(subscription.appSumoTier)
-        : null;
+    const entitlements = getLifetimeEntitlements(subscription);
 
     const customerEmailsUsed =
       organization.customerEmailUsages[0]?.customerEmailsSent ?? 0;
@@ -628,6 +680,8 @@ export class SubscriptionsBillingService {
       entitlements,
       customerEmailUsage,
       storageUsage,
+      quotationUsage,
+      teamSeatUsage,
 
       pricing: {
         plan: price.plan,
