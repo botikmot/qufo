@@ -3,9 +3,7 @@ export type QuotationPdfItem = {
 
   name: string;
 
-  description:
-    | string
-    | null;
+  description: string | null;
 
   quantity: number;
 
@@ -20,15 +18,9 @@ export type QuotationPdfItem = {
 
   warrantyDuration?: number | null;
 
-  warrantyUnit?:
-    | "DAYS"
-    | "WEEKS"
-    | "MONTHS"
-    | "YEARS"
-    | null;
+  warrantyUnit?: "DAYS" | "WEEKS" | "MONTHS" | "YEARS" | null;
 
   warrantyTerms?: string | null;
-
 };
 
 export type QuotationPdfData = {
@@ -38,54 +30,35 @@ export type QuotationPdfData = {
 
   issueDate: string;
 
-  validUntil:
-    | string
-    | null;
+  validUntil: string | null;
 
   currency: string;
 
   business: {
     name: string;
 
-    logoUrl:
-      | string
-      | null;
+    logoUrl: string | null;
 
-    address:
-      | string
-      | null;
+    address: string | null;
 
-    email:
-      | string
-      | null;
+    email: string | null;
 
-    phone:
-      | string
-      | null;
+    phone: string | null;
   };
 
   customer: {
     name: string;
 
-    companyName:
-      | string
-      | null;
+    companyName: string | null;
 
-    address:
-      | string
-      | null;
+    address: string | null;
 
-    email:
-      | string
-      | null;
+    email: string | null;
 
-    phone:
-      | string
-      | null;
+    phone: string | null;
   };
 
-  items:
-    QuotationPdfItem[];
+  items: QuotationPdfItem[];
 
   subtotal: number;
 
@@ -95,27 +68,17 @@ export type QuotationPdfData = {
 
   total: number;
 
-  notes:
-    | string
-    | null;
+  notes: string | null;
 
-  terms:
-    | string
-    | null;
+  terms: string | null;
 
-  footerNote:
-    | string
-    | null;
+  footerNote: string | null;
 
   preparedBy: string;
 
-  subject:
-    | string
-    | null;
+  subject: string | null;
 
-  quotationMessage:
-    | string
-    | null;
+  quotationMessage: string | null;
 
   pdfOptions: {
     showSubject: boolean;
@@ -123,17 +86,14 @@ export type QuotationPdfData = {
     showMessage: boolean;
 
     showAcceptedConforme: boolean;
+    showQuotationDetails: boolean;
   };
 
-  authorizedSignatureUrl:
-  string | null;
+  authorizedSignatureUrl: string | null;
 
-  authorizedSignatoryName:
-    string | null;
+  authorizedSignatoryName: string | null;
 
-  authorizedSignatoryTitle:
-    string | null;
+  authorizedSignatoryTitle: string | null;
 
-  showQuotationSignature:
-    boolean;
+  showQuotationSignature: boolean;
 };

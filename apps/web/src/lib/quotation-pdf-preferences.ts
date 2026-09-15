@@ -2,12 +2,14 @@ export type QuotationPdfPreferences = {
   showSubject: boolean;
   showMessage: boolean;
   showAcceptedConforme: boolean;
+  showQuotationDetails: boolean;
 };
 
 export const DEFAULT_QUOTATION_PDF_PREFERENCES: QuotationPdfPreferences = {
   showSubject: true,
   showMessage: true,
   showAcceptedConforme: true,
+  showQuotationDetails: true,
 };
 
 const STORAGE_KEY = "qufo:quotation-pdf-preferences";
@@ -41,6 +43,11 @@ export function getQuotationPdfPreferences(): QuotationPdfPreferences {
         typeof parsed.showAcceptedConforme === "boolean"
           ? parsed.showAcceptedConforme
           : DEFAULT_QUOTATION_PDF_PREFERENCES.showAcceptedConforme,
+
+      showQuotationDetails:
+        typeof parsed.showQuotationDetails === "boolean"
+          ? parsed.showQuotationDetails
+          : DEFAULT_QUOTATION_PDF_PREFERENCES.showQuotationDetails,
     };
   } catch {
     return DEFAULT_QUOTATION_PDF_PREFERENCES;
@@ -54,8 +61,5 @@ export function saveQuotationPdfPreferences(
     return;
   }
 
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(preferences),
-  );
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences));
 }

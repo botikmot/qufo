@@ -1,23 +1,23 @@
 "use client";
 
-import {
-  useEffect,
-  useState,
-} from "react";
+import { useEffect, useState } from "react";
 
 import {
   Download,
   Eye,
   LoaderCircle,
+  FileSpreadsheet,
+  FileText,
 } from "lucide-react";
 
-import {
-  pdf,
-} from "@react-pdf/renderer";
+import { pdf } from "@react-pdf/renderer";
 
-import type {
-  QuotationDetail,
-} from "@/types/quotation";
+import type { QuotationDetail } from "@/types/quotation";
+
+import {
+  exportQuotationToExcel,
+  exportQuotationToWord,
+} from "./quotation-export-utils";
 
 import {
   Dialog,
@@ -29,33 +29,18 @@ import {
 
 import { QuotationPdfDocument } from "./quotation-pdf-document";
 
-import {
-  mapQuotationToPdfData,
-} from "./map-quotation-to-pdf-data";
+import { mapQuotationToPdfData } from "./map-quotation-to-pdf-data";
 
 type QuotationPdfActionsProps = {
   quotation: QuotationDetail;
 };
 
-export function QuotationPdfActions({
-  quotation,
-}: QuotationPdfActionsProps) {
-  const [
-    generating,
-    setGenerating,
-  ] = useState(false);
+export function QuotationPdfActions({ quotation }: QuotationPdfActionsProps) {
+  const [generating, setGenerating] = useState(false);
 
-  const [
-    previewOpen,
-    setPreviewOpen,
-  ] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
-  const [
-    pdfUrl,
-    setPdfUrl,
-  ] = useState<string | null>(
-    null,
-  );
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   /*
    * Clean up the browser blob URL.
@@ -63,24 +48,31 @@ export function QuotationPdfActions({
   useEffect(() => {
     return () => {
       if (pdfUrl) {
-        URL.revokeObjectURL(
-          pdfUrl,
-        );
+        URL.revokeObjectURL(pdfUrl);
       }
     };
   }, [pdfUrl]);
 
   async function createPdfBlob() {
-    const data =
-      mapQuotationToPdfData(
-        quotation,
-      );
+    const data = mapQuotationToPdfData(quotation);
 
-    return pdf(
-      <QuotationPdfDocument
-        data={data}
-      />,
-    ).toBlob();
+    return pdf(<QuotationPdfDocument data={data} />).toBlob();
+  }
+
+  async function handleDownloadExcel() {
+    try {
+      exportQuotationToExcel(quotation);
+    } catch (error) {
+      console.error("Unable to download quotation Excel.", error);
+    }
+  }
+
+  async function handleDownloadWord() {
+    try {
+      await exportQuotationToWord(quotation);
+    } catch (error) {
+      console.error("Unable to download quotation Word.", error);
+    }
   }
 
   async function handlePreview() {
@@ -92,33 +84,20 @@ export function QuotationPdfActions({
        * before generating a new one.
        */
       if (pdfUrl) {
-        URL.revokeObjectURL(
-          pdfUrl,
-        );
+        URL.revokeObjectURL(pdfUrl);
 
         setPdfUrl(null);
       }
 
-      const blob =
-        await createPdfBlob();
+      const blob = await createPdfBlob();
 
-      const url =
-        URL.createObjectURL(
-          blob,
-        );
+      const url = URL.createObjectURL(blob);
 
-      setPdfUrl(
-        url,
-      );
+      setPdfUrl(url);
 
-      setPreviewOpen(
-        true,
-      );
+      setPreviewOpen(true);
     } catch (error) {
-      console.error(
-        "Unable to preview quotation PDF.",
-        error,
-      );
+      console.error("Unable to preview quotation PDF.", error);
     } finally {
       setGenerating(false);
     }
@@ -129,44 +108,28 @@ export function QuotationPdfActions({
       return;
     }
 
-    const anchor =
-      document.createElement(
-        "a",
-      );
+    const anchor = document.createElement("a");
 
-    anchor.href =
-      pdfUrl;
+    anchor.href = pdfUrl;
 
-    anchor.download =
-      `${quotation.quotationNumber}.pdf`;
+    anchor.download = `${quotation.quotationNumber}.pdf`;
 
-    document.body.appendChild(
-      anchor,
-    );
+    document.body.appendChild(anchor);
 
     anchor.click();
 
     anchor.remove();
   }
 
-  function handleOpenChange(
-    open: boolean,
-  ) {
-    setPreviewOpen(
-      open,
-    );
+  function handleOpenChange(open: boolean) {
+    setPreviewOpen(open);
 
     /*
      * We can release the blob once
      * the preview is closed.
      */
-    if (
-      !open &&
-      pdfUrl
-    ) {
-      URL.revokeObjectURL(
-        pdfUrl,
-      );
+    if (!open && pdfUrl) {
+      URL.revokeObjectURL(pdfUrl);
 
       setPdfUrl(null);
     }
@@ -202,28 +165,16 @@ export function QuotationPdfActions({
           "
         >
           {generating ? (
-            <LoaderCircle
-              size={16}
-              className="animate-spin"
-            />
+            <LoaderCircle size={16} className="animate-spin" />
           ) : (
-            <Eye
-              size={16}
-            />
+            <Eye size={16} />
           )}
 
-          {generating
-            ? "Preparing..."
-            : "Preview PDF"}
+          {generating ? "Preparing..." : "Preview PDF"}
         </button>
       </div>
 
-      <Dialog
-        open={previewOpen}
-        onOpenChange={
-          handleOpenChange
-        }
-      >
+      <Dialog open={previewOpen} onOpenChange={handleOpenChange}>
         <DialogContent
           className="
             flex
@@ -257,37 +208,89 @@ export function QuotationPdfActions({
                   Preview the quotation before downloading.
                 </DialogDescription>
               </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-start">
+                <button
+                  type="button"
+                  disabled={!pdfUrl}
+                  onClick={handleDownload}
+                  className="
+                    flex
+                    shrink-0
+                    items-center
+                    gap-2
+                    rounded-xl
+                    bg-emerald-400
+                    px-4
+                    py-2.5
+                    text-sm
+                    font-medium
+                    text-slate-950
+                    transition
+                    hover:bg-emerald-300
+                    disabled:cursor-not-allowed
+                    disabled:opacity-50
+                  "
+                >
+                  <Download size={16} />
+                  Download PDF
+                </button>
 
-              <button
-                type="button"
-                disabled={!pdfUrl}
-                onClick={
-                  handleDownload
-                }
-                className="
-                  flex
-                  shrink-0
-                  items-center
-                  gap-2
-                  rounded-xl
-                  bg-emerald-400
-                  px-4
-                  py-2.5
-                  text-sm
-                  font-medium
-                  text-slate-950
-                  transition
-                  hover:bg-emerald-300
-                  disabled:cursor-not-allowed
-                  disabled:opacity-50
-                "
-              >
-                <Download
-                  size={16}
-                />
+                {/* Download Excel */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleDownloadExcel();
+                  }}
+                  className="
+                      flex
+                      items-center
+                      gap-2
+                      rounded-xl
+                      border
+                      border-[var(--qufo-border)]
+                      bg-white/[0.03]
+                      px-4
+                      py-2.5
+                      text-sm
+                      font-medium
+                      text-slate-300
+                      transition
+                      hover:bg-white/[0.06]
+                      hover:text-white
+                    "
+                >
+                  <FileSpreadsheet size={16} />
+                  Download Excel
+                </button>
 
-                Download PDF
-              </button>
+                {/* Download Word */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleDownloadWord();
+                  }}
+                  className="
+                      flex
+                      items-center
+                      gap-2
+                      rounded-xl
+                      border
+                      border-[var(--qufo-border)]
+                      bg-white/[0.03]
+                      px-4
+                      py-2.5
+                      text-sm
+                      font-medium
+                      text-slate-300
+                      transition
+                      hover:bg-white/[0.06]
+                      hover:text-white
+                    "
+                >
+                  <FileText size={16} />
+                  Download Word
+                </button>
+              </div>
             </div>
           </DialogHeader>
 
