@@ -1,323 +1,266 @@
-import {
-  Document,
-  Page,
-  StyleSheet,
-  Text,
-  View,
-} from "@react-pdf/renderer";
+import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 
-import {
-  QuotationPdfHeader,
-} from "./quotation-pdf-header";
+import { QuotationPdfHeader } from "./quotation-pdf-header";
 
-import {
-  QuotationPdfItems,
-} from "./quotation-pdf-items";
+import { QuotationPdfItems } from "./quotation-pdf-items";
 
-import {
-  QuotationPdfSignatures,
-} from "./quotation-pdf-signatures";
+import { QuotationPdfSignatures } from "./quotation-pdf-signatures";
 
-import {
-  QuotationPdfTerms,
-} from "./quotation-pdf-terms";
+import { QuotationPdfTerms } from "./quotation-pdf-terms";
 
-import {
-  QuotationPdfTotals,
-} from "./quotation-pdf-totals";
+import { QuotationPdfTotals } from "./quotation-pdf-totals";
 
-import type {
-  QuotationPdfData,
-} from "./quotation-pdf-types";
+import type { QuotationPdfData } from "./quotation-pdf-types";
 
-const styles =
-  StyleSheet.create({
-    page: {
-      paddingTop: 38,
-      paddingBottom: 44,
-      paddingHorizontal: 42,
+const styles = StyleSheet.create({
+  page: {
+    paddingTop: 38,
+    paddingBottom: 44,
+    paddingHorizontal: 42,
 
-      backgroundColor:
-        "#FFFFFF",
+    backgroundColor: "#FFFFFF",
 
-      fontFamily:
-        "Helvetica",
+    fontFamily: "Helvetica",
 
-      color: "#111827",
-    },
+    color: "#111827",
+  },
 
-    customerSection: {
-      marginTop: 22,
+  customerSection: {
+    marginTop: 22,
 
-      flexDirection:
-        "row",
+    flexDirection: "row",
 
-      justifyContent:
-        "space-between",
+    justifyContent: "space-between",
 
-      gap: 24,
-    },
+    gap: 24,
+  },
 
-    customerBlock: {
-      width: "52%",
-    },
+  customerBlock: {
+    width: "52%",
+  },
 
-    quotationMetaBlock: {
-      width: "40%",
-    },
+  quotationMetaBlock: {
+    width: "40%",
+  },
 
-    sectionEyebrow: {
-      marginBottom: 6,
+  sectionEyebrow: {
+    marginBottom: 6,
 
-      fontSize: 7.5,
+    fontSize: 7.5,
 
-      fontWeight: 700,
+    fontWeight: 700,
 
-      color: "#059669",
+    color: "#059669",
 
-      letterSpacing: 0.7,
+    letterSpacing: 0.7,
 
-      textTransform:
-        "uppercase",
-    },
+    textTransform: "uppercase",
+  },
 
-    customerName: {
-      marginBottom: 4,
+  customerName: {
+    marginBottom: 4,
 
-      fontSize: 11,
+    fontSize: 11,
 
-      fontWeight: 700,
+    fontWeight: 700,
 
-      color: "#111827",
-    },
+    color: "#111827",
+  },
 
-    companyName: {
-      marginBottom: 3,
+  companyName: {
+    marginBottom: 3,
 
-      fontSize: 9,
+    fontSize: 9,
 
-      fontWeight: 500,
+    fontWeight: 500,
 
-      color: "#374151",
-    },
+    color: "#374151",
+  },
 
-    detail: {
-      marginBottom: 2,
+  detail: {
+    marginBottom: 2,
 
-      fontSize: 8,
+    fontSize: 8,
 
-      color: "#6B7280",
+    color: "#6B7280",
 
-      lineHeight: 1.45,
-    },
+    lineHeight: 1.45,
+  },
 
-    metaCard: {
-      padding: 12,
+  metaCard: {
+    padding: 12,
 
-      borderWidth: 1,
+    borderWidth: 1,
 
-      borderColor:
-        "#E5E7EB",
+    borderColor: "#E5E7EB",
 
-      borderRadius: 5,
+    borderRadius: 5,
 
-      backgroundColor:
-        "#F8FAFC",
-    },
+    backgroundColor: "#F8FAFC",
+  },
 
-    metaRow: {
-      flexDirection:
-        "row",
+  metaRow: {
+    flexDirection: "row",
 
-      justifyContent:
-        "space-between",
+    justifyContent: "space-between",
 
-      marginBottom: 5,
-    },
+    marginBottom: 5,
+  },
 
-    metaRowLast: {
-      marginBottom: 0,
-    },
+  metaRowLast: {
+    marginBottom: 0,
+  },
 
-    metaLabel: {
-      fontSize: 7.5,
+  metaLabel: {
+    fontSize: 7.5,
 
-      color: "#64748B",
-    },
+    color: "#64748B",
+  },
 
-    metaValue: {
-      fontSize: 8,
+  metaValue: {
+    fontSize: 8,
 
-      fontWeight: 600,
+    fontWeight: 600,
 
-      color: "#111827",
-    },
+    color: "#111827",
+  },
 
-    notesSection: {
-      marginTop: 22,
+  notesSection: {
+    marginTop: 22,
 
-      paddingTop: 14,
+    paddingTop: 14,
 
-      borderTopWidth: 1,
+    borderTopWidth: 1,
 
-      borderTopColor:
-        "#E5E7EB",
-    },
+    borderTopColor: "#E5E7EB",
+  },
 
-    sectionTitle: {
-      marginBottom: 7,
+  sectionTitle: {
+    marginBottom: 7,
 
-      fontSize: 7.5,
+    fontSize: 7.5,
 
-      fontWeight: 700,
+    fontWeight: 700,
 
-      color: "#111827",
+    color: "#111827",
 
-      letterSpacing: 0.6,
+    letterSpacing: 0.6,
 
-      textTransform:
-        "uppercase",
-    },
+    textTransform: "uppercase",
+  },
 
-    sectionText: {
-      fontSize: 8,
+  sectionText: {
+    fontSize: 8,
 
-      color: "#4B5563",
+    color: "#4B5563",
 
-      lineHeight: 1.55,
-    },
+    lineHeight: 1.55,
+  },
 
-    footerNoteContainer: {
-      marginTop: 22,
+  footerNoteContainer: {
+    marginTop: 22,
 
-      paddingTop: 12,
+    paddingTop: 12,
 
-      borderTopWidth: 1,
+    borderTopWidth: 1,
 
-      borderTopColor:
-        "#F1F5F9",
-    },
+    borderTopColor: "#F1F5F9",
+  },
 
-    footerNote: {
-      textAlign:
-        "center",
+  footerNote: {
+    textAlign: "center",
 
-      fontSize: 7.8,
+    fontSize: 7.8,
 
-      color: "#6B7280",
+    color: "#6B7280",
 
-      lineHeight: 1.5,
-    },
+    lineHeight: 1.5,
+  },
 
-    pageNumber: {
-      position:
-        "absolute",
+  pageNumber: {
+    position: "absolute",
 
-      bottom: 18,
+    bottom: 18,
 
-      left: 42,
-      right: 42,
+    left: 42,
+    right: 42,
 
-      textAlign:
-        "center",
+    textAlign: "center",
 
-      fontSize: 7,
+    fontSize: 7,
 
-      color: "#9CA3AF",
-    },
+    color: "#9CA3AF",
+  },
 
-    subjectSection: {
-      marginTop: 16,
-    },
+  subjectSection: {
+    marginTop: 16,
+  },
 
-    subjectLabel: {
-      marginBottom: 4,
+  subjectLabel: {
+    marginBottom: 4,
 
-      fontSize: 7.5,
+    fontSize: 7.5,
 
-      fontWeight: 700,
+    fontWeight: 700,
 
-      color: "#059669",
+    color: "#059669",
 
-      letterSpacing: 0.6,
+    letterSpacing: 0.6,
 
-      textTransform:
-        "uppercase",
-    },
+    textTransform: "uppercase",
+  },
 
-    subjectText: {
-      fontSize: 10,
+  subjectText: {
+    fontSize: 10,
 
-      fontWeight: 600,
+    fontWeight: 600,
 
-      color: "#111827",
+    color: "#111827",
 
-      lineHeight: 1.4,
-    },
+    lineHeight: 1.4,
+  },
 
-    messageSection: {
-      marginTop: 10,
-    },
+  messageSection: {
+    marginTop: 10,
+  },
 
-    messageText: {
-      fontSize: 8,
+  messageText: {
+    fontSize: 8,
 
-      color: "#4B5563",
+    color: "#4B5563",
 
-      lineHeight: 1.55,
-    },
-
-  });
+    lineHeight: 1.55,
+  },
+});
 
 type Props = {
-  data:
-    QuotationPdfData;
+  data: QuotationPdfData;
 };
 
-export function QuotationPdfDocument({
-  data,
-}: Props) {
+export function QuotationPdfDocument({ data }: Props) {
   return (
     <Document
       title={`Quotation ${data.quotationNumber}`}
-      author={
-        data.business.name
-      }
+      author={data.business.name}
       subject={`Quotation ${data.quotationNumber}`}
       creator="QUFO"
       producer="QUFO"
     >
-      <Page
-        size="A4"
-        style={
-          styles.page
-        }
-      >
+      <Page size="A4" style={styles.page}>
         {/*
          * -----------------------------------------
          * BUSINESS / DOCUMENT HEADER
          * -----------------------------------------
          */}
-        <QuotationPdfHeader
-          data={data}
-        />
+        <QuotationPdfHeader data={data} />
 
         {/*
          * -----------------------------------------
          * CUSTOMER INFORMATION
          * -----------------------------------------
          */}
-        <View
-          style={
-            styles.customerSection
-          }
-          wrap={false}
-        >
-          <View
-            style={
-              styles.customerBlock
-            }
-          >
+        <View style={styles.customerSection} wrap={false}>
+          <View style={styles.customerBlock}>
             {/* <Text
               style={
                 styles.sectionEyebrow
@@ -326,73 +269,20 @@ export function QuotationPdfDocument({
               Prepared For
             </Text> */}
 
-            <Text
-              style={
-                styles.customerName
-              }
-            >
-              {
-              data.customer
-                .companyName ??
-                data.customer
-                  .name
-              }
+            <Text style={styles.customerName}>
+              {data.customer.companyName ?? data.customer.name}
             </Text>
 
-            {/* {data.customer
-              .companyName && (
-              <Text
-                style={
-                  styles.companyName
-                }
-              >
-                {
-                  data.customer
-                    .companyName
-                }
-              </Text>
-            )} */}
-
-            {data.customer
-              .address && (
-              <Text
-                style={
-                  styles.detail
-                }
-              >
-                {
-                  data.customer
-                    .address
-                }
-              </Text>
+            {data.customer.address && (
+              <Text style={styles.detail}>{data.customer.address}</Text>
             )}
 
-            {data.customer
-              .email && (
-              <Text
-                style={
-                  styles.detail
-                }
-              >
-                {
-                  data.customer
-                    .email
-                }
-              </Text>
+            {data.customer.email && (
+              <Text style={styles.detail}>{data.customer.email}</Text>
             )}
 
-            {data.customer
-              .phone && (
-              <Text
-                style={
-                  styles.detail
-                }
-              >
-                {
-                  data.customer
-                    .phone
-                }
-              </Text>
+            {data.customer.phone && (
+              <Text style={styles.detail}>{data.customer.phone}</Text>
             )}
           </View>
         </View>
@@ -401,69 +291,39 @@ export function QuotationPdfDocument({
          * OPTIONAL SUBJECT
          * -----------------------------------------
          */}
-        {data.pdfOptions.showSubject &&
-          data.subject?.trim() && (
-            <View
-              style={
-                styles.subjectSection
-              }
-            >
-              <Text
-                style={
-                  styles.subjectLabel
-                }
-              >
-                Subject
-              </Text>
+        {data.pdfOptions.showSubject && data.subject?.trim() && (
+          <View style={styles.subjectSection}>
+            <Text style={styles.subjectLabel}>Subject</Text>
 
-              <Text
-                style={
-                  styles.subjectText
-                }
-              >
-                {data.subject.trim()}
-              </Text>
-            </View>
-          )}
+            <Text style={styles.subjectText}>{data.subject.trim()}</Text>
+          </View>
+        )}
 
         {/* -----------------------------------------
          * OPTIONAL QUOTATION MESSAGE
          * -----------------------------------------
          */}
-        {data.pdfOptions.showMessage &&
-          data.quotationMessage?.trim() && (
-            <View
-              style={
-                styles.messageSection
-              }
-            >
-              <Text
-                style={
-                  styles.messageText
-                }
-              >
-                {data.quotationMessage.trim()}
-              </Text>
-            </View>
-          )}
+        {data.pdfOptions.showMessage && data.quotationMessage?.trim() && (
+          <View style={styles.messageSection}>
+            <Text style={styles.messageText}>
+              {data.quotationMessage.trim()}
+            </Text>
+          </View>
+        )}
 
         {/*
          * -----------------------------------------
          * QUOTATION ITEMS
          * -----------------------------------------
          */}
-        <QuotationPdfItems
-          data={data}
-        />
+        <QuotationPdfItems data={data} />
 
         {/*
          * -----------------------------------------
          * TOTALS
          * -----------------------------------------
          */}
-        <QuotationPdfTotals
-          data={data}
-        />
+        <QuotationPdfTotals data={data} />
 
         {/*
          * -----------------------------------------
@@ -471,28 +331,10 @@ export function QuotationPdfDocument({
          * -----------------------------------------
          */}
         {data.notes?.trim() && (
-          <View
-            style={
-              styles.notesSection
-            }
-          >
-            <Text
-              style={
-                styles.sectionTitle
-              }
-            >
-              Notes
-            </Text>
+          <View style={styles.notesSection}>
+            <Text style={styles.sectionTitle}>Notes</Text>
 
-            <Text
-              style={
-                styles.sectionText
-              }
-            >
-              {
-                data.notes.trim()
-              }
-            </Text>
+            <Text style={styles.sectionText}>{data.notes.trim()}</Text>
           </View>
         )}
 
@@ -501,20 +343,14 @@ export function QuotationPdfDocument({
          * TERMS & CONDITIONS
          * -----------------------------------------
          */}
-        <QuotationPdfTerms
-          terms={
-            data.terms
-          }
-        />
+        <QuotationPdfTerms terms={data.terms} />
 
         {/*
          * -----------------------------------------
          * SIGNATURE / CONFORME
          * -----------------------------------------
          */}
-        <QuotationPdfSignatures
-          data={data}
-        />
+        <QuotationPdfSignatures data={data} />
 
         {/*
          * -----------------------------------------
@@ -522,21 +358,8 @@ export function QuotationPdfDocument({
          * -----------------------------------------
          */}
         {data.footerNote?.trim() && (
-          <View
-            style={
-              styles.footerNoteContainer
-            }
-            wrap={false}
-          >
-            <Text
-              style={
-                styles.footerNote
-              }
-            >
-              {
-                data.footerNote.trim()
-              }
-            </Text>
+          <View style={styles.footerNoteContainer} wrap={false}>
+            <Text style={styles.footerNote}>{data.footerNote.trim()}</Text>
           </View>
         )}
 
@@ -546,14 +369,9 @@ export function QuotationPdfDocument({
          * -----------------------------------------
          */}
         <Text
-          style={
-            styles.pageNumber
-          }
+          style={styles.pageNumber}
           fixed
-          render={({
-            pageNumber,
-            totalPages,
-          }) =>
+          render={({ pageNumber, totalPages }) =>
             `Page ${pageNumber} of ${totalPages}`
           }
         />

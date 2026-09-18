@@ -1,17 +1,11 @@
-import type {
-  JobPdfData,
-} from "@/components/jobs/pdf/job-pdf-types";
+import type { JobPdfData } from "@/components/jobs/pdf/job-pdf-types";
 
 export type JobConfirmationData = {
   emailRequired: boolean;
 
   trackingUrl: string;
 
-  pdfData: Omit<
-    JobPdfData,
-    | "trackingUrl"
-    | "qrCodeDataUrl"
-  >;
+  pdfData: Omit<JobPdfData, "trackingUrl" | "qrCodeDataUrl">;
 };
 
 export type QuotationStatus =
@@ -25,31 +19,20 @@ export type QuotationStatus =
   | "CONVERTED"
   | "CANCELLED";
 
-export type DiscountType =
-  | "NONE"
-  | "FIXED"
-  | "PERCENTAGE";
+export type DiscountType = "NONE" | "FIXED" | "PERCENTAGE";
 
 export type QuotationCustomer = {
   id: string;
 
   name: string;
 
-  companyName:
-    | string
-    | null;
+  companyName: string | null;
 
-  email?:
-    | string
-    | null;
+  email?: string | null;
 
-  phone?:
-    | string
-    | null;
+  phone?: string | null;
 
-  address?:
-    | string
-    | null;
+  address?: string | null;
 };
 
 export type QuotationItem = {
@@ -67,7 +50,7 @@ export type QuotationItem = {
   warrantyDuration?: number | null;
   warrantyUnit?: WarrantyUnit | null;
   warrantyTerms?: string | null;
-  
+
   sortOrder?: number;
   currency?: string;
 };
@@ -77,74 +60,45 @@ export type Quotation = {
 
   quotationNumber: string;
 
-  businessProfileId:
-    | string
-    | null;
+  businessProfileId: string | null;
 
-  businessNameSnapshot:
-    | string
-    | null;
+  businessNameSnapshot: string | null;
 
-  businessEmailSnapshot:
-    | string
-    | null;
+  businessEmailSnapshot: string | null;
 
-  businessPhoneSnapshot:
-    | string
-    | null;
+  businessPhoneSnapshot: string | null;
 
-  businessAddressSnapshot:
-    | string
-    | null;
+  businessAddressSnapshot: string | null;
 
-  businessLogoUrlSnapshot:
-    | string
-    | null;
+  businessLogoUrlSnapshot: string | null;
 
-  businessTermsSnapshot:
-    | string
-    | null;
+  businessTermsSnapshot: string | null;
 
-  businessFooterNoteSnapshot:
-    | string
-    | null;
+  businessFooterNoteSnapshot: string | null;
 
-  status:
-    QuotationStatus;
+  status: QuotationStatus;
 
   issueDate: string;
 
-  validUntil:
-    | string
-    | null;
+  validUntil: string | null;
 
   subtotal: string;
 
-  discountType?:
-    DiscountType;
+  discountType?: DiscountType;
 
   discountValue?: string;
 
-  discountAmount:
-    string;
+  discountAmount: string;
 
   revisionNumber?: number;
 
-  sourceQuotationId?:
-    | string
-    | null;
+  sourceQuotationId?: string | null;
 
-  customerResponseNote?:
-    | string
-    | null;
+  customerResponseNote?: string | null;
 
-  changesRequestedAt?:
-    | string
-    | null;
+  changesRequestedAt?: string | null;
 
-  rejectedAt?:
-    | string
-    | null;
+  rejectedAt?: string | null;
 
   taxRate?: string;
 
@@ -154,44 +108,29 @@ export type Quotation = {
 
   currency: string;
 
-  notes?:
-    | string
-    | null;
+  notes?: string | null;
 
-  terms?:
-    | string
-    | null;
+  terms?: string | null;
 
-  footerNote?:
-    | string
-    | null;
+  footerNote?: string | null;
 
-  subject:
-    | string
-    | null;
+  subject: string | null;
 
-  quotationMessage:
-    | string
-    | null;
+  quotationMessage: string | null;
 
-  organization?:
-    QuotationOrganization;
+  organization?: QuotationOrganization;
 
-  customer:
-    QuotationCustomer;
+  customer: QuotationCustomer;
 
-  createdBy?:
-    QuotationCreatedBy;
+  createdBy?: QuotationCreatedBy;
 
-  items?:
-    QuotationItem[];
+  items?: QuotationItem[];
 
   _count?: {
     items: number;
   };
 
-  revisionInfo?:
-    QuotationRevisionInfo;
+  revisionInfo?: QuotationRevisionInfo;
 
   createdAt?: string;
 
@@ -223,8 +162,7 @@ export type QuotationFormData = {
 
   validUntil: string;
 
-  discountType:
-    DiscountType;
+  discountType: DiscountType;
 
   discountValue: string;
 
@@ -236,13 +174,14 @@ export type QuotationFormData = {
 
   footerNote: string;
 
-  items:
-    QuotationFormItem[];
+  items: QuotationFormItem[];
 };
 
 export type PublicQuotation = {
   quotationNumber: string;
   status: QuotationStatus;
+
+  revisionNumber: number;
 
   business?: QuotationBusinessIdentity;
 
@@ -251,23 +190,23 @@ export type PublicQuotation = {
   issueDate: string;
   validUntil: string | null;
 
+  subject: string | null;
+
+  quotationMessage: string | null;
+
   organization: {
     name: string;
     logoUrl: string | null;
     phone: string | null;
     email: string | null;
     address: string | null;
-    quotationSignatureUrl:
-      string | null;
+    quotationSignatureUrl: string | null;
 
-    quotationSignatoryName:
-      string | null;
+    quotationSignatoryName: string | null;
 
-    quotationSignatoryTitle:
-      string | null;
+    quotationSignatoryTitle: string | null;
 
-    showQuotationSignature:
-      boolean;
+    showQuotationSignature: boolean;
   };
 
   customer: {
@@ -307,13 +246,9 @@ export type PublicQuotation = {
 
   notes: string | null;
   terms: string | null;
-  footerNote:
-    | string
-    | null;
+  footerNote: string | null;
 
-  customerResponseNote:
-    | string
-    | null;
+  customerResponseNote: string | null;
 };
 
 export type PublicQuotationResponse = {
@@ -322,23 +257,16 @@ export type PublicQuotationResponse = {
   quotation: {
     quotationNumber: string;
 
-    status:
-      | "APPROVED"
-      | "REJECTED"
-      | "CHANGES_REQUESTED";
+    status: "APPROVED" | "REJECTED" | "CHANGES_REQUESTED";
 
     approvedAt?: string;
     rejectedAt?: string;
     changesRequestedAt?: string;
 
-    customerResponseNote?:
-      | string
-      | null;
+    customerResponseNote?: string | null;
   };
 
-  jobConfirmation?:
-    | JobConfirmationData
-    | null;
+  jobConfirmation?: JobConfirmationData | null;
 };
 
 export type QuotationRevisionInfo = {
@@ -359,33 +287,21 @@ export type QuotationOrganization = {
 
   name: string;
 
-  logoUrl:
-    | string
-    | null;
+  logoUrl: string | null;
 
-  email:
-    | string
-    | null;
+  email: string | null;
 
-  phone:
-    | string
-    | null;
+  phone: string | null;
 
-  address:
-    | string
-    | null;
+  address: string | null;
 
-  quotationSignatureUrl:
-    string | null;
+  quotationSignatureUrl: string | null;
 
-  quotationSignatoryName:
-    string | null;
+  quotationSignatoryName: string | null;
 
-  quotationSignatoryTitle:
-    string | null;
+  quotationSignatoryTitle: string | null;
 
-  showQuotationSignature:
-    boolean;
+  showQuotationSignature: boolean;
 };
 
 export type QuotationCreatedBy = {
@@ -393,41 +309,24 @@ export type QuotationCreatedBy = {
   name: string;
 };
 
-export type QuotationDetail =
-  Quotation & {
-    organization:
-      QuotationOrganization;
+export type QuotationDetail = Quotation & {
+  organization: QuotationOrganization;
 
-    createdBy:
-      QuotationCreatedBy;
+  createdBy: QuotationCreatedBy;
 
-    items:
-      QuotationItem[];
-  };
+  items: QuotationItem[];
+};
 
-export type WarrantyUnit =
-  | "DAYS"
-  | "WEEKS"
-  | "MONTHS"
-  | "YEARS";
-
+export type WarrantyUnit = "DAYS" | "WEEKS" | "MONTHS" | "YEARS";
 
 export type QuotationBusinessIdentity = {
   name: string;
 
-  logoUrl:
-    | string
-    | null;
+  logoUrl: string | null;
 
-  phone:
-    | string
-    | null;
+  phone: string | null;
 
-  email:
-    | string
-    | null;
+  email: string | null;
 
-  address:
-    | string
-    | null;
+  address: string | null;
 };

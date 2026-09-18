@@ -1328,6 +1328,10 @@ export class QuotationsService {
             phone: true,
             email: true,
             address: true,
+            quotationSignatureUrl: true,
+            quotationSignatoryName: true,
+            quotationSignatoryTitle: true,
+            showQuotationSignature: true,
           },
         },
 
@@ -1378,6 +1382,10 @@ export class QuotationsService {
               phone: true,
               email: true,
               address: true,
+              quotationSignatureUrl: true,
+              quotationSignatoryName: true,
+              quotationSignatoryTitle: true,
+              showQuotationSignature: true,
             },
           },
 
@@ -1416,6 +1424,10 @@ export class QuotationsService {
               phone: true,
               email: true,
               address: true,
+              quotationSignatureUrl: true,
+              quotationSignatoryName: true,
+              quotationSignatoryTitle: true,
+              showQuotationSignature: true,
             },
           },
 
@@ -1498,6 +1510,8 @@ export class QuotationsService {
       notes: quotation.notes,
 
       terms: quotation.terms,
+
+      subject: quotation.subject,
 
       customerResponseNote: quotation.customerResponseNote,
       revisionInfo: {
