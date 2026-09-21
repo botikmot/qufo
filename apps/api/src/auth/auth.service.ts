@@ -24,6 +24,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ConfigService } from '@nestjs/config';
 import { EmailService } from '../email/email.service';
 import { EmailAutomationService } from '../email-automation/email-automation.service';
+import { Logger } from '@nestjs/common';
 
 @Injectable()
 export class AuthService {
@@ -35,6 +36,8 @@ export class AuthService {
     private readonly emailService: EmailService,
     private readonly emailAutomationService: EmailAutomationService,
   ) {}
+
+  private readonly logger = new Logger(AuthService.name);
 
   private readonly REFRESH_TOKEN_DAYS = 30;
 
@@ -917,6 +920,19 @@ export class AuthService {
         organization,
       };
     });
+
+    // Enroll the new Google user in the first-quote onboarding sequence.
+    try {
+      await this.emailAutomationService.enrollFirstQuoteOnboarding({
+        userId: result.user.id,
+        organizationId: result.organization.id,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to enroll Google user ${result.user.id} in email automation`,
+        error instanceof Error ? error.stack : String(error),
+      );
+    }
 
     const session = await this.createLoginSession(result.user.id);
 
