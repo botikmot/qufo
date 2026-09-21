@@ -23,6 +23,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ConfigService } from '@nestjs/config';
 import { EmailService } from '../email/email.service';
+import { EmailAutomationService } from '../email-automation/email-automation.service';
 
 @Injectable()
 export class AuthService {
@@ -32,6 +33,7 @@ export class AuthService {
     private readonly googleAuthService: GoogleAuthService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
+    private readonly emailAutomationService: EmailAutomationService,
   ) {}
 
   private readonly REFRESH_TOKEN_DAYS = 30;
@@ -349,6 +351,11 @@ export class AuthService {
         };
       });
 
+      await this.emailAutomationService.enrollFirstQuoteOnboarding({
+        userId: result.user.id,
+        organizationId: result.organization.id,
+      });
+
       return {
         message: `QUFO account created and joined ${result.organization.name} successfully.`,
         joinedViaInvitation: true,
@@ -478,6 +485,11 @@ export class AuthService {
         user,
         organization,
       };
+    });
+
+    await this.emailAutomationService.enrollFirstQuoteOnboarding({
+      userId: result.user.id,
+      organizationId: result.organization.id,
     });
 
     return {

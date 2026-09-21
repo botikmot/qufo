@@ -20,6 +20,7 @@ import { AppSumoModule } from './appsumo/appsumo.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TeamModule } from './team/team.module';
 import { BusinessProfilesModule } from './business-profiles/business-profiles.module';
+import { EmailAutomationModule } from './email-automation/email-automation.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -44,6 +45,7 @@ import { BusinessProfilesModule } from './business-profiles/business-profiles.mo
     AppSumoModule,
     TeamModule,
     BusinessProfilesModule,
+    EmailAutomationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

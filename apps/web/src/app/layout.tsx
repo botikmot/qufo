@@ -6,7 +6,7 @@ import { ConfirmDialogProvider } from "@/components/providers/confirm-dialog-pro
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
-const figtree = Figtree({subsets:['latin'],variable:'--font-sans'});
+const figtree = Figtree({ subsets: ["latin"], variable: "--font-sans" });
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   applicationName: "QUFO",
   creator: "QUFO",
   publisher: "QUFO",
-  
+
   icons: {
     icon: [
       {
@@ -97,12 +97,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={cn("dark", "h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", figtree.variable)}
+      className={cn(
+        "dark",
+        "h-full",
+        "antialiased",
+        geistSans.variable,
+        geistMono.variable,
+        "font-sans",
+        figtree.variable,
+      )}
     >
       <body className="min-h-full flex flex-col">
-        <ConfirmDialogProvider>
-          {children}
-        </ConfirmDialogProvider>
+        <ConfirmDialogProvider>{children}</ConfirmDialogProvider>
         <Analytics />
         <SpeedInsights />
       </body>

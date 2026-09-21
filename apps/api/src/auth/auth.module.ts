@@ -11,11 +11,13 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { PlatformAdminGuard } from './guards/platform-admin.guard';
 import { GoogleAuthService } from './google-auth.service';
 import { EmailModule } from '../email/email.module';
+import { EmailAutomationModule } from '../email-automation/email-automation.module';
 
 @Module({
   imports: [
     ConfigModule,
     EmailModule,
+    EmailAutomationModule,
 
     ThrottlerModule.forRoot([
       {

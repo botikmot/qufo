@@ -178,6 +178,30 @@ enum WorkspaceAssetKind {
   QUOTATION_ITEM
 }
 
+enum EmailAutomationType {
+  FIRST_QUOTE_ONBOARDING
+}
+
+enum EmailAutomationStatus {
+  ACTIVE
+  COMPLETED
+  STOPPED
+  PAUSED
+}
+
+enum EmailDeliveryStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+  CANCELLED
+}
+
+enum EmailDeliveryType {
+  MARKETING
+  TRANSACTIONAL
+}
+
 // ======================================================
 // USER
 // ======================================================
@@ -198,10 +222,12 @@ model User {
 
   status UserStatus @default(ACTIVE)
 
-  emailVerifiedAt DateTime?
-  lastLoginAt     DateTime?
+  emailVerifiedAt        DateTime?
+  lastLoginAt            DateTime?
+  marketingEmailsEnabled Boolean   @default(true)
 
   memberships                     OrganizationMember[]
+  emailAutomations                EmailAutomation[]
   sentOrganizationInvitations     OrganizationInvitation[] @relation("OrganizationInvitationInvitedBy")
   acceptedOrganizationInvitations OrganizationInvitation[] @relation("OrganizationInvitationAcceptedBy")
 
@@ -267,6 +293,7 @@ model Organization {
   sequence             OrganizationSequence?
   jobs                 Job[]
   payments             Payment[]
+  emailAutomations     EmailAutomation[]
 
   businessProfiles BusinessProfile[]
 
@@ -993,4 +1020,68 @@ model OrganizationQuotationUsage {
   @@unique([organizationId, periodStart])
   @@index([organizationId])
   @@index([periodStart])
+}
+
+model EmailAutomation {
+  id String @id @default(cuid())
+
+  userId         String
+  organizationId String
+
+  type   EmailAutomationType
+  status EmailAutomationStatus @default(ACTIVE)
+
+  currentStep Int       @default(0)
+  nextRunAt   DateTime?
+
+  lockedAt DateTime?
+
+  completedAt DateTime?
+  stoppedAt   DateTime?
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  deliveries EmailDelivery[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, organizationId, type])
+  @@index([status, nextRunAt])
+  @@index([organizationId, type, status])
+  @@index([userId])
+}
+
+model EmailDelivery {
+  id String @id @default(cuid())
+
+  automationId String
+
+  recipient   String @db.VarChar(320)
+  templateKey String @db.VarChar(100)
+  subject     String @db.VarChar(255)
+
+  type   EmailDeliveryType
+  status EmailDeliveryStatus @default(PENDING)
+
+  providerId   String?
+  errorMessage String? @db.Text
+
+  sequenceStep Int
+  scheduledAt  DateTime
+
+  sentAt       DateTime?
+  failedAt     DateTime?
+  attemptCount Int       @default(0)
+
+  automation EmailAutomation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([automationId, templateKey, sequenceStep])
+  @@index([status, scheduledAt])
+  @@index([automationId])
+  @@index([recipient])
 }
