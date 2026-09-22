@@ -4,6 +4,7 @@ import { Cron } from '@nestjs/schedule';
 import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
+import { ConfigService } from '@nestjs/config';
 
 type EmailAutomationWithRelations = Prisma.EmailAutomationGetPayload<{
   include: {
@@ -30,6 +31,7 @@ export class EmailAutomationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -254,10 +256,13 @@ export class EmailAutomationService {
   private async sendWelcomeStep(automation: EmailAutomationWithRelations) {
     const { id, user } = automation;
 
+    const webUrl =
+      this.configService.get<string>('WEB_URL') ?? 'https://qufo.im';
+
     await this.emailService.sendWelcomeEmail({
       to: user.email,
       name: user.name ?? 'there',
-      dashboardUrl: 'https://qufo.im/dashboard',
+      dashboardUrl: `${webUrl}/dashboard`,
     });
 
     await this.prisma.emailDelivery.create({
@@ -290,11 +295,14 @@ export class EmailAutomationService {
   ) {
     const { id, user, organization } = automation;
 
+    const webUrl =
+      this.configService.get<string>('WEB_URL') ?? 'https://qufo.im';
+
     await this.emailService.sendFirstQuoteReminder({
       to: user.email,
       name: user.name ?? 'there',
       organizationName: organization.name,
-      createQuotationUrl: 'https://qufo.im/dashboard/quotations/new',
+      createQuotationUrl: `${webUrl}/quotations`,
     });
 
     await this.prisma.emailDelivery.create({
@@ -327,12 +335,15 @@ export class EmailAutomationService {
   ) {
     const { id, user, organization } = automation;
 
+    const webUrl =
+      this.configService.get<string>('WEB_URL') ?? 'https://qufo.im';
+
     await this.emailService.sendGettingStartedEmail({
       to: user.email,
       name: user.name ?? 'there',
       organizationName: organization.name,
-      createQuotationUrl: 'https://qufo.im/dashboard/quotations/new',
-      dashboardUrl: 'https://qufo.im/dashboard',
+      createQuotationUrl: `${webUrl}/quotations/`,
+      dashboardUrl: `${webUrl}/dashboard`,
     });
 
     await this.prisma.emailDelivery.create({
@@ -401,11 +412,14 @@ export class EmailAutomationService {
   ) {
     const { id, user, organization } = automation;
 
+    const webUrl =
+      this.configService.get<string>('WEB_URL') ?? 'https://qufo.im';
+
     await this.emailService.sendFinalReminderEmail({
       to: user.email,
       name: user.name ?? 'there',
       organizationName: organization.name,
-      createQuotationUrl: 'https://qufo.im/dashboard/quotations/new',
+      createQuotationUrl: `${webUrl}/quotations`,
     });
 
     await this.prisma.emailDelivery.create({

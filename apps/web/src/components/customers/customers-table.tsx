@@ -1,26 +1,14 @@
-import {
-  Users,
-} from "lucide-react";
+import { Users } from "lucide-react";
 
-import {
-  CustomerTableRow,
-} from "@/components/customers/customer-table-row";
+import { CustomerTableRow } from "@/components/customers/customer-table-row";
 
-import {
-  LoadingState,
-} from "@/components/shared/loading-state";
+import { LoadingState } from "@/components/shared/loading-state";
 
-import {
-  Pagination,
-} from "@/components/shared/pagination";
+import { Pagination } from "@/components/shared/pagination";
 
-import {
-  TableHead,
-} from "@/components/shared/table-head";
+import { TableHead } from "@/components/shared/table-head";
 
-import type {
-  Customer,
-} from "@/types/customer";
+import type { Customer } from "@/types/customer";
 
 type CustomersTableProps = {
   customers: Customer[];
@@ -31,21 +19,16 @@ type CustomersTableProps = {
   pages: number;
   total: number;
 
-  archivingId:
-    | string
-    | null;
+  archivingId: string | null;
 
   readOnly: boolean;
 
-  onOpen: (
-    customer: Customer,
-  ) => void;
+  onOpen: (customer: Customer) => void;
 
-  onArchive: (
-    customer: Customer,
-  ) => void;
+  onArchive: (customer: Customer) => void;
 
   onPrevious: () => void;
+
   onNext: () => void;
 };
 
@@ -64,120 +47,110 @@ export function CustomersTable({
 }: CustomersTableProps) {
   if (loading) {
     return (
-      <div className="qufo-surface overflow-hidden rounded-2xl">
-        <LoadingState label="Loading customers..." />
+      <div className="min-w-0">
+        <div className="flex min-h-64 items-center justify-center px-6">
+          <LoadingState label="Loading customers..." />
+        </div>
       </div>
     );
   }
 
-  if (
-    customers.length === 0
-  ) {
+  if (customers.length === 0) {
     return (
-      <div className="qufo-surface flex min-h-80 flex-col items-center justify-center rounded-2xl px-6 text-center">
-        <div className="mb-4 flex size-12 items-center justify-center rounded-2xl border border-[var(--qufo-border)] bg-cyan-400/[0.04] text-cyan-300">
-          <Users size={20} />
+      <div className="flex min-h-80 flex-col items-center justify-center px-6 text-center">
+        <div className="relative mb-5 flex size-14 items-center justify-center rounded-2xl border border-cyan-400/10 bg-cyan-400/[0.05] text-cyan-300">
+          <div className="absolute inset-0 rounded-2xl bg-cyan-400/[0.04] blur-xl" />
+
+          <Users size={24} strokeWidth={1.6} className="relative" />
         </div>
 
-        <h3 className="font-medium text-slate-300">
+        <h3 className="text-sm font-semibold text-slate-200">
           No customers found
         </h3>
 
-        <p className="mt-2 max-w-sm text-sm text-slate-600">
-          Add qualified customers
-          before preparing their
-          quotations.
+        <p className="mt-2 max-w-sm text-xs leading-5 text-slate-500">
+          Add a customer to start building your QUFO workflow.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="qufo-surface overflow-hidden rounded-2xl">
-      <div className="w-full overflow-hidden">
-        <table className="w-full table-fixed sm:table-auto">
+    <div className="min-w-0">
+      {/* =========================================================
+          TABLE
+      ========================================================= */}
+
+      <div className="min-w-0 overflow-x-auto">
+        <table className="w-full min-w-[640px] border-collapse">
+          {/* TABLE HEADER */}
+
           <thead>
             <tr className="border-b border-[var(--qufo-border)]">
               <TableHead>
-                Customer
+                <span className="text-[10px] font-medium uppercase tracking-[0.12em]">
+                  Customer
+                </span>
               </TableHead>
 
               <TableHead className="hidden sm:table-cell">
-                Company
+                <span className="text-[10px] font-medium uppercase tracking-[0.12em]">
+                  Company
+                </span>
               </TableHead>
 
-              <TableHead className="w-20 sm:w-24">
-                <span className="sr-only">
+              <TableHead className="w-24 text-right">
+                <span className="text-[10px] font-medium uppercase tracking-[0.12em]">
                   Actions
                 </span>
               </TableHead>
             </tr>
           </thead>
 
+          {/* TABLE BODY */}
+
           <tbody>
-            {customers.map(
-              (customer) => (
-                <CustomerTableRow
-                  key={
-                    customer.id
-                  }
-                  customer={
-                    customer
-                  }
-                  archiving={
-                    archivingId ===
-                    customer.id
-                  }
-                  onOpen={
-                    onOpen
-                  }
-                  onArchive={
-                    onArchive
-                  }
-                  readOnly={
-                    readOnly
-                  }
-                />
-              ),
-            )}
+            {customers.map((customer) => (
+              <CustomerTableRow
+                key={customer.id}
+                customer={customer}
+                archiving={archivingId === customer.id}
+                onOpen={onOpen}
+                onArchive={onArchive}
+                readOnly={readOnly}
+              />
+            ))}
           </tbody>
         </table>
       </div>
 
-      <div
-        className="
-          flex
-          flex-col
-          gap-3
-          border-t
-          border-[var(--qufo-border)]
-          px-4
-          py-4
+      {/* =========================================================
+          FOOTER
+      ========================================================= */}
 
-          sm:flex-row
-          sm:items-center
-          sm:justify-between
-          sm:px-5
-        "
-      >
-        <p className="text-xs text-slate-600 sm:text-sm">
-          {total}{" "}
-          {total === 1
-            ? "customer"
-            : "customers"}
-        </p>
+      <div className="flex flex-col gap-4 border-t border-[var(--qufo-border)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        {/* Count */}
 
-        <Pagination
-          page={page}
-          pages={pages}
-          loading={loading}
-          onPrevious={
-            onPrevious
-          }
-          onNext={
-            onNext
-          }
-        />
+        <div className="flex items-center gap-2">
+          <span className="size-1.5 rounded-full bg-cyan-400" />
+
+          <p className="text-xs text-slate-500">
+            <span className="font-medium text-slate-300">{total}</span>{" "}
+            {total === 1 ? "customer" : "customers"}
+          </p>
+        </div>
+
+        {/* Pagination */}
+
+        <div className="flex items-center justify-end">
+          <Pagination
+            page={page}
+            pages={pages}
+            loading={loading}
+            onPrevious={onPrevious}
+            onNext={onNext}
+          />
+        </div>
       </div>
     </div>
   );

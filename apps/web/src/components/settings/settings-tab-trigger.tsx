@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react';
+"use client";
 
-import { TabsTrigger } from '@/components/ui/tabs';
+import type { ReactNode } from "react";
+import { TabsTrigger } from "@/components/ui/tabs";
 
 type SettingsTabTriggerProps = {
   value: string;
@@ -17,19 +18,33 @@ export function SettingsTabTrigger({
     <TabsTrigger
       value={value}
       className="
-        !h-auto
-        !w-full
-        min-w-0
+        flex
+        h-12
+        min-h-12
+        w-full
+        items-center
         justify-center
         gap-2
         rounded-xl
-        px-3
-        py-2.5
-        text-slate-400
-        data-[state=active]:bg-emerald-400/10
-        data-[state=active]:text-emerald-300
+        border
+        border-transparent
+        bg-transparent
+        px-4
+        text-sm
+        font-medium
+        text-slate-500
+        transition-colors
 
-        md:!w-auto
+        hover:bg-white/[0.025]
+        hover:text-slate-300
+
+        data-[active=true]:!border-cyan-400/10
+        data-[active=true]:!bg-cyan-400/[0.08]
+        data-[active=true]:!text-cyan-300
+
+        [&[data-active]]:!border-cyan-400/10
+        [&[data-active]]:!bg-cyan-400/[0.08]
+        [&[data-active]]:!text-cyan-300
       "
     >
       <span className="shrink-0">{icon}</span>

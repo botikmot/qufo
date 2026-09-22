@@ -1,77 +1,39 @@
 "use client";
 
-import {
-  type FormEvent,
-  useEffect,
-  useState,
-} from "react";
+import { type FormEvent, useEffect, useState } from "react";
 
-import {
-  jobsService,
-} from "@/services/jobs.service";
+import { jobsService } from "@/services/jobs.service";
 
-import type {
-  Job,
-  JobStatus,
-} from "@/types/job";
+import type { Job, JobStatus } from "@/types/job";
 
-import type {
-  JobStatusFilter,
-} from "@/components/jobs/jobs-toolbar";
+import type { JobStatusFilter } from "@/components/jobs/jobs-toolbar";
 
 import { useConfirm } from "@/components/providers/confirm-dialog-provider";
 
 export function useJobs() {
-  const [jobs, setJobs] =
-    useState<Job[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
 
   const confirm = useConfirm();
 
-  const [
-    selectedJob,
-    setSelectedJob,
-  ] =
-    useState<Job | null>(
-      null,
-    );
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
-  const [page, setPage] =
-    useState(1);
+  const [page, setPage] = useState(1);
 
-  const [pages, setPages] =
-    useState(1);
+  const [pages, setPages] = useState(1);
 
-  const [total, setTotal] =
-    useState(0);
+  const [total, setTotal] = useState(0);
 
-  const [search, setSearch] =
-    useState("");
+  const [search, setSearch] = useState("");
 
-  const [
-    activeSearch,
-    setActiveSearch,
-  ] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
 
-  const [
-    status,
-    setStatus,
-  ] =
-    useState<JobStatusFilter>(
-      "ALL",
-    );
+  const [status, setStatus] = useState<JobStatusFilter>("ALL");
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [
-    actionLoading,
-    setActionLoading,
-  ] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
-  const [error, setError] =
-    useState<string | null>(
-      null,
-    );
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -79,47 +41,33 @@ export function useJobs() {
     jobsService
       .getAll({
         page: 1,
-        limit: 20,
+        limit: 10,
       })
       .then((data) => {
         if (cancelled) {
           return;
         }
 
-        setJobs(
-          data.items,
-        );
+        setJobs(data.items);
 
-        setPage(
-          data.pagination.page,
-        );
+        setPage(data.pagination.page);
 
-        setPages(
-          data.pagination.pages,
-        );
+        setPages(data.pagination.pages);
 
-        setTotal(
-          data.pagination.total,
+        setTotal(data.pagination.total);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) {
+          return;
+        }
+
+        setError(
+          error instanceof Error ? error.message : "Unable to load jobs.",
         );
       })
-      .catch(
-        (error: unknown) => {
-          if (cancelled) {
-            return;
-          }
-
-          setError(
-            error instanceof Error
-              ? error.message
-              : "Unable to load jobs.",
-          );
-        },
-      )
       .finally(() => {
         if (!cancelled) {
-          setLoading(
-            false,
-          );
+          setLoading(false);
         }
       });
 
@@ -128,79 +76,50 @@ export function useJobs() {
     };
   }, []);
 
-  async function loadJobs(
-    options?: {
-      page?: number;
-      search?: string;
-      status?:
-        JobStatusFilter;
-    },
-  ) {
-    const targetPage =
-      options?.page ?? page;
+  async function loadJobs(options?: {
+    page?: number;
+    search?: string;
+    status?: JobStatusFilter;
+  }) {
+    const targetPage = options?.page ?? page;
 
-    const targetSearch =
-      options?.search ??
-      activeSearch;
+    const targetSearch = options?.search ?? activeSearch;
 
-    const targetStatus =
-      options?.status ??
-      status;
+    const targetStatus = options?.status ?? status;
 
     setLoading(true);
     setError(null);
 
     try {
-      const data =
-        await jobsService.getAll({
-          page: targetPage,
-          limit: 20,
+      const data = await jobsService.getAll({
+        page: targetPage,
+        limit: 10,
 
-          search:
-            targetSearch ||
-            undefined,
+        search: targetSearch || undefined,
 
-          status:
-            targetStatus,
-        });
+        status: targetStatus,
+      });
 
-      setJobs(
-        data.items,
-      );
+      setJobs(data.items);
 
-      setPage(
-        data.pagination.page,
-      );
+      setPage(data.pagination.page);
 
-      setPages(
-        data.pagination.pages,
-      );
+      setPages(data.pagination.pages);
 
-      setTotal(
-        data.pagination.total,
-      );
+      setTotal(data.pagination.total);
     } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Unable to load jobs.",
-      );
+      setError(error instanceof Error ? error.message : "Unable to load jobs.");
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleSearch(
-    event: FormEvent<HTMLFormElement>,
-  ) {
+  async function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const value =
-      search.trim();
+    const value = search.trim();
 
-    setActiveSearch(
-      value,
-    );
+    setActiveSearch(value);
 
     await loadJobs({
       page: 1,
@@ -208,12 +127,8 @@ export function useJobs() {
     });
   }
 
-  async function changeStatus(
-    value: JobStatusFilter,
-  ) {
-    setStatus(
-      value,
-    );
+  async function changeStatus(value: JobStatusFilter) {
+    setStatus(value);
 
     await loadJobs({
       page: 1,
@@ -221,46 +136,26 @@ export function useJobs() {
     });
   }
 
-  async function openJob(
-    job: Job,
-  ) {
+  async function openJob(job: Job) {
     setError(null);
 
     try {
-      const fullJob =
-        await jobsService.getOne(
-          job.id,
-        );
+      const fullJob = await jobsService.getOne(job.id);
 
-      setSelectedJob(
-        fullJob,
-      );
+      setSelectedJob(fullJob);
     } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Unable to load job.",
-      );
+      setError(error instanceof Error ? error.message : "Unable to load job.");
     }
   }
 
   function closeJob() {
-    setSelectedJob(
-      null,
-    );
+    setSelectedJob(null);
   }
 
-  async function refreshSelectedJob(
-    jobId: string,
-  ) {
-    const refreshed =
-      await jobsService.getOne(
-        jobId,
-      );
+  async function refreshSelectedJob(jobId: string) {
+    const refreshed = await jobsService.getOne(jobId);
 
-    setSelectedJob(
-      refreshed,
-    );
+    setSelectedJob(refreshed);
 
     await loadJobs({
       page,
@@ -276,110 +171,73 @@ export function useJobs() {
       return;
     }
 
-    setActionLoading(
-      true,
-    );
+    setActionLoading(true);
 
     setError(null);
 
     try {
-      await jobsService.updateStatus(
-        selectedJob.id,
-        {
-          status,
+      await jobsService.updateStatus(selectedJob.id, {
+        status,
 
-          message:
-            message ||
-            undefined,
+        message: message || undefined,
 
-          publicMessage:
-            publicMessage ||
-            undefined,
-        },
-      );
+        publicMessage: publicMessage || undefined,
+      });
 
-      await refreshSelectedJob(
-        selectedJob.id,
-      );
+      await refreshSelectedJob(selectedJob.id);
     } catch (error) {
       setError(
-        error instanceof Error
-          ? error.message
-          : "Unable to update job status.",
+        error instanceof Error ? error.message : "Unable to update job status.",
       );
 
       throw error;
     } finally {
-      setActionLoading(
-        false,
-      );
+      setActionLoading(false);
     }
   }
 
-  async function cancelJob(
-    reason: string,
-  ) {
+  async function cancelJob(reason: string) {
     if (!selectedJob) {
       return;
     }
 
-    const cancellationReason =
-      reason.trim();
+    const cancellationReason = reason.trim();
 
     if (!cancellationReason) {
-      throw new Error(
-        "A cancellation reason is required.",
-      );
+      throw new Error("A cancellation reason is required.");
     }
 
-    const confirmed =
-      await confirm({
-        title:
-          "Cancel job?",
-        description: `${selectedJob.jobNumber} will be cancelled and its current production workflow will stop.`,
-        confirmText:
-          "Cancel job",
-        variant:
-          "destructive",
-      });
+    const confirmed = await confirm({
+      title: "Cancel job?",
+      description: `${selectedJob.jobNumber} will be cancelled and its current production workflow will stop.`,
+      confirmText: "Cancel job",
+      variant: "destructive",
+    });
 
     if (!confirmed) {
       return;
     }
 
-    setActionLoading(
-      true,
-    );
+    setActionLoading(true);
 
     setError(null);
 
     try {
-      await jobsService.updateStatus(
-        selectedJob.id,
-        {
-          status:
-            "CANCELLED",
+      await jobsService.updateStatus(selectedJob.id, {
+        status: "CANCELLED",
 
-          message:
-            cancellationReason,
-        },
-      );
+        message: cancellationReason,
+      });
 
-      await refreshSelectedJob(
-        selectedJob.id,
-      );
+      await refreshSelectedJob(selectedJob.id);
     } catch (error) {
       setError(
-        error instanceof Error
-          ? error.message
-          : "Unable to cancel job.",
+        error instanceof Error ? error.message : "Unable to cancel job.",
       );
 
       throw error;
     } finally {
-      setActionLoading(
-        false,
-      );
+      setActionLoading(false);
     }
   }
 
@@ -388,82 +246,54 @@ export function useJobs() {
       return;
     }
 
-    const confirmed =
-      await confirm({
-        title:
-          "Reopen job?",
-        description: `${selectedJob.jobNumber} will return to its previous production status and the workflow can continue.`,
-        confirmText:
-          "Reopen job",
-      });
+    const confirmed = await confirm({
+      title: "Reopen job?",
+      description: `${selectedJob.jobNumber} will return to its previous production status and the workflow can continue.`,
+      confirmText: "Reopen job",
+    });
 
     if (!confirmed) {
       return;
     }
 
-    setActionLoading(
-      true,
-    );
+    setActionLoading(true);
 
     setError(null);
 
     try {
-      await jobsService.reopen(
-        selectedJob.id,
-      );
+      await jobsService.reopen(selectedJob.id);
 
-      await refreshSelectedJob(
-        selectedJob.id,
-      );
+      await refreshSelectedJob(selectedJob.id);
     } catch (error) {
       setError(
-        error instanceof Error
-          ? error.message
-          : "Unable to reopen job.",
+        error instanceof Error ? error.message : "Unable to reopen job.",
       );
 
       throw error;
     } finally {
-      setActionLoading(
-        false,
-      );
+      setActionLoading(false);
     }
   }
 
   async function generateTrackingLink() {
     if (!selectedJob) {
-      throw new Error(
-        "No selected job.",
-      );
+      throw new Error("No selected job.");
     }
 
-    setActionLoading(
-      true,
-    );
+    setActionLoading(true);
 
     setError(null);
 
     try {
-      const response =
-        await jobsService
-          .generateTrackingLink(
-            selectedJob.id,
-          );
+      const response = await jobsService.generateTrackingLink(selectedJob.id);
 
-      const refreshed =
-        await jobsService.getOne(
-          selectedJob.id,
-        );
+      const refreshed = await jobsService.getOne(selectedJob.id);
 
-      setSelectedJob(
-        refreshed,
-      );
+      setSelectedJob(refreshed);
 
       return response.trackingUrl;
     } finally {
-      setActionLoading(
-        false,
-      );
+      setActionLoading(false);
     }
   }
 
@@ -498,14 +328,12 @@ export function useJobs() {
 
     previousPage: () =>
       loadJobs({
-        page:
-          page - 1,
+        page: page - 1,
       }),
 
     nextPage: () =>
       loadJobs({
-        page:
-          page + 1,
+        page: page + 1,
       }),
   };
 }

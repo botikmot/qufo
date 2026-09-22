@@ -1,19 +1,17 @@
-'use client';
+"use client";
 
-import { BusinessSettingsForm } from '@/components/settings/business-settings-form';
+import { BusinessSettingsForm } from "@/components/settings/business-settings-form";
 
-import { useBusinessSettings } from '@/hooks/use-business-settings';
+import { useBusinessSettings } from "@/hooks/use-business-settings";
 
-import {
-  BusinessProfilesSection,
-} from "@/components/settings/business-profiles-section";
+import { BusinessProfilesSection } from "@/components/settings/business-profiles-section";
 
 export function BusinessSettingsTab() {
   const business = useBusinessSettings();
 
   if (business.loading) {
     return (
-      <div className="qufo-surface rounded-3xl p-8 text-sm text-slate-500">
+      <div className="qufo-surface flex min-h-64 items-center justify-center rounded-2xl border border-[var(--qufo-border)] px-6 text-sm text-slate-500">
         Loading business settings...
       </div>
     );
@@ -22,13 +20,13 @@ export function BusinessSettingsTab() {
   if (!business.settings) {
     return (
       <div className="rounded-2xl border border-red-400/15 bg-red-400/[0.05] p-5 text-sm text-red-300">
-        {business.error ?? 'Unable to load business settings.'}
+        {business.error ?? "Unable to load business settings."}
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="min-w-0 space-y-5">
       <BusinessSettingsForm
         key={business.settings.updatedAt}
         settings={business.settings}
@@ -40,27 +38,13 @@ export function BusinessSettingsTab() {
         onSave={business.update}
         onUploadLogo={business.uploadLogo}
         onRemoveLogo={business.removeLogo}
-        uploadingSignature={
-          business.uploadingSignature
-        }
-        removingSignature={
-          business.removingSignature
-        }
-        savingSignature={
-          business.savingSignature
-        }
-        onUploadSignature={
-          business.uploadSignature
-        }
-        onRemoveSignature={
-          business.removeSignature
-        }
-        onSaveSignature={
-          business.updateSignature
-        }
+        uploadingSignature={business.uploadingSignature}
+        removingSignature={business.removingSignature}
+        savingSignature={business.savingSignature}
+        onUploadSignature={business.uploadSignature}
+        onRemoveSignature={business.removeSignature}
+        onSaveSignature={business.updateSignature}
       />
-
-      <BusinessProfilesSection />
     </div>
   );
 }

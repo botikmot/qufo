@@ -1,17 +1,8 @@
 "use client";
 
-import {
-  FormEvent,
-  useState,
-} from "react";
+import { FormEvent, useState } from "react";
 
-import {
-  LoaderCircle,
-  Mail,
-  Phone,
-  Save,
-  UserRound,
-} from "lucide-react";
+import { LoaderCircle, Mail, Phone, Save, UserRound } from "lucide-react";
 
 import type {
   ProfileSettings,
@@ -27,9 +18,7 @@ type ProfileSettingsFormProps = {
 
   success: string | null;
 
-  onSave: (
-    data: UpdateProfileSettingsData,
-  ) => Promise<boolean>;
+  onSave: (data: UpdateProfileSettingsData) => Promise<boolean>;
 };
 
 export function ProfileSettingsForm({
@@ -39,30 +28,13 @@ export function ProfileSettingsForm({
   success,
   onSave,
 }: ProfileSettingsFormProps) {
-  const [
-    name,
-    setName,
-  ] = useState(
-    profile.name,
-  );
+  const [name, setName] = useState(profile.name);
 
-  const [
-    phone,
-    setPhone,
-  ] = useState(
-    profile.phone ?? "",
-  );
+  const [phone, setPhone] = useState(profile.phone ?? "");
 
-  const [
-    avatarUrl,
-    setAvatarUrl,
-  ] = useState(
-    profile.avatarUrl ?? "",
-  );
+  const [avatarUrl, setAvatarUrl] = useState(profile.avatarUrl ?? "");
 
-  async function handleSubmit(
-    event: FormEvent<HTMLFormElement>,
-  ) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     await onSave({
@@ -72,32 +44,23 @@ export function ProfileSettingsForm({
     });
   }
 
-  function handleRemovePhoto() {
-    setAvatarUrl("");
-  }
-
   return (
     <form
       onSubmit={handleSubmit}
-      className="qufo-surface overflow-hidden rounded-3xl"
+      className="qufo-surface overflow-hidden h-full rounded-3xl"
     >
       {/* Header */}
       <div className="border-b border-[var(--qufo-border)] px-6 py-5">
         <div className="flex items-center gap-3">
           <div className="flex size-10 items-center justify-center rounded-xl bg-cyan-400/[0.08] text-cyan-300">
-            <UserRound
-              size={18}
-            />
+            <UserRound size={18} />
           </div>
 
           <div>
-            <h2 className="font-medium text-white">
-              My profile
-            </h2>
+            <h2 className="font-medium text-white">My profile</h2>
 
             <p className="mt-1 text-xs text-slate-500">
-              Manage your personal
-              account information.
+              Manage your personal account information.
             </p>
           </div>
         </div>
@@ -125,12 +88,7 @@ export function ProfileSettingsForm({
                 id="profile-name"
                 required
                 value={name}
-                onChange={(event) =>
-                  setName(
-                    event.target
-                      .value,
-                  )
-                }
+                onChange={(event) => setName(event.target.value)}
                 className="qufo-input qufo-input-with-icon"
                 placeholder="Your name"
               />
@@ -154,18 +112,15 @@ export function ProfileSettingsForm({
               <input
                 id="profile-phone"
                 value={phone}
-                onChange={(event) =>
-                  setPhone(
-                    event.target
-                      .value,
-                  )
-                }
+                onChange={(event) => setPhone(event.target.value)}
                 className="qufo-input qufo-input-with-icon"
                 placeholder="+63..."
               />
             </div>
           </div>
         </div>
+
+        <div className="border-t border-[var(--qufo-border)]" />
 
         {/* Email */}
         <div>
@@ -186,19 +141,14 @@ export function ProfileSettingsForm({
               id="profile-email"
               type="email"
               readOnly
-              value={
-                profile.email
-              }
+              value={profile.email}
               className="qufo-input qufo-input-with-icon cursor-not-allowed opacity-70"
             />
           </div>
 
           <p className="mt-2 text-xs leading-5 text-slate-600">
-            Your email is used to
-            sign in to QUFO. Email
-            changes will be handled
-            separately for account
-            security.
+            Your email is used to sign in to QUFO. Email changes will be handled
+            separately for account security.
           </p>
         </div>
 
@@ -220,26 +170,16 @@ export function ProfileSettingsForm({
       <div className="flex justify-end border-t border-[var(--qufo-border)] px-6 py-5">
         <button
           type="submit"
-          disabled={
-            saving ||
-            !name.trim()
-          }
+          disabled={saving || !name.trim()}
           className="flex items-center gap-2 rounded-xl bg-emerald-400 px-5 py-2.5 text-sm font-medium text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {saving ? (
-            <LoaderCircle
-              size={16}
-              className="animate-spin"
-            />
+            <LoaderCircle size={16} className="animate-spin" />
           ) : (
-            <Save
-              size={16}
-            />
+            <Save size={16} />
           )}
 
-          {saving
-            ? "Saving..."
-            : "Save profile"}
+          {saving ? "Saving..." : "Save profile"}
         </button>
       </div>
     </form>

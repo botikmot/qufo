@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  FormEvent,
-  useState,
-} from "react";
+import { FormEvent, useState } from "react";
 
 import {
   Eye,
@@ -14,9 +11,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-import {
-  useChangePassword,
-} from "@/hooks/use-change-password";
+import { useChangePassword } from "@/hooks/use-change-password";
 
 type ChangePasswordFormProps = {
   hasPassword: boolean;
@@ -27,97 +22,46 @@ export function ChangePasswordForm({
   hasPassword,
   googleLinked,
 }: ChangePasswordFormProps) {
-  const {
-    saving,
-    error,
-    success,
-    changePassword,
-  } = useChangePassword();
+  const { saving, error, success, changePassword } = useChangePassword();
 
-  const [
-    currentPassword,
-    setCurrentPassword,
-  ] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
 
-  const [
-    newPassword,
-    setNewPassword,
-  ] = useState("");
+  const [newPassword, setNewPassword] = useState("");
 
-  const [
-    confirmPassword,
-    setConfirmPassword,
-  ] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
-  const [
-    showCurrentPassword,
-    setShowCurrentPassword,
-  ] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
 
-  const [
-    showNewPassword,
-    setShowNewPassword,
-  ] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
-  const [
-    showConfirmPassword,
-    setShowConfirmPassword,
-  ] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const [
-    validationError,
-    setValidationError,
-  ] =
-    useState<
-      string | null
-    >(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
-  async function handleSubmit(
-    event:
-      FormEvent<HTMLFormElement>,
-  ) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setValidationError(null);
 
-    if (
-      !currentPassword ||
-      !newPassword ||
-      !confirmPassword
-    ) {
-      setValidationError(
-        "Please complete all password fields.",
-      );
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setValidationError("Please complete all password fields.");
 
       return;
     }
 
-    if (
-      newPassword.length <
-      8
-    ) {
-      setValidationError(
-        "New password must be at least 8 characters.",
-      );
+    if (newPassword.length < 8) {
+      setValidationError("New password must be at least 8 characters.");
 
       return;
     }
 
-    if (
-      newPassword !==
-      confirmPassword
-    ) {
-      setValidationError(
-        "New password and confirmation do not match.",
-      );
+    if (newPassword !== confirmPassword) {
+      setValidationError("New password and confirmation do not match.");
 
       return;
     }
 
-    if (
-      currentPassword ===
-      newPassword
-    ) {
+    if (currentPassword === newPassword) {
       setValidationError(
         "New password must be different from your current password.",
       );
@@ -125,11 +69,10 @@ export function ChangePasswordForm({
       return;
     }
 
-    const changed =
-      await changePassword({
-        currentPassword,
-        newPassword,
-      });
+    const changed = await changePassword({
+      currentPassword,
+      newPassword,
+    });
 
     if (!changed) {
       return;
@@ -139,37 +82,27 @@ export function ChangePasswordForm({
     setNewPassword("");
     setConfirmPassword("");
 
-    setShowCurrentPassword(
-      false,
-    );
+    setShowCurrentPassword(false);
 
-    setShowNewPassword(
-      false,
-    );
+    setShowNewPassword(false);
 
-    setShowConfirmPassword(
-      false,
-    );
+    setShowConfirmPassword(false);
   }
 
   return (
     <form
       onSubmit={handleSubmit}
-      className="qufo-surface overflow-hidden rounded-3xl"
+      className="qufo-surface overflow-hidden h-full rounded-3xl"
     >
       {/* Header */}
       <div className="border-b border-[var(--qufo-border)] px-6 py-5">
         <div className="flex items-center gap-3">
           <div className="flex size-10 items-center justify-center rounded-xl bg-violet-400/[0.08] text-violet-300">
-            <ShieldCheck
-              size={18}
-            />
+            <ShieldCheck size={18} />
           </div>
 
           <div>
-            <h2 className="font-medium text-white">
-              Security
-            </h2>
+            <h2 className="font-medium text-white">Security</h2>
 
             <p className="mt-1 text-xs text-slate-500">
               {hasPassword
@@ -187,22 +120,16 @@ export function ChangePasswordForm({
           <div className="rounded-2xl border border-cyan-400/10 bg-cyan-400/[0.035] p-4">
             <div className="flex items-start gap-3">
               <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-cyan-400/10 bg-cyan-400/[0.06] text-cyan-300">
-                <ShieldCheck
-                  size={18}
-                />
+                <ShieldCheck size={18} />
               </div>
 
               <div>
                 <p className="text-sm font-medium text-slate-200">
-                  Google account
-                  connected
+                  Google account connected
                 </p>
 
                 <p className="mt-1 text-xs leading-5 text-slate-500">
-                  You can sign in
-                  securely to QUFO
-                  using your Google
-                  account.
+                  You can sign in securely to QUFO using your Google account.
                 </p>
               </div>
             </div>
@@ -214,9 +141,7 @@ export function ChangePasswordForm({
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
             <div className="flex items-start gap-3">
               <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-violet-400/[0.06] text-violet-300">
-                <KeyRound
-                  size={18}
-                />
+                <KeyRound size={18} />
               </div>
 
               <div>
@@ -225,12 +150,8 @@ export function ChangePasswordForm({
                 </p>
 
                 <p className="mt-1 text-xs leading-5 text-slate-500">
-                  This QUFO account
-                  was created using
-                  Google. Use
-                  Continue with
-                  Google when
-                  signing in.
+                  This QUFO account was created using Google. Use Continue with
+                  Google when signing in.
                 </p>
               </div>
             </div>
@@ -257,37 +178,17 @@ export function ChangePasswordForm({
 
                 <input
                   id="current-password"
-                  type={
-                    showCurrentPassword
-                      ? "text"
-                      : "password"
-                  }
+                  type={showCurrentPassword ? "text" : "password"}
                   autoComplete="current-password"
-                  value={
-                    currentPassword
-                  }
-                  onChange={(
-                    event,
-                  ) =>
-                    setCurrentPassword(
-                      event.target
-                        .value,
-                    )
-                  }
+                  value={currentPassword}
+                  onChange={(event) => setCurrentPassword(event.target.value)}
                   className="qufo-input qufo-input-with-icon pr-11"
                   placeholder="Enter current password"
                 />
 
                 <button
                   type="button"
-                  onClick={() =>
-                    setShowCurrentPassword(
-                      (
-                        value,
-                      ) =>
-                        !value,
-                    )
-                  }
+                  onClick={() => setShowCurrentPassword((value) => !value)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 transition hover:text-slate-300"
                   aria-label={
                     showCurrentPassword
@@ -296,13 +197,9 @@ export function ChangePasswordForm({
                   }
                 >
                   {showCurrentPassword ? (
-                    <EyeOff
-                      size={16}
-                    />
+                    <EyeOff size={16} />
                   ) : (
-                    <Eye
-                      size={16}
-                    />
+                    <Eye size={16} />
                   )}
                 </button>
               </div>
@@ -328,38 +225,17 @@ export function ChangePasswordForm({
 
                   <input
                     id="new-password"
-                    type={
-                      showNewPassword
-                        ? "text"
-                        : "password"
-                    }
+                    type={showNewPassword ? "text" : "password"}
                     autoComplete="new-password"
-                    value={
-                      newPassword
-                    }
-                    onChange={(
-                      event,
-                    ) =>
-                      setNewPassword(
-                        event
-                          .target
-                          .value,
-                      )
-                    }
+                    value={newPassword}
+                    onChange={(event) => setNewPassword(event.target.value)}
                     className="qufo-input qufo-input-with-icon pr-11"
                     placeholder="Enter new password"
                   />
 
                   <button
                     type="button"
-                    onClick={() =>
-                      setShowNewPassword(
-                        (
-                          value,
-                        ) =>
-                          !value,
-                      )
-                    }
+                    onClick={() => setShowNewPassword((value) => !value)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 transition hover:text-slate-300"
                     aria-label={
                       showNewPassword
@@ -367,25 +243,12 @@ export function ChangePasswordForm({
                         : "Show new password"
                     }
                   >
-                    {showNewPassword ? (
-                      <EyeOff
-                        size={
-                          16
-                        }
-                      />
-                    ) : (
-                      <Eye
-                        size={
-                          16
-                        }
-                      />
-                    )}
+                    {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
 
                 <p className="mt-2 text-xs leading-5 text-slate-600">
-                  Use at least 8
-                  characters.
+                  Use at least 8 characters.
                 </p>
               </div>
 
@@ -394,8 +257,7 @@ export function ChangePasswordForm({
                   htmlFor="confirm-password"
                   className="mb-2 block text-sm text-slate-400"
                 >
-                  Confirm new
-                  password
+                  Confirm new password
                 </label>
 
                 <div className="relative">
@@ -406,38 +268,17 @@ export function ChangePasswordForm({
 
                   <input
                     id="confirm-password"
-                    type={
-                      showConfirmPassword
-                        ? "text"
-                        : "password"
-                    }
+                    type={showConfirmPassword ? "text" : "password"}
                     autoComplete="new-password"
-                    value={
-                      confirmPassword
-                    }
-                    onChange={(
-                      event,
-                    ) =>
-                      setConfirmPassword(
-                        event
-                          .target
-                          .value,
-                      )
-                    }
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
                     className="qufo-input qufo-input-with-icon pr-11"
                     placeholder="Repeat new password"
                   />
 
                   <button
                     type="button"
-                    onClick={() =>
-                      setShowConfirmPassword(
-                        (
-                          value,
-                        ) =>
-                          !value,
-                      )
-                    }
+                    onClick={() => setShowConfirmPassword((value) => !value)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 transition hover:text-slate-300"
                     aria-label={
                       showConfirmPassword
@@ -446,28 +287,18 @@ export function ChangePasswordForm({
                     }
                   >
                     {showConfirmPassword ? (
-                      <EyeOff
-                        size={
-                          16
-                        }
-                      />
+                      <EyeOff size={16} />
                     ) : (
-                      <Eye
-                        size={
-                          16
-                        }
-                      />
+                      <Eye size={16} />
                     )}
                   </button>
                 </div>
               </div>
             </div>
 
-            {(validationError ||
-              error) && (
+            {(validationError || error) && (
               <div className="rounded-xl border border-red-400/15 bg-red-400/[0.05] px-4 py-3 text-sm text-red-300">
-                {validationError ??
-                  error}
+                {validationError ?? error}
               </div>
             )}
 
@@ -486,27 +317,17 @@ export function ChangePasswordForm({
           <button
             type="submit"
             disabled={
-              saving ||
-              !currentPassword ||
-              !newPassword ||
-              !confirmPassword
+              saving || !currentPassword || !newPassword || !confirmPassword
             }
             className="flex items-center gap-2 rounded-xl bg-violet-400 px-5 py-2.5 text-sm font-medium text-slate-950 transition hover:bg-violet-300 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? (
-              <LoaderCircle
-                size={16}
-                className="animate-spin"
-              />
+              <LoaderCircle size={16} className="animate-spin" />
             ) : (
-              <ShieldCheck
-                size={16}
-              />
+              <ShieldCheck size={16} />
             )}
 
-            {saving
-              ? "Changing..."
-              : "Change password"}
+            {saving ? "Changing..." : "Change password"}
           </button>
         </div>
       )}

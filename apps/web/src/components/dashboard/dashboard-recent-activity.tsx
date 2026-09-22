@@ -1,7 +1,7 @@
-import Link from "next/link";
+//import Link from "next/link";
 
 import {
-  ArrowUpRight,
+  //ArrowUpRight,
   BriefcaseBusiness,
   FileText,
   Banknote,
@@ -85,13 +85,13 @@ export function DashboardRecentActivity({
             </div>
           </div>
 
-          <Link
+          {/* <Link
             href="/reports"
             className="flex shrink-0 items-center gap-1 text-xs text-cyan-300/70 transition hover:text-cyan-300"
           >
             View all
             <ArrowUpRight size={13} />
-          </Link>
+          </Link> */}
         </div>
 
         {/* Activity */}

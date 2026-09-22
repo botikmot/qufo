@@ -1,46 +1,24 @@
 "use client";
 
-import {
-  type FormEvent,
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import { type FormEvent, useCallback, useEffect, useState } from "react";
 
-import type {
-  QuotationStatusFilter,
-} from "@/components/quotations/quotations-toolbar";
+import type { QuotationStatusFilter } from "@/components/quotations/quotations-toolbar";
 
-import {
-  quotationsService,
-} from "@/services/quotations.service";
+import { quotationsService } from "@/services/quotations.service";
 
-import type {
-  Quotation,
-  QuotationDetail,
-} from "@/types/quotation";
+import type { Quotation, QuotationDetail } from "@/types/quotation";
 
-import type {
-  QuotationFormPayload,
-} from "@/types/quotation-form";
+import type { QuotationFormPayload } from "@/types/quotation-form";
 
-import {
-  customersService,
-} from "@/services/customers.service";
+import { customersService } from "@/services/customers.service";
 
-import type {
-  Customer,
-} from "@/types/customer";
+import type { Customer } from "@/types/customer";
 
 import { useConfirm } from "@/components/providers/confirm-dialog-provider";
 
-import {
-  useQuotationRealtime,
-} from "@/hooks/use-quotation-realtime";
+import { useQuotationRealtime } from "@/hooks/use-quotation-realtime";
 
-import type {
-  QuotationUpdatedEvent,
-} from "@/types/realtime";
+import type { QuotationUpdatedEvent } from "@/types/realtime";
 
 import { generateQuotationPdfBlob } from "@/components/quotations/pdf/generate-quotation-pdf";
 
@@ -48,130 +26,58 @@ import { businessProfilesService } from "@/services/business-profiles.service";
 
 import type { BusinessProfilesResponse } from "@/types/business-profile";
 
-
 export function useQuotations() {
-  const [
-    quotations,
-    setQuotations,
-  ] =
-    useState<Quotation[]>([]);
+  const [quotations, setQuotations] = useState<Quotation[]>([]);
 
   const confirm = useConfirm();
 
-  const [
-    selectedQuotation,
-    setSelectedQuotation,
-  ] =
-    useState<QuotationDetail | null>(
-      null,
-    );
+  const [selectedQuotation, setSelectedQuotation] =
+    useState<QuotationDetail | null>(null);
 
-  const [search, setSearch] =
-    useState("");
+  const [search, setSearch] = useState("");
 
-  const [
-    activeSearch,
-    setActiveSearch,
-  ] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
 
-  const [
-    status,
-    setStatus,
-  ] =
-    useState<QuotationStatusFilter>(
-      "ALL",
-    );
+  const [status, setStatus] = useState<QuotationStatusFilter>("ALL");
 
-  const [page, setPage] =
-    useState(1);
+  const [page, setPage] = useState(1);
 
-  const [pages, setPages] =
-    useState(1);
+  const [pages, setPages] = useState(1);
 
-  const [total, setTotal] =
-    useState(0);
+  const [total, setTotal] = useState(0);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [
-    detailLoading,
-    setDetailLoading,
-  ] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
 
-  const [
-    actionLoading,
-    setActionLoading,
-  ] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
-  const [
-    showForm,
-    setShowForm,
-  ] = useState(false);
+  const [showForm, setShowForm] = useState(false);
 
-  const [
-    editingQuotation,
-    setEditingQuotation,
-  ] =
-    useState<Quotation | null>(
-      null,
-    );
-
-  const [
-    saving,
-    setSaving,
-  ] = useState(false);
-
-  const [error, setError] =
-    useState<string | null>(
-      null,
-    );
-
-  const [
-    customers,
-    setCustomers,
-  ] =
-    useState<Customer[]>([]);
-
-  const [
-    businessProfiles,
-    setBusinessProfiles,
-  ] =
-    useState<BusinessProfilesResponse | null>(
-      null,
-    );
-
-  const [
-    sentQuotationUrl,
-    setSentQuotationUrl,
-  ] =
-    useState<string | null>(
-      null,
-    );
-
-  const [
-    sendFlowQuotation,
-    setSendFlowQuotation,
-  ] = useState<Quotation | null>(
+  const [editingQuotation, setEditingQuotation] = useState<Quotation | null>(
     null,
   );
 
-  const [
-    sendFlowUrl,
-    setSendFlowUrl,
-  ] = useState<string | null>(
+  const [saving, setSaving] = useState(false);
+
+  const [error, setError] = useState<string | null>(null);
+
+  const [customers, setCustomers] = useState<Customer[]>([]);
+
+  const [businessProfiles, setBusinessProfiles] =
+    useState<BusinessProfilesResponse | null>(null);
+
+  const [sentQuotationUrl, setSentQuotationUrl] = useState<string | null>(null);
+
+  const [sendFlowQuotation, setSendFlowQuotation] = useState<Quotation | null>(
     null,
   );
 
-  const [
-    sendFlowLoading,
-    setSendFlowLoading,
-  ] = useState(false);
+  const [sendFlowUrl, setSendFlowUrl] = useState<string | null>(null);
 
-  const [
-    sendFlowCopied,
-    setSendFlowCopied,
-  ] = useState(false);
+  const [sendFlowLoading, setSendFlowLoading] = useState(false);
+
+  const [sendFlowCopied, setSendFlowCopied] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -179,67 +85,39 @@ export function useQuotations() {
     Promise.all([
       quotationsService.getAll({
         page: 1,
-        limit: 20,
+        limit: 10,
       }),
 
-      customersService.getAll(
-        1,
-        100,
-      ),
+      customersService.getAll(1, 100),
 
       businessProfilesService.getAll(),
     ])
-      .then(
-        ([
-          quotationData,
-          customerData,
-          businessProfileData,
-        ]) => {
-          if (cancelled) {
-            return;
-          }
+      .then(([quotationData, customerData, businessProfileData]) => {
+        if (cancelled) {
+          return;
+        }
 
-          setQuotations(
-            quotationData.items,
-          );
+        setQuotations(quotationData.items);
 
-          setPage(
-            quotationData
-              .pagination.page,
-          );
+        setPage(quotationData.pagination.page);
 
-          setPages(
-            quotationData
-              .pagination.pages,
-          );
+        setPages(quotationData.pagination.pages);
 
-          setTotal(
-            quotationData
-              .pagination.total,
-          );
+        setTotal(quotationData.pagination.total);
 
-          setCustomers(
-            customerData.items,
-          );
+        setCustomers(customerData.items);
 
-          setBusinessProfiles(
-            businessProfileData,
-          );
-        },
-      )
-      .catch(
-        (error: unknown) => {
-          if (cancelled) {
-            return;
-          }
+        setBusinessProfiles(businessProfileData);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) {
+          return;
+        }
 
-          setError(
-            error instanceof Error
-              ? error.message
-              : "Unable to load quotations.",
-          );
-        },
-      )
+        setError(
+          error instanceof Error ? error.message : "Unable to load quotations.",
+        );
+      })
       .finally(() => {
         if (!cancelled) {
           setLoading(false);
@@ -256,15 +134,11 @@ export function useQuotations() {
       return null;
     }
 
-    const confirmed =
-      await confirm({
-        title:
-          "Send quotation?",
-        description:
-          `${selectedQuotation.quotationNumber} will be sent to the customer for review.`,
-        confirmText:
-          "Send quotation",
-      });
+    const confirmed = await confirm({
+      title: "Send quotation?",
+      description: `${selectedQuotation.quotationNumber} will be sent to the customer for review.`,
+      confirmText: "Send quotation",
+    });
 
     if (!confirmed) {
       return null;
@@ -274,89 +148,57 @@ export function useQuotations() {
     setError(null);
 
     try {
-      let pdfBlob:
-        Blob | undefined;
+      let pdfBlob: Blob | undefined;
 
       /*
-      * PDF attachment is optional.
-      *
-      * If PDF generation fails,
-      * we still send the quotation
-      * review link to the customer.
-      */
+       * PDF attachment is optional.
+       *
+       * If PDF generation fails,
+       * we still send the quotation
+       * review link to the customer.
+       */
       try {
-        pdfBlob =
-          await generateQuotationPdfBlob(
-            selectedQuotation,
-          );
-      } catch (
-        pdfError
-      ) {
-        console.error(
-          "Unable to generate quotation PDF attachment:",
-          pdfError,
-        );
+        pdfBlob = await generateQuotationPdfBlob(selectedQuotation);
+      } catch (pdfError) {
+        console.error("Unable to generate quotation PDF attachment:", pdfError);
       }
 
-      const filename =
-        `${selectedQuotation.quotationNumber}.pdf`;
+      const filename = `${selectedQuotation.quotationNumber}.pdf`;
 
-      const result =
-        await quotationsService.send(
-          selectedQuotation.id,
-          pdfBlob,
-          filename,
-        );
-
-      const refreshed =
-        await quotationsService.getOne(
-          selectedQuotation.id,
-        );
-
-      setSelectedQuotation(
-        refreshed,
+      const result = await quotationsService.send(
+        selectedQuotation.id,
+        pdfBlob,
+        filename,
       );
+
+      const refreshed = await quotationsService.getOne(selectedQuotation.id);
+
+      setSelectedQuotation(refreshed);
 
       await loadQuotations({
         page,
       });
 
-      const url =
-        result.publicUrl ??
-        result.quotationUrl ??
-        result.url ??
-        null;
+      const url = result.publicUrl ?? result.quotationUrl ?? result.url ?? null;
 
-      setSentQuotationUrl(
-        url,
-      );
+      setSentQuotationUrl(url);
 
       return url;
     } catch (error) {
       setError(
-        error instanceof Error
-          ? error.message
-          : "Unable to send quotation.",
+        error instanceof Error ? error.message : "Unable to send quotation.",
       );
 
       throw error;
     } finally {
-      setActionLoading(
-        false,
-      );
+      setActionLoading(false);
     }
   }
 
-  function isLegacyPublicLinkError(
-    error: unknown,
-  ) {
+  function isLegacyPublicLinkError(error: unknown) {
     return (
       error instanceof Error &&
-      error.message
-        .toLowerCase()
-        .includes(
-          "cannot be recovered",
-        )
+      error.message.toLowerCase().includes("cannot be recovered")
     );
   }
 
@@ -366,55 +208,42 @@ export function useQuotations() {
     }
 
     try {
-      const result =
-        await quotationsService.getPublicLink(
-          selectedQuotation.id,
-        );
-
-      setSentQuotationUrl(
-        result.publicUrl,
+      const result = await quotationsService.getPublicLink(
+        selectedQuotation.id,
       );
+
+      setSentQuotationUrl(result.publicUrl);
 
       return result.publicUrl;
     } catch (error) {
       /*
-      * Quotations sent before encrypted
-      * token storage only have the hash.
-      * Their original raw token cannot
-      * be recovered.
-      */
-      if (
-        !isLegacyPublicLinkError(
-          error,
-        )
-      ) {
+       * Quotations sent before encrypted
+       * token storage only have the hash.
+       * Their original raw token cannot
+       * be recovered.
+       */
+      if (!isLegacyPublicLinkError(error)) {
         throw error;
       }
 
-      const confirmed =
-        await confirm({
-          title:
-            "Generate a new customer link?",
+      const confirmed = await confirm({
+        title: "Generate a new customer link?",
 
-          description:
-            "The original customer link cannot be recovered. Generating a new one will make the previous link stop working.",
+        description:
+          "The original customer link cannot be recovered. Generating a new one will make the previous link stop working.",
 
-          confirmText:
-            "Generate new link",
-        });
+        confirmText: "Generate new link",
+      });
 
       if (!confirmed) {
         return null;
       }
 
-      const result =
-        await quotationsService.regeneratePublicLink(
-          selectedQuotation.id,
-        );
-
-      setSentQuotationUrl(
-        result.publicUrl,
+      const result = await quotationsService.regeneratePublicLink(
+        selectedQuotation.id,
       );
+
+      setSentQuotationUrl(result.publicUrl);
 
       return result.publicUrl;
     }
@@ -429,24 +258,19 @@ export function useQuotations() {
     setError(null);
 
     try {
-      const url =
-        await resolveCustomerLink();
+      const url = await resolveCustomerLink();
 
       if (!url) {
         return;
       }
 
-      await navigator.clipboard.writeText(
-        url,
-      );
+      await navigator.clipboard.writeText(url);
 
       /*
-      * Keep displaying the URL inside
-      * the quotation modal as well.
-      */
-      setSentQuotationUrl(
-        url,
-      );
+       * Keep displaying the URL inside
+       * the quotation modal as well.
+       */
+      setSentQuotationUrl(url);
     } catch (error) {
       setError(
         error instanceof Error
@@ -464,27 +288,21 @@ export function useQuotations() {
     }
 
     /*
-    * Open the tab while still inside
-    * the user's click event so popup
-    * blockers don't reject it later.
-    */
-    const customerWindow =
-      window.open(
-        "",
-        "_blank",
-      );
+     * Open the tab while still inside
+     * the user's click event so popup
+     * blockers don't reject it later.
+     */
+    const customerWindow = window.open("", "_blank");
 
     if (customerWindow) {
-      customerWindow.opener =
-        null;
+      customerWindow.opener = null;
     }
 
     setActionLoading(true);
     setError(null);
 
     try {
-      const url =
-        await resolveCustomerLink();
+      const url = await resolveCustomerLink();
 
       if (!url) {
         customerWindow?.close();
@@ -500,8 +318,7 @@ export function useQuotations() {
         return;
       }
 
-      customerWindow.location.href =
-        url;
+      customerWindow.location.href = url;
     } catch (error) {
       customerWindow?.close();
 
@@ -520,14 +337,11 @@ export function useQuotations() {
       return;
     }
 
-    const confirmed =
-      await confirm({
-        title:
-          "Create production job?",
-        description: `${selectedQuotation.quotationNumber} will be converted into a production job.`,
-        confirmText:
-          "Create job",
-      });
+    const confirmed = await confirm({
+      title: "Create production job?",
+      description: `${selectedQuotation.quotationNumber} will be converted into a production job.`,
+      confirmText: "Create job",
+    });
 
     if (!confirmed) {
       return;
@@ -537,9 +351,7 @@ export function useQuotations() {
     setError(null);
 
     try {
-      await quotationsService.convertToJob(
-        selectedQuotation.id,
-      );
+      await quotationsService.convertToJob(selectedQuotation.id);
 
       setSelectedQuotation(null);
 
@@ -559,156 +371,103 @@ export function useQuotations() {
     }
   }
 
-  const loadQuotations =
-    useCallback(
-      async (
-        options?: {
-          page?: number;
+  const loadQuotations = useCallback(
+    async (options?: {
+      page?: number;
 
-          search?: string;
+      search?: string;
 
-          status?:
-            QuotationStatusFilter;
+      status?: QuotationStatusFilter;
 
-          silent?: boolean;
-        },
-      ) => {
-        const targetPage =
-          options?.page ?? page;
+      silent?: boolean;
+    }) => {
+      const targetPage = options?.page ?? page;
 
-        const targetSearch =
-          options?.search ??
-          activeSearch;
+      const targetSearch = options?.search ?? activeSearch;
 
-        const targetStatus =
-          options?.status ??
-          status;
+      const targetStatus = options?.status ?? status;
 
-        const silent =
-          options?.silent ?? false;
+      const silent = options?.silent ?? false;
 
+      if (!silent) {
+        setLoading(true);
+      }
+
+      setError(null);
+
+      try {
+        const data = await quotationsService.getAll({
+          page: targetPage,
+
+          limit: 10,
+
+          search: targetSearch || undefined,
+
+          status: targetStatus,
+        });
+
+        setQuotations(data.items);
+
+        setPage(data.pagination.page);
+
+        setPages(data.pagination.pages);
+
+        setTotal(data.pagination.total);
+      } catch (error) {
+        setError(
+          error instanceof Error ? error.message : "Unable to load quotations.",
+        );
+      } finally {
         if (!silent) {
-          setLoading(true);
+          setLoading(false);
         }
+      }
+    },
+    [page, activeSearch, status],
+  );
 
-        setError(null);
+  const selectedQuotationId = selectedQuotation?.id ?? null;
 
-        try {
-          const data =
-            await quotationsService.getAll({
-              page:
-                targetPage,
+  const handleRealtimeQuotationUpdate = useCallback(
+    (event: QuotationUpdatedEvent) => {
+      /*
+       * Refresh the current table
+       * silently using its existing
+       * page/search/status filters.
+       */
+      void loadQuotations({
+        page,
+        silent: true,
+      });
 
-              limit: 20,
+      /*
+       * If the quotation currently
+       * open in the detail modal is
+       * the one that changed, refresh
+       * the full detail as well.
+       */
+      if (selectedQuotationId !== event.quotationId) {
+        return;
+      }
 
-              search:
-                targetSearch ||
-                undefined,
-
-              status:
-                targetStatus,
-            });
-
-          setQuotations(
-            data.items,
-          );
-
-          setPage(
-            data.pagination.page,
-          );
-
-          setPages(
-            data.pagination.pages,
-          );
-
-          setTotal(
-            data.pagination.total,
-          );
-        } catch (error) {
+      void quotationsService
+        .getOne(event.quotationId)
+        .then((refreshedQuotation) => {
+          setSelectedQuotation(refreshedQuotation);
+        })
+        .catch((error: unknown) => {
           setError(
             error instanceof Error
               ? error.message
-              : "Unable to load quotations.",
+              : "Unable to refresh quotation.",
           );
-        } finally {
-          if (!silent) {
-            setLoading(false);
-          }
-        }
-      },
-      [
-        page,
-        activeSearch,
-        status,
-      ],
-    );
-
-  const selectedQuotationId =
-    selectedQuotation?.id ??
-    null;
-
-  const handleRealtimeQuotationUpdate =
-    useCallback(
-      (
-        event:
-          QuotationUpdatedEvent,
-      ) => {
-        /*
-        * Refresh the current table
-        * silently using its existing
-        * page/search/status filters.
-        */
-        void loadQuotations({
-          page,
-          silent: true,
         });
-
-        /*
-        * If the quotation currently
-        * open in the detail modal is
-        * the one that changed, refresh
-        * the full detail as well.
-        */
-        if (
-          selectedQuotationId !==
-          event.quotationId
-        ) {
-          return;
-        }
-
-        void quotationsService
-          .getOne(
-            event.quotationId,
-          )
-          .then(
-            (
-              refreshedQuotation,
-            ) => {
-              setSelectedQuotation(
-                refreshedQuotation,
-              );
-            },
-          )
-          .catch(
-            (error: unknown) => {
-              setError(
-                error instanceof Error
-                  ? error.message
-                  : "Unable to refresh quotation.",
-              );
-            },
-          );
-      },
-      [
-        loadQuotations,
-        page,
-        selectedQuotationId,
-      ],
-    );
+    },
+    [loadQuotations, page, selectedQuotationId],
+  );
 
   useQuotationRealtime({
-    onUpdated:
-      handleRealtimeQuotationUpdate,
+    onUpdated: handleRealtimeQuotationUpdate,
   });
 
   function openCreateForm() {
@@ -722,21 +481,14 @@ export function useQuotations() {
     }
 
     try {
-      const quotation =
-        await quotationsService.getOne(
-          selectedQuotation.id,
-        );
+      const quotation = await quotationsService.getOne(selectedQuotation.id);
 
-      setEditingQuotation(
-        quotation,
-      );
+      setEditingQuotation(quotation);
 
       setShowForm(true);
     } catch (error) {
       setError(
-        error instanceof Error
-          ? error.message
-          : "Unable to load quotation.",
+        error instanceof Error ? error.message : "Unable to load quotation.",
       );
     }
   }
@@ -750,13 +502,10 @@ export function useQuotations() {
     setEditingQuotation(null);
   }
 
-  async function handleSearch(
-    event: FormEvent<HTMLFormElement>,
-  ) {
+  async function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const value =
-      search.trim();
+    const value = search.trim();
 
     setActiveSearch(value);
 
@@ -766,46 +515,35 @@ export function useQuotations() {
     });
   }
 
-  async function saveQuotation(
-    data: QuotationFormPayload,
-  ) {
+  async function saveQuotation(data: QuotationFormPayload) {
     setSaving(true);
     setError(null);
 
     try {
       if (editingQuotation) {
         const isRevision =
-          Boolean(
-            editingQuotation.sourceQuotationId,
-          ) ||
+          Boolean(editingQuotation.sourceQuotationId) ||
           (editingQuotation.revisionNumber ?? 1) > 1;
 
-        const updated =
-          await quotationsService.update(
-            editingQuotation.id,
-            data,
-          );
+        const updated = await quotationsService.update(
+          editingQuotation.id,
+          data,
+        );
 
         setShowForm(false);
         setEditingQuotation(null);
         setSelectedQuotation(null);
 
         /*
-        * A revised quotation normally needs
-        * to be sent back to the customer.
-        */
+         * A revised quotation normally needs
+         * to be sent back to the customer.
+         */
         if (isRevision) {
-          setSendFlowQuotation(
-            updated,
-          );
+          setSendFlowQuotation(updated);
 
-          setSendFlowUrl(
-            null,
-          );
+          setSendFlowUrl(null);
 
-          setSendFlowCopied(
-            false,
-          );
+          setSendFlowCopied(false);
         }
 
         await loadQuotations({
@@ -816,46 +554,31 @@ export function useQuotations() {
       }
 
       /*
-      * New quotation.
-      */
-      const created =
-        await quotationsService.create(
-          data,
-        );
+       * New quotation.
+       */
+      const created = await quotationsService.create(data);
 
       setShowForm(false);
 
-      setEditingQuotation(
-        null,
-      );
+      setEditingQuotation(null);
 
-      setSelectedQuotation(
-        null,
-      );
+      setSelectedQuotation(null);
 
       /*
-      * Start guided send flow.
-      */
-      setSendFlowQuotation(
-        created,
-      );
+       * Start guided send flow.
+       */
+      setSendFlowQuotation(created);
 
-      setSendFlowUrl(
-        null,
-      );
+      setSendFlowUrl(null);
 
-      setSendFlowCopied(
-        false,
-      );
+      setSendFlowCopied(false);
 
       await loadQuotations({
         page: 1,
       });
     } catch (error) {
       setError(
-        error instanceof Error
-          ? error.message
-          : "Unable to save quotation.",
+        error instanceof Error ? error.message : "Unable to save quotation.",
       );
 
       throw error;
@@ -864,10 +587,7 @@ export function useQuotations() {
     }
   }
 
-  async function changeStatus(
-    value:
-      QuotationStatusFilter,
-  ) {
+  async function changeStatus(value: QuotationStatusFilter) {
     setStatus(value);
 
     await loadQuotations({
@@ -876,49 +596,34 @@ export function useQuotations() {
     });
   }
 
-  async function openQuotation(
-    quotation: Quotation,
-  ) {
+  async function openQuotation(quotation: Quotation) {
     setDetailLoading(true);
     setSentQuotationUrl(null);
     setError(null);
 
     try {
-      const fullQuotation =
-        await quotationsService.getOne(
-          quotation.id,
-        );
+      const fullQuotation = await quotationsService.getOne(quotation.id);
 
-      setSelectedQuotation(
-        fullQuotation,
-      );
+      setSelectedQuotation(fullQuotation);
     } catch (error) {
       setError(
-        error instanceof Error
-          ? error.message
-          : "Unable to load quotation.",
+        error instanceof Error ? error.message : "Unable to load quotation.",
       );
     } finally {
       setDetailLoading(false);
     }
   }
 
-  async function copyQuotation(
-    quotation: Quotation,
-  ) {
-
+  async function copyQuotation(quotation: Quotation) {
     if (!quotation.id) {
       return;
     }
 
-    const confirmed =
-      await confirm({
-        title:
-          "Copy this quotation?",
-        description: `A new quotation will be created from ${quotation.quotationNumber}.`,
-        confirmText:
-          "Copy Quotation",
-      });
+    const confirmed = await confirm({
+      title: "Copy this quotation?",
+      description: `A new quotation will be created from ${quotation.quotationNumber}.`,
+      confirmText: "Copy Quotation",
+    });
 
     if (!confirmed) {
       return;
@@ -926,32 +631,22 @@ export function useQuotations() {
 
     setActionLoading(true);
     setError(null);
-    
+
     try {
-      const result = await quotationsService.copyQuotation(
-          quotation.id,
-        );
+      const result = await quotationsService.copyQuotation(quotation.id);
 
-      setSelectedQuotation(
-        null,
-      );
+      setSelectedQuotation(null);
 
-      setEditingQuotation(
-        result,
-      );
+      setEditingQuotation(result);
 
-      setShowForm(
-        true,
-      );
+      setShowForm(true);
 
       await loadQuotations({
         page,
       });
     } catch (error) {
       setError(
-        error instanceof Error
-          ? error.message
-          : "Unable to load quotation.",
+        error instanceof Error ? error.message : "Unable to load quotation.",
       );
     } finally {
       setActionLoading(false);
@@ -968,14 +663,11 @@ export function useQuotations() {
       return;
     }
 
-   const confirmed =
-      await confirm({
-        title:
-          "Create new revision?",
-        description: `A new editable revision will be created from ${selectedQuotation.quotationNumber}.`,
-        confirmText:
-          "Create revision",
-      });
+    const confirmed = await confirm({
+      title: "Create new revision?",
+      description: `A new editable revision will be created from ${selectedQuotation.quotationNumber}.`,
+      confirmText: "Create revision",
+    });
 
     if (!confirmed) {
       return;
@@ -985,22 +677,15 @@ export function useQuotations() {
     setError(null);
 
     try {
-      const result =
-        await quotationsService.createRevision(
-          selectedQuotation.id,
-        );
-
-      setSelectedQuotation(
-        null,
+      const result = await quotationsService.createRevision(
+        selectedQuotation.id,
       );
 
-      setEditingQuotation(
-        result.quotation,
-      );
+      setSelectedQuotation(null);
 
-      setShowForm(
-        true,
-      );
+      setEditingQuotation(result.quotation);
+
+      setShowForm(true);
 
       await loadQuotations({
         page,
@@ -1029,52 +714,32 @@ export function useQuotations() {
 
     try {
       /*
-      * Get the complete quotation because
-      * the PDF needs organization settings,
-      * items, signature, customer details, etc.
-      */
-      const quotation =
-        await quotationsService.getOne(
-          sendFlowQuotation.id,
-        );
+       * Get the complete quotation because
+       * the PDF needs organization settings,
+       * items, signature, customer details, etc.
+       */
+      const quotation = await quotationsService.getOne(sendFlowQuotation.id);
 
-      let pdfBlob:
-        Blob | undefined;
+      let pdfBlob: Blob | undefined;
 
       try {
-        pdfBlob =
-          await generateQuotationPdfBlob(
-            quotation,
-          );
+        pdfBlob = await generateQuotationPdfBlob(quotation);
 
-        console.log(
-          "SEND FLOW PDF:",
-          {
-            size:
-              pdfBlob.size,
-            type:
-              pdfBlob.type,
-          },
-        );
+        console.log("SEND FLOW PDF:", {
+          size: pdfBlob.size,
+          type: pdfBlob.type,
+        });
       } catch (pdfError) {
-        console.error(
-          "Unable to generate quotation PDF attachment:",
-          pdfError,
-        );
+        console.error("Unable to generate quotation PDF attachment:", pdfError);
       }
 
-      const result =
-        await quotationsService.send(
-          sendFlowQuotation.id,
-          pdfBlob,
-          `${quotation.quotationNumber}.pdf`,
-        );
+      const result = await quotationsService.send(
+        sendFlowQuotation.id,
+        pdfBlob,
+        `${quotation.quotationNumber}.pdf`,
+      );
 
-      const url =
-        result.publicUrl ??
-        result.quotationUrl ??
-        result.url ??
-        null;
+      const url = result.publicUrl ?? result.quotationUrl ?? result.url ?? null;
 
       if (!url) {
         throw new Error(
@@ -1082,33 +747,24 @@ export function useQuotations() {
         );
       }
 
-      setSendFlowUrl(
-        url,
-      );
+      setSendFlowUrl(url);
 
       /*
-      * Keep our existing detail-modal
-      * state compatible too.
-      */
-      setSentQuotationUrl(
-        url,
-      );
+       * Keep our existing detail-modal
+       * state compatible too.
+       */
+      setSentQuotationUrl(url);
 
       await loadQuotations({
-        page:
-          page || 1,
+        page: page || 1,
         silent: true,
       });
     } catch (error) {
       setError(
-        error instanceof Error
-          ? error.message
-          : "Unable to send quotation.",
+        error instanceof Error ? error.message : "Unable to send quotation.",
       );
     } finally {
-      setSendFlowLoading(
-        false,
-      );
+      setSendFlowLoading(false);
     }
   }
 
@@ -1118,26 +774,15 @@ export function useQuotations() {
     }
 
     try {
-      await navigator.clipboard.writeText(
-        sendFlowUrl,
-      );
+      await navigator.clipboard.writeText(sendFlowUrl);
 
-      setSendFlowCopied(
-        true,
-      );
+      setSendFlowCopied(true);
 
-      window.setTimeout(
-        () => {
-          setSendFlowCopied(
-            false,
-          );
-        },
-        2000,
-      );
+      window.setTimeout(() => {
+        setSendFlowCopied(false);
+      }, 2000);
     } catch {
-      setError(
-        "Unable to copy customer link.",
-      );
+      setError("Unable to copy customer link.");
     }
   }
 
@@ -1146,11 +791,7 @@ export function useQuotations() {
       return;
     }
 
-    window.open(
-      sendFlowUrl,
-      "_blank",
-      "noopener,noreferrer",
-    );
+    window.open(sendFlowUrl, "_blank", "noopener,noreferrer");
   }
 
   function closeSendFlow() {
@@ -1158,19 +799,12 @@ export function useQuotations() {
       return;
     }
 
-    setSendFlowQuotation(
-      null,
-    );
+    setSendFlowQuotation(null);
 
-    setSendFlowUrl(
-      null,
-    );
+    setSendFlowUrl(null);
 
-    setSendFlowCopied(
-      false,
-    );
+    setSendFlowCopied(false);
   }
-
 
   return {
     quotations,
@@ -1223,31 +857,21 @@ export function useQuotations() {
 
     handleSearch,
     changeStatus,
-    
+
     openQuotation,
     copyQuotation,
     closeQuotation,
 
-
-    reload:
-      loadQuotations,
+    reload: loadQuotations,
 
     previousPage: () =>
       loadQuotations({
-        page:
-          Math.max(
-            page - 1,
-            1,
-          ),
+        page: Math.max(page - 1, 1),
       }),
 
     nextPage: () =>
       loadQuotations({
-        page:
-          Math.min(
-            page + 1,
-            pages,
-          ),
+        page: Math.min(page + 1, pages),
       }),
   };
 }

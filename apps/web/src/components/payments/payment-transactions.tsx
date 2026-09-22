@@ -1,45 +1,22 @@
 "use client";
 
-import {
-  useMemo,
-  useState,
-} from "react";
+import { Banknote, LoaderCircle, Search, XCircle } from "lucide-react";
 
-import {
-  Banknote,
-  LoaderCircle,
-  Search,
-  XCircle,
-} from "lucide-react";
+import { LoadingState } from "@/components/shared/loading-state";
 
-import {
-  LoadingState,
-} from "@/components/shared/loading-state";
+import { Pagination } from "@/components/shared/pagination";
 
-import {
-  TableHead,
-} from "@/components/shared/table-head";
+import { TableHead } from "@/components/shared/table-head";
 
-import {
-  PaymentStatusBadge,
-} from "@/components/payments/payment-status-badge";
+import { PaymentStatusBadge } from "@/components/payments/payment-status-badge";
 
-import {
-  PAYMENT_METHOD_LABELS,
-} from "@/constants/payment";
+import { PAYMENT_METHOD_LABELS } from "@/constants/payment";
 
-import {
-  formatCurrency,
-} from "@/utils/currency";
+import { formatCurrency } from "@/utils/currency";
 
-import {
-  formatDateTime,
-} from "@/utils/date";
+import { formatDateTime } from "@/utils/date";
 
-import type {
-  Payment,
-  PaymentStatus,
-} from "@/types/payment";
+import type { Payment, PaymentStatus } from "@/types/payment";
 
 import {
   Select,
@@ -49,126 +26,127 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type PaymentTransactionsVariant =
-  | "default"
-  | "job";
+type PaymentTransactionsVariant = "default" | "job";
 
 type Props = {
   payments: Payment[];
 
   loading: boolean;
 
+  paymentsLoading?: boolean;
+
   canVoid?: boolean;
 
-  voidingId?:
-    | string
-    | null;
+  voidingId?: string | null;
 
-  onVoid?: (
-    payment: Payment,
-  ) => Promise<void>;
+  onVoid?: (payment: Payment) => Promise<void>;
 
   variant?: PaymentTransactionsVariant;
+
+  /*
+   * Server-side pagination
+   */
+  page?: number;
+  pages?: number;
+  total?: number;
+
+  /*
+   * Server-side search/filter
+   */
+  search?: string;
+
+  statusFilter?: "ALL" | PaymentStatus;
+
+  onSearch?: (value: string) => Promise<void>;
+
+  onStatusChange?: (status: "ALL" | PaymentStatus) => Promise<void>;
+
+  onPrevious?: () => Promise<void>;
+
+  onNext?: () => Promise<void>;
+
+  /*
+   * Used when rendered inside
+   * PaymentTabs.
+   */
+  embedded?: boolean;
 };
+
+const DEFAULT_PAGE_SIZE = 10;
 
 export function PaymentTransactions({
   payments,
   loading,
+  paymentsLoading = false,
   canVoid = false,
   voidingId = null,
   onVoid,
   variant = "default",
+  page = 1,
+  pages = 1,
+  total = 0,
+  search = "",
+  statusFilter = "ALL",
+  onSearch,
+  onStatusChange,
+  onPrevious,
+  onNext,
+  embedded = false,
 }: Props) {
-  const [
-    search,
-    setSearch,
-  ] = useState("");
+  const jobVariant = variant === "job";
 
-  const [
-    statusFilter,
-    setStatusFilter,
-  ] =
-    useState<
-      "ALL" | PaymentStatus
-    >("ALL");
+  const showActions = !jobVariant || (canVoid && Boolean(onVoid));
 
-  const jobVariant =
-    variant === "job";
+  const busy = loading || paymentsLoading;
 
-  const showActions =
-    !jobVariant ||
-    (
-      canVoid &&
-      Boolean(onVoid)
-    );
+  /*
+   * Backend returns only the current
+   * page, so we do NOT filter or slice
+   * the payments here.
+   */
+  const currentPage = Math.max(1, page);
 
-  const filteredPayments =
-    useMemo(() => {
-      const query =
-        search
-          .trim()
-          .toLowerCase();
+  const effectiveTotal = total > 0 ? total : payments.length;
 
-      return payments.filter(
-        (payment) => {
-          if (
-            statusFilter !==
-              "ALL" &&
-            payment.status !==
-              statusFilter
-          ) {
-            return false;
-          }
+  const currentPageSize =
+    payments.length > 0 ? payments.length : DEFAULT_PAGE_SIZE;
 
-          if (!query) {
-            return true;
-          }
+  const totalPages =
+    pages > 0
+      ? pages
+      : Math.max(1, Math.ceil(effectiveTotal / currentPageSize));
 
-          return [
-            payment.paymentNumber,
-            payment.referenceNumber,
-            payment.method,
-            payment.job
-              ?.jobNumber,
-            payment.job?.title,
-            payment.customer
-              ?.name,
-            payment.customer
-              ?.companyName,
-          ]
-            .filter(Boolean)
-            .join(" ")
-            .toLowerCase()
-            .includes(query);
-        },
-      );
-    }, [
-      payments,
-      search,
-      statusFilter,
-    ]);
+  const firstItem =
+    effectiveTotal === 0 ? 0 : (currentPage - 1) * currentPageSize + 1;
+
+  const lastItem =
+    effectiveTotal === 0
+      ? 0
+      : Math.min(firstItem + payments.length - 1, effectiveTotal);
 
   return (
     <div
       className={
-        jobVariant
-          ? "overflow-hidden rounded-xl border border-[var(--qufo-border)] bg-black/10"
-          : "qufo-surface overflow-hidden rounded-2xl"
+        embedded
+          ? "overflow-hidden"
+          : jobVariant
+            ? "overflow-hidden rounded-xl border border-[var(--qufo-border)] bg-black/10"
+            : "qufo-surface overflow-hidden rounded-2xl"
       }
     >
+      {/* =========================================================
+          HEADER
+      ========================================================= */}
+
       <div
         className={[
           "flex flex-col gap-4 border-b border-[var(--qufo-border)] p-4",
-          !jobVariant
-            ? "lg:flex-row lg:items-end lg:justify-between"
-            : "",
+          !jobVariant ? "lg:flex-row lg:items-end lg:justify-between" : "",
         ].join(" ")}
       >
-        <div>
+        <div className="min-w-0">
           <h2 className="text-sm font-medium text-slate-300">
-            {jobVariant
-              ? "Payment History"
-              : "Payment Transactions"}
+            {jobVariant ? "Payment History" : "Payment Transactions"}
           </h2>
 
           <p className="mt-1 text-xs text-slate-600">
@@ -180,37 +158,39 @@ export function PaymentTransactions({
 
         {!jobVariant && (
           <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
+            {/* Search */}
+
             <div className="relative w-full sm:w-80">
               <Search
                 size={16}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-600"
               />
 
               <input
                 value={search}
-                onChange={(event) =>
-                  setSearch(
-                    event.target.value,
-                  )
-                }
-                className="qufo-input qufo-input-with-icon"
+                onChange={(event) => {
+                  void onSearch?.(event.target.value);
+                }}
+                disabled={paymentsLoading}
+                className="qufo-input qufo-input-with-icon w-full disabled:opacity-60"
                 placeholder="Search payment, job, customer..."
               />
             </div>
 
+            {/* Status filter */}
+
             <Select
               value={statusFilter}
+              disabled={paymentsLoading}
               onValueChange={(value) => {
-                if (!value) return;
+                if (!value) {
+                  return;
+                }
 
-                setStatusFilter(
-                  value as
-                    | "ALL"
-                    | PaymentStatus,
-                );
+                void onStatusChange?.(value as "ALL" | PaymentStatus);
               }}
             >
-              <SelectTrigger className="qufo-input h-auto! w-full text-sm sm:w-44">
+              <SelectTrigger className="qufo-input h-auto! w-full text-sm disabled:opacity-60 sm:w-44">
                 <SelectValue>
                   {statusFilter === "ALL"
                     ? "All statuses"
@@ -227,154 +207,151 @@ export function PaymentTransactions({
               </SelectTrigger>
 
               <SelectContent align="start">
-                <SelectItem value="ALL">
-                  All statuses
-                </SelectItem>
+                <SelectItem value="ALL">All statuses</SelectItem>
 
-                <SelectItem value="PAID">
-                  Paid
-                </SelectItem>
+                <SelectItem value="PAID">Paid</SelectItem>
 
-                <SelectItem value="PENDING">
-                  Pending
-                </SelectItem>
+                <SelectItem value="PENDING">Pending</SelectItem>
 
-                <SelectItem value="VOIDED">
-                  Voided
-                </SelectItem>
+                <SelectItem value="VOIDED">Voided</SelectItem>
 
-                <SelectItem value="FAILED">
-                  Failed
-                </SelectItem>
+                <SelectItem value="FAILED">Failed</SelectItem>
 
-                <SelectItem value="REFUNDED">
-                  Refunded
-                </SelectItem>
+                <SelectItem value="REFUNDED">Refunded</SelectItem>
               </SelectContent>
             </Select>
           </div>
         )}
       </div>
 
+      {/* =========================================================
+          LOADING
+      ========================================================= */}
+
       {loading ? (
         <LoadingState label="Loading payment transactions..." />
-      ) : filteredPayments.length ===
-        0 ? (
+      ) : payments.length === 0 ? (
+        /* =======================================================
+           EMPTY
+        ======================================================= */
+
         <div
           className={[
             "flex flex-col items-center justify-center px-6 text-center",
-            jobVariant
-              ? "min-h-40"
-              : "min-h-64",
+            jobVariant ? "min-h-40" : "min-h-64",
           ].join(" ")}
         >
           <div className="mb-4 flex size-12 items-center justify-center rounded-2xl border border-[var(--qufo-border)] bg-emerald-400/[0.04] text-emerald-300">
-            <Banknote
-              size={20}
-            />
+            <Banknote size={20} />
           </div>
 
-          <h3 className="font-medium text-slate-300">
-            No payments found
-          </h3>
+          <h3 className="font-medium text-slate-300">No payments found</h3>
 
-          <p className="mt-2 text-sm text-slate-600">
-            Record a deposit,
-            partial payment, or
-            full payment.
+          <p className="mt-2 max-w-sm text-sm text-slate-600">
+            {search.trim() || statusFilter !== "ALL"
+              ? "Try adjusting your search or payment status filter."
+              : "Record a deposit, partial payment, or full payment."}
           </p>
         </div>
       ) : (
-        <div className="w-full overflow-hidden">
-          <table className="w-full table-fixed 2xl:table-auto">
-            <thead>
-              <tr className="border-b border-[var(--qufo-border)]">
-                <TableHead>
-                  Payment
-                </TableHead>
+        <>
+          {/* =====================================================
+              TABLE
+          ===================================================== */}
 
-                {!jobVariant && (
-                  <>
-                    <TableHead className="hidden 2xl:table-cell">
-                      Job
-                    </TableHead>
-
-                    <TableHead className="hidden 2xl:table-cell">
-                      Customer
-                    </TableHead>
-                  </>
-                )}
-
-                <TableHead className="hidden 2xl:table-cell">
-                  Method
-                </TableHead>
-
-                <TableHead className="hidden 2xl:table-cell">
-                  Reference
-                </TableHead>
-
-                <TableHead className="hidden 2xl:table-cell">
-                  Status
-                </TableHead>
-
-                <TableHead className="hidden 2xl:table-cell">
-                  Amount
-                </TableHead>
-
-                <TableHead className="hidden 2xl:table-cell">
-                  Date
-                </TableHead>
-
-                {showActions && (
-                  <TableHead className="w-16 sm:w-20">
-                    <span className="sr-only">
-                      Actions
+          <div className="min-w-0 overflow-x-auto">
+            <table className="w-full min-w-[820px] border-collapse 2xl:min-w-0">
+              <thead>
+                <tr className="border-b border-[var(--qufo-border)]">
+                  <TableHead>
+                    <span className="text-[10px] font-medium uppercase tracking-[0.12em]">
+                      Payment
                     </span>
                   </TableHead>
-                )}
-              </tr>
-            </thead>
 
-            <tbody>
-              {filteredPayments.map(
-                (payment) => {
-                  const jobNumber =
-                    payment.job
-                      ?.jobNumber ??
-                    "—";
+                  {!jobVariant && (
+                    <>
+                      <TableHead className="hidden 2xl:table-cell">
+                        <span className="text-[10px] font-medium uppercase tracking-[0.12em]">
+                          Job
+                        </span>
+                      </TableHead>
 
-                  const jobTitle =
-                    payment.job?.title;
+                      <TableHead className="hidden 2xl:table-cell">
+                        <span className="text-[10px] font-medium uppercase tracking-[0.12em]">
+                          Customer
+                        </span>
+                      </TableHead>
+                    </>
+                  )}
+
+                  <TableHead className="hidden 2xl:table-cell">
+                    <span className="text-[10px] font-medium uppercase tracking-[0.12em]">
+                      Method
+                    </span>
+                  </TableHead>
+
+                  <TableHead className="hidden 2xl:table-cell">
+                    <span className="text-[10px] font-medium uppercase tracking-[0.12em]">
+                      Reference
+                    </span>
+                  </TableHead>
+
+                  <TableHead className="hidden 2xl:table-cell">
+                    <span className="text-[10px] font-medium uppercase tracking-[0.12em]">
+                      Status
+                    </span>
+                  </TableHead>
+
+                  <TableHead className="hidden 2xl:table-cell">
+                    <span className="text-[10px] font-medium uppercase tracking-[0.12em]">
+                      Amount
+                    </span>
+                  </TableHead>
+
+                  <TableHead className="hidden 2xl:table-cell">
+                    <span className="text-[10px] font-medium uppercase tracking-[0.12em]">
+                      Date
+                    </span>
+                  </TableHead>
+
+                  {showActions && (
+                    <TableHead className="w-16 sm:w-20">
+                      <span className="sr-only">Actions</span>
+                    </TableHead>
+                  )}
+                </tr>
+              </thead>
+
+              <tbody>
+                {payments.map((payment) => {
+                  const jobNumber = payment.job?.jobNumber ?? "—";
+
+                  const jobTitle = payment.job?.title;
 
                   const customerName =
-                    payment.customer
-                      ?.companyName ??
-                    payment.customer
-                      ?.name ??
+                    payment.customer?.companyName ??
+                    payment.customer?.name ??
                     "—";
 
-                  const paidDate =
-                    formatDateTime(
-                      payment.paidAt ??
-                        payment.createdAt,
-                    );
+                  const paidDate = formatDateTime(
+                    payment.paidAt ?? payment.createdAt,
+                  );
 
-                  const methodLabel =
-                    PAYMENT_METHOD_LABELS[
-                      payment.method
-                    ];
+                  const methodLabel = PAYMENT_METHOD_LABELS[payment.method];
 
                   return (
                     <tr
                       key={payment.id}
                       className="border-b border-[var(--qufo-border)] transition last:border-0 hover:bg-white/[0.018]"
                     >
-                      {/* Main / compact payment */}
+                      {/* =================================================
+                            PAYMENT / MOBILE CONTENT
+                        ================================================= */}
+
                       <td className="min-w-0 px-4 py-4 sm:px-5">
                         <p className="break-words text-sm font-medium text-slate-200">
-                          {
-                            payment.paymentNumber
-                          }
+                          {payment.paymentNumber}
                         </p>
 
                         {payment.notes && (
@@ -383,7 +360,9 @@ export function PaymentTransactions({
                           </p>
                         )}
 
-                        {/* Mobile / tablet / normal desktop */}
+                        {/* Compact layout for screens
+                              below 2xl */}
+
                         <div className="mt-4 space-y-3 2xl:hidden">
                           {!jobVariant && (
                             <div className="space-y-2">
@@ -416,11 +395,7 @@ export function PaymentTransactions({
                           )}
 
                           <div className="flex flex-wrap items-center gap-2">
-                            <PaymentStatusBadge
-                              status={
-                                payment.status
-                              }
-                            />
+                            <PaymentStatusBadge status={payment.status} />
 
                             <span className="rounded-lg border border-[var(--qufo-border)] px-2 py-1 text-xs text-slate-500">
                               {methodLabel}
@@ -434,9 +409,7 @@ export function PaymentTransactions({
                               </p>
 
                               <p className="mt-1 break-all text-xs text-slate-500">
-                                {
-                                  payment.referenceNumber
-                                }
+                                {payment.referenceNumber}
                               </p>
                             </div>
                           )}
@@ -444,16 +417,12 @@ export function PaymentTransactions({
                           <div className="flex flex-col gap-1.5 border-t border-[var(--qufo-border)] pt-3 sm:flex-row sm:items-center sm:justify-between">
                             <span
                               className={
-                                payment.status ===
-                                "VOIDED"
+                                payment.status === "VOIDED"
                                   ? "text-sm font-medium text-slate-600 line-through"
                                   : "text-sm font-medium text-emerald-300"
                               }
                             >
-                              {formatCurrency(
-                                payment.amount,
-                                payment.currency
-                              )}
+                              {formatCurrency(payment.amount, payment.currency)}
                             </span>
 
                             <span className="text-xs text-slate-600">
@@ -462,6 +431,10 @@ export function PaymentTransactions({
                           </div>
                         </div>
                       </td>
+
+                      {/* =================================================
+                            JOB
+                        ================================================= */}
 
                       {!jobVariant && (
                         <>
@@ -477,94 +450,122 @@ export function PaymentTransactions({
                             )}
                           </td>
 
+                          {/* CUSTOMER */}
+
                           <td className="hidden px-5 py-4 text-sm text-slate-400 2xl:table-cell">
                             {customerName}
                           </td>
                         </>
                       )}
 
+                      {/* METHOD */}
+
                       <td className="hidden px-5 py-4 text-sm text-slate-400 2xl:table-cell">
                         {methodLabel}
                       </td>
 
+                      {/* REFERENCE */}
+
                       <td className="hidden px-5 py-4 text-sm text-slate-500 2xl:table-cell">
-                        {payment.referenceNumber ??
-                          "—"}
+                        {payment.referenceNumber ?? "—"}
                       </td>
 
+                      {/* STATUS */}
+
                       <td className="hidden px-5 py-4 2xl:table-cell">
-                        <PaymentStatusBadge
-                          status={
-                            payment.status
-                          }
-                        />
+                        <PaymentStatusBadge status={payment.status} />
                       </td>
+
+                      {/* AMOUNT */}
 
                       <td className="hidden px-5 py-4 2xl:table-cell">
                         <span
                           className={
-                            payment.status ===
-                            "VOIDED"
+                            payment.status === "VOIDED"
                               ? "font-medium text-slate-600 line-through"
                               : "font-medium text-emerald-300"
                           }
                         >
-                          {formatCurrency(
-                            payment.amount,
-                            payment.currency
-                          )}
+                          {formatCurrency(payment.amount, payment.currency)}
                         </span>
                       </td>
+
+                      {/* DATE */}
 
                       <td className="hidden px-5 py-4 text-sm text-slate-500 2xl:table-cell">
                         {paidDate}
                       </td>
 
+                      {/* ACTION */}
+
                       {showActions && (
                         <td className="w-16 whitespace-nowrap px-2 py-4 sm:w-20 sm:px-4">
                           <div className="flex justify-end">
-                            {canVoid &&
-                              onVoid &&
-                              payment.status ===
-                                "PAID" && (
-                                <button
-                                  type="button"
-                                  title="Void payment"
-                                  aria-label={`Void ${payment.paymentNumber}`}
-                                  onClick={() =>
-                                    void onVoid(
-                                      payment,
-                                    )
-                                  }
-                                  disabled={
-                                    voidingId ===
-                                    payment.id
-                                  }
-                                  className="flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-600 transition hover:bg-red-400/[0.07] hover:text-red-300 disabled:opacity-50 sm:size-9"
-                                >
-                                  {voidingId ===
-                                  payment.id ? (
-                                    <LoaderCircle
-                                      size={15}
-                                      className="animate-spin"
-                                    />
-                                  ) : (
-                                    <XCircle
-                                      size={15}
-                                    />
-                                  )}
-                                </button>
-                              )}
+                            {canVoid && onVoid && payment.status === "PAID" && (
+                              <button
+                                type="button"
+                                title="Void payment"
+                                aria-label={`Void ${payment.paymentNumber}`}
+                                onClick={() => void onVoid(payment)}
+                                disabled={voidingId === payment.id}
+                                className="flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-600 transition hover:bg-red-400/[0.07] hover:text-red-300 disabled:opacity-50 sm:size-9"
+                              >
+                                {voidingId === payment.id ? (
+                                  <LoaderCircle
+                                    size={15}
+                                    className="animate-spin"
+                                  />
+                                ) : (
+                                  <XCircle size={15} />
+                                )}
+                              </button>
+                            )}
                           </div>
                         </td>
                       )}
                     </tr>
                   );
-                },
-              )}
-            </tbody>
-          </table>
-        </div>
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* =====================================================
+              PAGINATION
+          ===================================================== */}
+
+          {!jobVariant && (
+            <div className="flex flex-col gap-3 border-t border-[var(--qufo-border)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-slate-500 sm:text-sm">
+                Showing{" "}
+                <span className="font-medium text-slate-300">{firstItem}</span>
+                {"–"}
+                <span className="font-medium text-slate-300">{lastItem}</span>
+                {" of "}
+                <span className="font-medium text-slate-300">
+                  {effectiveTotal}
+                </span>
+                {" payments"}
+              </p>
+
+              <Pagination
+                page={currentPage}
+                pages={totalPages}
+                loading={busy}
+                onPrevious={() => {
+                  if (onPrevious) {
+                    void onPrevious();
+                  }
+                }}
+                onNext={() => {
+                  if (onNext) {
+                    void onNext();
+                  }
+                }}
+              />
+            </div>
+          )}
+        </>
       )}
     </div>
   );

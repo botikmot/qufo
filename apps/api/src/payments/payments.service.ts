@@ -13,6 +13,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { PaymentQueryDto } from './dto/payment-query.dto';
+import { PaymentSummaryQueryDto } from './dto/payment-summary-query.dto';
 
 @Injectable()
 export class PaymentsService {
@@ -524,9 +525,26 @@ export class PaymentsService {
     return 'PARTIALLY_PAID';
   }
 
-  async getSummary(tenant: TenantContext) {
-    const [organization, jobs] = await this.prisma.$transaction([
-      this.prisma.organization.findUnique({
+  async getSummary(tenant: TenantContext, query: PaymentSummaryQueryDto) {
+    const requestedPage = query.page;
+    const limit = query.limit;
+
+    const where: Prisma.JobWhereInput = {
+      organizationId: tenant.organizationId,
+
+      status: {
+        not: 'CANCELLED',
+      },
+    };
+
+    return this.prisma.$transaction(async (tx) => {
+      /*
+       * ---------------------------------------------------------
+       * Organization
+       * ---------------------------------------------------------
+       */
+
+      const organization = await tx.organization.findUnique({
         where: {
           id: tenant.organizationId,
         },
@@ -534,15 +552,81 @@ export class PaymentsService {
         select: {
           currency: true,
         },
-      }),
+      });
 
-      this.prisma.job.findMany({
-        where: {
-          organizationId: tenant.organizationId,
+      if (!organization) {
+        throw new NotFoundException('Organization not found.');
+      }
 
-          status: {
-            not: 'CANCELLED',
+      /*
+       * ---------------------------------------------------------
+       * Global totals
+       *
+       * These are NOT paginated.
+       * We only aggregate them.
+       * ---------------------------------------------------------
+       */
+
+      const [totalJobs, jobTotals, paymentTotals] = await Promise.all([
+        tx.job.count({
+          where,
+        }),
+
+        tx.job.aggregate({
+          where,
+
+          _sum: {
+            total: true,
           },
+        }),
+
+        tx.payment.aggregate({
+          where: {
+            organizationId: tenant.organizationId,
+
+            status: 'PAID',
+
+            job: {
+              is: {
+                status: {
+                  not: 'CANCELLED',
+                },
+              },
+            },
+          },
+
+          _sum: {
+            amount: true,
+          },
+        }),
+      ]);
+
+      /*
+       * ---------------------------------------------------------
+       * Pagination
+       * ---------------------------------------------------------
+       */
+
+      const pages = Math.max(1, Math.ceil(totalJobs / limit));
+
+      const page = Math.min(requestedPage, pages);
+
+      const skip = (page - 1) * limit;
+
+      /*
+       * ---------------------------------------------------------
+       * Current page jobs only
+       * ---------------------------------------------------------
+       */
+
+      const jobs = await tx.job.findMany({
+        where,
+
+        skip,
+        take: limit,
+
+        orderBy: {
+          createdAt: 'desc',
         },
 
         select: {
@@ -560,93 +644,132 @@ export class PaymentsService {
               companyName: true,
             },
           },
-
-          payments: {
-            where: {
-              status: 'PAID',
-            },
-
-            select: {
-              amount: true,
-            },
-          },
         },
+      });
 
-        orderBy: {
-          createdAt: 'desc',
-        },
-      }),
-    ]);
+      /*
+       * ---------------------------------------------------------
+       * Paid totals for ONLY the jobs on this page
+       *
+       * This is much more efficient than loading
+       * every payment row for every job.
+       * ---------------------------------------------------------
+       */
 
-    if (!organization) {
-      throw new NotFoundException('Organization not found.');
-    }
+      const jobIds = jobs.map((job) => job.id);
 
-    const items = jobs.map((job) => {
-      const total = Number(job.total);
+      const paidByJob =
+        jobIds.length === 0
+          ? []
+          : await tx.payment.groupBy({
+              by: ['jobId'],
 
-      const paidAmount = job.payments.reduce(
-        (sum, payment) => sum + Number(payment.amount),
-        0,
+              where: {
+                jobId: {
+                  in: jobIds,
+                },
+
+                status: 'PAID',
+              },
+
+              _sum: {
+                amount: true,
+              },
+            });
+
+      const paidMap = new Map(
+        paidByJob.map((item) => [
+          item.jobId,
+          item._sum.amount ?? new Prisma.Decimal(0),
+        ]),
       );
 
-      const balance = Math.max(total - paidAmount, 0);
+      /*
+       * ---------------------------------------------------------
+       * Build current-page overview items
+       * ---------------------------------------------------------
+       */
 
-      let paymentStatus: 'UNPAID' | 'PARTIALLY_PAID' | 'PAID';
+      const items = jobs.map((job) => {
+        const total = job.total ?? new Prisma.Decimal(0);
 
-      if (paidAmount <= 0) {
-        paymentStatus = 'UNPAID';
-      } else if (paidAmount >= total) {
-        paymentStatus = 'PAID';
-      } else {
-        paymentStatus = 'PARTIALLY_PAID';
+        const paidAmount = paidMap.get(job.id) ?? new Prisma.Decimal(0);
+
+        let balance = total.minus(paidAmount);
+
+        if (balance.lessThan(0)) {
+          balance = new Prisma.Decimal(0);
+        }
+
+        let paymentStatus: 'UNPAID' | 'PARTIALLY_PAID' | 'PAID';
+
+        if (paidAmount.lessThanOrEqualTo(0)) {
+          paymentStatus = 'UNPAID';
+        } else if (paidAmount.greaterThanOrEqualTo(total)) {
+          paymentStatus = 'PAID';
+        } else {
+          paymentStatus = 'PARTIALLY_PAID';
+        }
+
+        return {
+          id: job.id,
+
+          jobNumber: job.jobNumber,
+
+          title: job.title,
+
+          jobStatus: job.status,
+
+          customer: job.customer,
+
+          currency: job.currency,
+
+          total: total.toFixed(2),
+
+          paidAmount: paidAmount.toFixed(2),
+
+          balance: balance.toFixed(2),
+
+          paymentStatus,
+        };
+      });
+
+      /*
+       * ---------------------------------------------------------
+       * Global financial summary
+       * ---------------------------------------------------------
+       */
+
+      const totalJobValue = jobTotals._sum.total ?? new Prisma.Decimal(0);
+
+      const totalPaid = paymentTotals._sum.amount ?? new Prisma.Decimal(0);
+
+      let totalBalance = totalJobValue.minus(totalPaid);
+
+      if (totalBalance.lessThan(0)) {
+        totalBalance = new Prisma.Decimal(0);
       }
 
       return {
-        id: job.id,
+        summary: {
+          totalJobValue: totalJobValue.toFixed(2),
 
-        jobNumber: job.jobNumber,
+          totalPaid: totalPaid.toFixed(2),
 
-        title: job.title,
+          totalBalance: totalBalance.toFixed(2),
 
-        jobStatus: job.status,
+          currency: organization.currency,
+        },
 
-        customer: job.customer,
+        items,
 
-        currency: job.currency,
-
-        total: total.toFixed(2),
-
-        paidAmount: paidAmount.toFixed(2),
-
-        balance: balance.toFixed(2),
-
-        paymentStatus,
+        pagination: {
+          page,
+          limit,
+          total: totalJobs,
+          pages,
+        },
       };
     });
-
-    const totalJobValue = items.reduce(
-      (sum, item) => sum + Number(item.total),
-      0,
-    );
-
-    const totalPaid = items.reduce(
-      (sum, item) => sum + Number(item.paidAmount),
-      0,
-    );
-
-    return {
-      summary: {
-        totalJobValue: totalJobValue.toFixed(2),
-
-        totalPaid: totalPaid.toFixed(2),
-
-        totalBalance: Math.max(totalJobValue - totalPaid, 0).toFixed(2),
-
-        currency: organization.currency,
-      },
-
-      items,
-    };
   }
 }

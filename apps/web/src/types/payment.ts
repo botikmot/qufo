@@ -1,18 +1,8 @@
 export type PaymentMethod =
-  | "CASH"
-  | "GCASH"
-  | "MAYA"
-  | "BANK_TRANSFER"
-  | "CARD"
-  | "CHECK"
-  | "OTHER";
+  "CASH" | "GCASH" | "MAYA" | "BANK_TRANSFER" | "CARD" | "CHECK" | "OTHER";
 
 export type PaymentStatus =
-  | "PENDING"
-  | "PAID"
-  | "FAILED"
-  | "REFUNDED"
-  | "VOIDED";
+  "PENDING" | "PAID" | "FAILED" | "REFUNDED" | "VOIDED";
 
 export type Payment = {
   id: string;
@@ -81,10 +71,7 @@ export type PaymentFormData = {
   notes: string;
 };
 
-export type JobPaymentStatus =
-  | "UNPAID"
-  | "PARTIALLY_PAID"
-  | "PAID";
+export type JobPaymentStatus = "UNPAID" | "PARTIALLY_PAID" | "PAID";
 
 export type JobPaymentSummary = {
   id: string;
@@ -105,8 +92,7 @@ export type JobPaymentSummary = {
   paidAmount: string;
   balance: string;
 
-  paymentStatus:
-    JobPaymentStatus;
+  paymentStatus: JobPaymentStatus;
 };
 
 export type PaymentsSummaryResponse = {
@@ -118,4 +104,11 @@ export type PaymentsSummaryResponse = {
   };
 
   items: JobPaymentSummary[];
+
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
 };

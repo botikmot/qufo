@@ -1,25 +1,12 @@
 "use client";
 
-import {
-  ChangeEvent,
-  useRef,
-  useState,
-} from "react";
+import { ChangeEvent, useRef, useState } from "react";
 
-import {
-  Camera,
-  ImageUp,
-  LoaderCircle,
-  Trash2,
-} from "lucide-react";
+import { Camera, ImageUp, LoaderCircle, Trash2 } from "lucide-react";
 
-import type {
-  ProfileSettings,
-} from "@/types/settings";
+import type { ProfileSettings } from "@/types/settings";
 
-import {
-  settingsService,
-} from "@/services/settings.service";
+import { settingsService } from "@/services/settings.service";
 
 import { UserAvatar } from "@/components/ui/user-avatar";
 
@@ -27,36 +14,17 @@ type ProfilePhotoCardProps = {
   profile: ProfileSettings;
 };
 
-export function ProfilePhotoCard({
-  profile,
-}: ProfilePhotoCardProps) {
-  const inputRef =
-    useRef<HTMLInputElement>(null);
+export function ProfilePhotoCard({ profile }: ProfilePhotoCardProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const [
-    avatarUrl,
-    setAvatarUrl,
-  ] = useState(
-    profile.avatarUrl,
-  );
+  const [avatarUrl, setAvatarUrl] = useState(profile.avatarUrl);
 
-  const [
-    uploading,
-    setUploading,
-  ] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
-  const [
-    error,
-    setError,
-  ] = useState<string | null>(
-    null,
-  );
+  const [error, setError] = useState<string | null>(null);
 
-  async function handleFileChange(
-    event: ChangeEvent<HTMLInputElement>,
-  ) {
-    const file =
-      event.target.files?.[0];
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
 
     if (!file) {
       return;
@@ -64,31 +32,18 @@ export function ProfilePhotoCard({
 
     setError(null);
 
-    const allowedTypes = [
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-    ];
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
 
-    if (
-      !allowedTypes.includes(
-        file.type,
-      )
-    ) {
-      setError(
-        "Please upload a JPG, PNG, or WebP image.",
-      );
+    if (!allowedTypes.includes(file.type)) {
+      setError("Please upload a JPG, PNG, or WebP image.");
 
       return;
     }
 
-    const maxSize =
-      5 * 1024 * 1024;
+    const maxSize = 5 * 1024 * 1024;
 
     if (file.size > maxSize) {
-      setError(
-        "Profile photo must be 5 MB or smaller.",
-      );
+      setError("Profile photo must be 5 MB or smaller.");
 
       return;
     }
@@ -96,14 +51,9 @@ export function ProfilePhotoCard({
     try {
       setUploading(true);
 
-      const response =
-        await settingsService.uploadProfilePhoto(
-          file,
-        );
+      const response = await settingsService.uploadProfilePhoto(file);
 
-      setAvatarUrl(
-        response.avatarUrl,
-      );
+      setAvatarUrl(response.avatarUrl);
     } catch (error) {
       setError(
         error instanceof Error
@@ -114,8 +64,7 @@ export function ProfilePhotoCard({
       setUploading(false);
 
       if (inputRef.current) {
-        inputRef.current.value =
-          "";
+        inputRef.current.value = "";
       }
     }
   }
@@ -140,7 +89,7 @@ export function ProfilePhotoCard({
   }
 
   return (
-    <div className="qufo-surface overflow-hidden rounded-3xl">
+    <div className="qufo-surface overflow-hidden h-full rounded-3xl">
       <div className="border-b border-[var(--qufo-border)] px-6 py-5">
         <div className="flex items-center gap-3">
           <div className="flex size-10 items-center justify-center rounded-xl bg-cyan-400/[0.08] text-cyan-300">
@@ -148,13 +97,10 @@ export function ProfilePhotoCard({
           </div>
 
           <div>
-            <h2 className="font-medium text-white">
-              Profile photo
-            </h2>
+            <h2 className="font-medium text-white">Profile photo</h2>
 
             <p className="mt-1 text-xs text-slate-500">
-              Your personal QUFO
-              account photo.
+              Your personal QUFO account photo.
             </p>
           </div>
         </div>
@@ -162,8 +108,7 @@ export function ProfilePhotoCard({
 
       <div className="flex flex-col items-center p-6 text-center">
         <div className="flex size-32 items-center justify-center overflow-hidden rounded-3xl border border-[var(--qufo-border)] bg-slate-950/40">
-
-           <UserAvatar
+          <UserAvatar
             name={profile.name}
             email={profile.email}
             avatarUrl={avatarUrl}
@@ -175,41 +120,30 @@ export function ProfilePhotoCard({
           ref={inputRef}
           type="file"
           accept="image/jpeg,image/png,image/webp"
-          onChange={
-            handleFileChange
-          }
+          onChange={handleFileChange}
           className="hidden"
         />
 
         <button
           type="button"
           disabled={uploading}
-          onClick={() =>
-            inputRef.current?.click()
-          }
+          onClick={() => inputRef.current?.click()}
           className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-400 px-4 py-2.5 text-sm font-medium text-slate-950 transition hover:bg-cyan-300 disabled:opacity-50"
         >
           {uploading ? (
-            <LoaderCircle
-              size={16}
-              className="animate-spin"
-            />
+            <LoaderCircle size={16} className="animate-spin" />
           ) : (
             <ImageUp size={16} />
           )}
 
-          {uploading
-            ? "Uploading..."
-            : "Upload photo"}
+          {uploading ? "Uploading..." : "Upload photo"}
         </button>
 
         {avatarUrl && (
           <button
             type="button"
             disabled={uploading}
-            onClick={
-              handleRemove
-            }
+            onClick={handleRemove}
             className="mt-3 flex items-center gap-2 text-xs text-red-300/80 transition hover:text-red-300"
           >
             <Trash2 size={13} />
@@ -218,8 +152,7 @@ export function ProfilePhotoCard({
         )}
 
         <p className="mt-5 text-xs leading-5 text-slate-600">
-          JPG, PNG or WebP.
-          Maximum 5 MB.
+          JPG, PNG or WebP. Maximum 5 MB.
         </p>
 
         {error && (

@@ -30,7 +30,6 @@ export default function DashboardPage() {
   }
 
   const data = dashboard.dashboard;
-  console.log("data:", data);
 
   return (
     <div className="relative min-w-0 space-y-6 pb-6">

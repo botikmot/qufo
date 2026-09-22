@@ -24,6 +24,7 @@ import { CreatePaymentDto } from './dto/create-payment.dto';
 import { PaymentQueryDto } from './dto/payment-query.dto';
 
 import { PaymentsService } from './payments.service';
+import { PaymentSummaryQueryDto } from './dto/payment-summary-query.dto';
 
 @Controller('payments')
 @UseGuards(AuthGuard, TenantGuard, SubscriptionGuard, RolesGuard)
@@ -60,8 +61,11 @@ export class PaymentsController {
   getSummary(
     @CurrentTenant()
     tenant: TenantContext,
+
+    @Query()
+    query: PaymentSummaryQueryDto,
   ) {
-    return this.paymentsService.getSummary(tenant);
+    return this.paymentsService.getSummary(tenant, query);
   }
 
   @Get('job/:jobId')

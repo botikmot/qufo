@@ -1,14 +1,8 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import { useCallback, useEffect, useState } from "react";
 
-import {
-  getPlatformTenants,
-} from "@/services/platform-admin.service";
+import { getPlatformTenants } from "@/services/platform-admin.service";
 
 import type {
   PlatformSubscriptionStatus,
@@ -16,44 +10,19 @@ import type {
 } from "@/types/platform-admin";
 
 export function usePlatformTenants() {
-  const [
-    data,
-    setData,
-  ] =
-    useState<PlatformTenantsResponse | null>(
-      null,
-    );
+  const [data, setData] = useState<PlatformTenantsResponse | null>(null);
 
-  const [
-    search,
-    setSearch,
-  ] = useState("");
+  const [search, setSearch] = useState("");
 
-  const [
-    status,
-    setStatus,
-  ] =
-    useState<PlatformSubscriptionStatus | "ALL">(
-      "ALL",
-    );
+  const [status, setStatus] = useState<PlatformSubscriptionStatus | "ALL">(
+    "ALL",
+  );
 
-  const [
-    page,
-    setPage,
-  ] = useState(1);
+  const [page, setPage] = useState(1);
 
-  const [
-    loading,
-    setLoading,
-  ] = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [
-    error,
-    setError,
-  ] =
-    useState<string | null>(
-      null,
-    );
+  const [error, setError] = useState<string | null>(null);
 
   /*
    * Initial load only.
@@ -63,11 +32,10 @@ export function usePlatformTenants() {
 
     async function loadInitialTenants() {
       try {
-        const result =
-          await getPlatformTenants({
-            page: 1,
-            limit: 20,
-          });
+        const result = await getPlatformTenants({
+          page: 1,
+          limit: 10,
+        });
 
         if (cancelled) {
           return;
@@ -80,14 +48,9 @@ export function usePlatformTenants() {
           return;
         }
 
-        console.error(
-          "Failed to load platform tenants:",
-          error,
-        );
+        console.error("Failed to load platform tenants:", error);
 
-        setError(
-          "Unable to load tenants.",
-        );
+        setError("Unable to load tenants.");
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -102,154 +65,77 @@ export function usePlatformTenants() {
     };
   }, []);
 
-  const loadTenants =
-    useCallback(
-      async (
-        nextPage = page,
-        nextSearch = search,
-        nextStatus = status,
-      ) => {
-        try {
-          setLoading(true);
-          setError(null);
+  const loadTenants = useCallback(
+    async (nextPage = page, nextSearch = search, nextStatus = status) => {
+      try {
+        setLoading(true);
+        setError(null);
 
-          const result =
-            await getPlatformTenants({
-              search:
-                nextSearch.trim() ||
-                undefined,
+        const result = await getPlatformTenants({
+          search: nextSearch.trim() || undefined,
 
-              status:
-                nextStatus ===
-                "ALL"
-                  ? undefined
-                  : nextStatus,
+          status: nextStatus === "ALL" ? undefined : nextStatus,
 
-              page: nextPage,
-              limit: 20,
-            });
+          page: nextPage,
+          limit: 10,
+        });
 
-          setData(result);
-        } catch (error) {
-          console.error(
-            "Failed to load platform tenants:",
-            error,
-          );
+        setData(result);
+      } catch (error) {
+        console.error("Failed to load platform tenants:", error);
 
-          setError(
-            "Unable to load tenants.",
-          );
-        } finally {
-          setLoading(false);
-        }
-      },
-      [
-        page,
-        search,
-        status,
-      ],
-    );
+        setError("Unable to load tenants.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [page, search, status],
+  );
 
-  const handleSearch =
-    useCallback(async () => {
+  const handleSearch = useCallback(async () => {
+    setPage(1);
+
+    await loadTenants(1, search, status);
+  }, [loadTenants, search, status]);
+
+  const changeStatus = useCallback(
+    async (value: PlatformSubscriptionStatus | "ALL") => {
+      setStatus(value);
       setPage(1);
 
-      await loadTenants(
-        1,
-        search,
-        status,
-      );
-    }, [
-      loadTenants,
-      search,
-      status,
-    ]);
+      await loadTenants(1, search, value);
+    },
+    [loadTenants, search],
+  );
 
-  const changeStatus =
-    useCallback(
-      async (
-        value:
-          | PlatformSubscriptionStatus
-          | "ALL",
-      ) => {
-        setStatus(value);
-        setPage(1);
+  const previousPage = useCallback(async () => {
+    if (!data?.pagination.hasPreviousPage) {
+      return;
+    }
 
-        await loadTenants(
-          1,
-          search,
-          value,
-        );
-      },
-      [
-        loadTenants,
-        search,
-      ],
-    );
+    const nextPage = Math.max(1, page - 1);
 
-  const previousPage =
-    useCallback(async () => {
-      if (
-        !data?.pagination
-          .hasPreviousPage
-      ) {
-        return;
-      }
+    setPage(nextPage);
 
-      const nextPage =
-        Math.max(
-          1,
-          page - 1,
-        );
+    await loadTenants(nextPage, search, status);
+  }, [data, loadTenants, page, search, status]);
 
-      setPage(nextPage);
+  const nextPage = useCallback(async () => {
+    if (!data?.pagination.hasNextPage) {
+      return;
+    }
 
-      await loadTenants(
-        nextPage,
-        search,
-        status,
-      );
-    }, [
-      data,
-      loadTenants,
-      page,
-      search,
-      status,
-    ]);
+    const newPage = page + 1;
 
-  const nextPage =
-    useCallback(async () => {
-      if (
-        !data?.pagination
-          .hasNextPage
-      ) {
-        return;
-      }
+    setPage(newPage);
 
-      const newPage =
-        page + 1;
-
-      setPage(newPage);
-
-      await loadTenants(
-        newPage,
-        search,
-        status,
-      );
-    }, [
-      data,
-      loadTenants,
-      page,
-      search,
-      status,
-    ]);
+    await loadTenants(newPage, search, status);
+  }, [data, loadTenants, page, search, status]);
 
   return {
-    tenants:
-      data?.tenants ?? [],
+    tenants: data?.tenants ?? [],
 
-    pagination:
-      data?.pagination ?? null,
+    pagination: data?.pagination ?? null,
 
     search,
     status,
@@ -264,11 +150,6 @@ export function usePlatformTenants() {
     previousPage,
     nextPage,
 
-    refresh: () =>
-      loadTenants(
-        page,
-        search,
-        status,
-      ),
+    refresh: () => loadTenants(page, search, status),
   };
 }
