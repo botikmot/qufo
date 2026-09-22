@@ -1,125 +1,96 @@
 "use client";
 
-import {
-  RefreshCw,
-} from "lucide-react";
+import { DashboardBusinessStatus } from "@/components/dashboard/dashboard-business-status";
 
-import {
-  PageHeader,
-} from "@/components/app/page-header";
+import { DashboardFinancialSummary } from "@/components/dashboard/dashboard-financial-summary";
 
-import {
-  DashboardBusinessStatus,
-} from "@/components/dashboard/dashboard-business-status";
+import { DashboardOverviewCards } from "@/components/dashboard/dashboard-overview-cards";
 
-import {
-  DashboardFinancialSummary,
-} from "@/components/dashboard/dashboard-financial-summary";
+//import { DashboardRecentActivity } from "@/components/dashboard/dashboard-recent-activity";
 
-import {
-  DashboardOverviewCards,
-} from "@/components/dashboard/dashboard-overview-cards";
+import { LoadingState } from "@/components/shared/loading-state";
 
-import {
-  DashboardRecentActivity,
-} from "@/components/dashboard/dashboard-recent-activity";
+import { useDashboard } from "@/hooks/use-dashboard";
 
-import {
-  LoadingState,
-} from "@/components/shared/loading-state";
-
-import {
-  useDashboard,
-} from "@/hooks/use-dashboard";
+import { DashboardWelcomeHero } from "@/components/dashboard/dashboard-welcome-hero";
 
 export default function DashboardPage() {
-  const dashboard =
-    useDashboard();
+  const dashboard = useDashboard();
 
-  if (
-    dashboard.loading &&
-    !dashboard.dashboard
-  ) {
-    return (
-      <LoadingState label="Loading dashboard..." />
-    );
+  if (dashboard.loading && !dashboard.dashboard) {
+    return <LoadingState label="Loading dashboard..." />;
   }
 
   if (!dashboard.dashboard) {
     return (
       <div className="rounded-2xl border border-red-400/15 bg-red-400/[0.05] p-5 text-sm text-red-300">
-        {dashboard.error ??
-          "Unable to load dashboard."}
+        {dashboard.error ?? "Unable to load dashboard."}
       </div>
     );
   }
 
-  const data =
-    dashboard.dashboard;
-
+  const data = dashboard.dashboard;
+  console.log("data:", data);
 
   return (
-    <>
-      <PageHeader
-        title="Dashboard"
-        description={`${data.organization.name} business overview and workflow status.`}
-        action={
-          <button
-            type="button"
-            disabled={
-              dashboard.refreshing
-            }
-            onClick={() =>
-              void dashboard.refresh()
-            }
-            className="flex items-center gap-2 rounded-xl border border-[var(--qufo-border)] px-4 py-2.5 text-sm text-slate-400 transition hover:bg-white/[0.04] hover:text-white disabled:opacity-50"
-          >
-            <RefreshCw
-              size={16}
-              className={
-                dashboard.refreshing
-                  ? "animate-spin"
-                  : undefined
-              }
-            />
+    <div className="relative min-w-0 space-y-6 pb-6">
+      {/* ========================================
+          WELCOME HERO
+      ======================================== */}
 
-            {dashboard.refreshing
-              ? "Refreshing..."
-              : "Refresh"}
-          </button>
-        }
+      <DashboardWelcomeHero
+        organizationName={data.organization.name}
+        refreshing={dashboard.refreshing}
+        onRefresh={() => void dashboard.refresh()}
       />
 
+      {/* ========================================
+          ERROR
+      ======================================== */}
+
       {dashboard.error && (
-        <div className="mb-5 rounded-2xl border border-red-400/15 bg-red-400/[0.05] px-5 py-4 text-sm text-red-300">
+        <div className="rounded-xl border border-red-400/15 bg-red-400/[0.05] px-5 py-4 text-sm text-red-300">
           {dashboard.error}
         </div>
       )}
 
-      <div className="space-y-7">
-        <DashboardOverviewCards
-          stats={data.stats}
-        />
+      {/* ========================================
+          KPI CARDS
+      ======================================== */}
 
-        <DashboardFinancialSummary
-          financials={
-            data.stats.financials
-          }
-        />
+      <DashboardOverviewCards stats={data.stats} />
+
+      {/* ========================================
+          FINANCIAL + WORKFLOW
+      ======================================== */}
+
+      <div className="grid min-w-0 gap-5 xl:grid-cols-[1.08fr_1fr]">
+        <DashboardFinancialSummary financials={data.stats.financials} />
 
         <DashboardBusinessStatus
           stats={data.stats}
-          subscription={
-            data.subscription
-          }
-        />
-
-        
-
-        <DashboardRecentActivity
+          subscription={data.subscription}
           recent={data.recent}
         />
       </div>
-    </>
+
+      {/* ========================================
+          RECENT ACTIVITY
+      ======================================== */}
+
+      {/* <DashboardRecentActivity recent={data.recent} /> */}
+
+      {/* ========================================
+          FOOTER MOTTO
+      ======================================== */}
+
+      <div className="flex items-center justify-end gap-3 px-2">
+        <div className="h-px w-10 bg-cyan-400/70" />
+
+        <p className="text-[10px] font-medium uppercase tracking-[0.24em] text-slate-500">
+          Keep the momentum going.
+        </p>
+      </div>
+    </div>
   );
 }

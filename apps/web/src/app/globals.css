@@ -276,3 +276,89 @@ body {
 .qufo-input-with-prefix, .qufo-input-with-icon {
   padding-left: 2rem;
 }
+
+
+/* ==========================================
+   QUFO WELCOME HERO
+   Animated neon wave background
+========================================== */
+
+.qufo-welcome-hero {
+  background:
+    radial-gradient(
+      ellipse at 70% 40%,
+      rgba(8, 145, 178, 0.055),
+      transparent 60%
+    ),
+    #061522;
+}
+
+/* Flowing wave animation */
+
+.qufo-wave {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: qufo-wave-flow 8s ease-in-out infinite alternate;
+}
+
+.qufo-wave-one {
+  animation-duration: 8s;
+}
+
+.qufo-wave-two {
+  animation-duration: 11s;
+  animation-delay: -3s;
+}
+
+.qufo-wave-three {
+  animation-duration: 14s;
+  animation-delay: -5s;
+}
+
+.qufo-wave-four {
+  animation-duration: 17s;
+  animation-delay: -7s;
+}
+
+/* More visible movement */
+
+@keyframes qufo-wave-flow {
+  0% {
+    transform: translateX(-35px) translateY(8px);
+  }
+
+  50% {
+    transform: translateX(25px) translateY(-12px);
+  }
+
+  100% {
+    transform: translateX(45px) translateY(10px);
+  }
+}
+
+/* Glowing dots */
+
+.qufo-wave-dots {
+  animation: qufo-dots-float 4s ease-in-out infinite alternate;
+}
+
+@keyframes qufo-dots-float {
+  0% {
+    opacity: 0.35;
+    transform: translateY(5px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(-10px);
+  }
+}
+
+/* Accessibility */
+
+@media (prefers-reduced-motion: reduce) {
+  .qufo-wave,
+  .qufo-wave-dots {
+    animation: none;
+  }
+}

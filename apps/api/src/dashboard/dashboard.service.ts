@@ -32,6 +32,10 @@ export class DashboardService {
 
     const startNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
+    const startYear = new Date(now.getFullYear(), 0, 1);
+
+    const startNextYear = new Date(now.getFullYear() + 1, 0, 1);
+
     const activeJobStatuses = [
       'PENDING',
       'QUEUED',
@@ -55,12 +59,21 @@ export class DashboardService {
 
       revenueThisMonth,
 
+      monthlyPayments,
+
       jobTotals,
       paymentTotals,
 
       recentJobs,
       recentQuotations,
       recentPayments,
+
+      workflowQuotations,
+      workflowForApproval,
+      workflowInProgress,
+      workflowForPayment,
+      workflowCompleted,
+      forPaymentJobs,
     ] = await this.prisma.$transaction([
       this.prisma.organization.findUnique({
         where: {
@@ -171,6 +184,31 @@ export class DashboardService {
       }),
 
       /*
+       * Monthly revenue for financial chart.
+       */
+      this.prisma.payment.findMany({
+        where: {
+          organizationId,
+
+          status: 'PAID',
+
+          paidAt: {
+            gte: startYear,
+            lt: startNextYear,
+          },
+        },
+
+        select: {
+          amount: true,
+          paidAt: true,
+        },
+
+        orderBy: {
+          paidAt: 'asc',
+        },
+      }),
+
+      /*
        * Total value of all valid jobs.
        */
       this.prisma.job.aggregate({
@@ -232,6 +270,7 @@ export class DashboardService {
           dueDate: true,
           total: true,
           currency: true,
+          createdAt: true,
 
           customer: {
             select: {
@@ -264,6 +303,7 @@ export class DashboardService {
           total: true,
           validUntil: true,
           currency: true,
+          createdAt: true,
 
           customer: {
             select: {
@@ -297,6 +337,7 @@ export class DashboardService {
           status: true,
           paidAt: true,
           currency: true,
+          createdAt: true,
 
           customer: {
             select: {
@@ -314,6 +355,85 @@ export class DashboardService {
           },
         },
       }),
+
+      // Open quotations
+      this.prisma.quotation.count({
+        where: {
+          organizationId,
+          status: {
+            in: ['DRAFT', 'SENT', 'VIEWED'],
+          },
+        },
+      }),
+
+      // Quotations awaiting approval
+      this.prisma.quotation.count({
+        where: {
+          organizationId,
+          status: 'SENT',
+        },
+      }),
+
+      // Jobs in progress
+      this.prisma.job.count({
+        where: {
+          organizationId,
+          status: {
+            in: ['IN_PROGRESS'],
+          },
+        },
+      }),
+
+      // Jobs awaiting payment
+      this.prisma.job.count({
+        where: {
+          organizationId,
+          status: 'DELIVERED',
+        },
+      }),
+
+      // Completed jobs this month
+      this.prisma.job.count({
+        where: {
+          organizationId,
+          status: 'COMPLETED',
+          completedAt: {
+            gte: startMonth,
+            lt: startNextMonth,
+          },
+        },
+      }),
+
+      /*
+       * Jobs with outstanding balance
+       *
+       * Includes all non-cancelled jobs,
+       * regardless of their status.
+       */
+      this.prisma.job.findMany({
+        where: {
+          organizationId,
+
+          status: {
+            not: 'CANCELLED',
+          },
+        },
+
+        select: {
+          id: true,
+          total: true,
+
+          payments: {
+            where: {
+              status: 'PAID',
+            },
+
+            select: {
+              amount: true,
+            },
+          },
+        },
+      }),
     ]);
 
     const currency = organization?.currency ?? 'PHP';
@@ -321,6 +441,17 @@ export class DashboardService {
     const totalJobValue = jobTotals._sum.total ?? new Prisma.Decimal(0);
 
     const totalPaid = paymentTotals._sum.amount ?? new Prisma.Decimal(0);
+
+    const forPaymentCount = forPaymentJobs.filter((job) => {
+      const paidAmount = job.payments.reduce(
+        (sum, payment) => sum.plus(payment.amount),
+        new Prisma.Decimal(0),
+      );
+
+      const outstandingBalance = job.total.minus(paidAmount);
+
+      return outstandingBalance.greaterThan(0);
+    }).length;
 
     let outstandingBalance = totalJobValue.minus(totalPaid);
 
@@ -331,6 +462,79 @@ export class DashboardService {
     const subscriptionState = tenant.subscription
       ? resolveSubscriptionState(tenant.subscription, now)
       : null;
+
+    const monthlyRevenue = Array.from({ length: 12 }, (_, month) => ({
+      month: month + 1,
+      revenue: 0,
+    }));
+
+    for (const payment of monthlyPayments) {
+      const month = payment.paidAt.getMonth();
+
+      monthlyRevenue[month].revenue += Number(payment.amount);
+    }
+
+    const recentActivity = [
+      ...recentJobs.map((job) => ({
+        type: 'JOB' as const,
+        id: job.id,
+        createdAt: job.createdAt,
+
+        title: job.title,
+        reference: job.jobNumber,
+
+        status: job.status,
+        priority: job.priority,
+
+        total: job.total,
+        currency: job.currency,
+
+        customer: job.customer,
+      })),
+
+      ...recentQuotations.map((quotation) => ({
+        type: 'QUOTATION' as const,
+        id: quotation.id,
+        createdAt: quotation.createdAt,
+
+        title:
+          quotation.customer?.companyName ??
+          quotation.customer?.name ??
+          'Customer',
+
+        reference: quotation.quotationNumber,
+
+        status: quotation.status,
+
+        total: quotation.total,
+        currency: quotation.currency,
+
+        customer: quotation.customer,
+      })),
+
+      ...recentPayments.map((payment) => ({
+        type: 'PAYMENT' as const,
+        id: payment.id,
+        createdAt: payment.createdAt,
+
+        title:
+          payment.customer?.companyName ?? payment.customer?.name ?? 'Customer',
+
+        reference: payment.paymentNumber,
+
+        status: payment.status,
+
+        total: payment.amount,
+        currency: payment.currency,
+
+        customer: payment.customer,
+
+        method: payment.method,
+        paidAt: payment.paidAt,
+      })),
+    ]
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, 1);
 
     return {
       organization: {
@@ -375,6 +579,15 @@ export class DashboardService {
 
           dueToday,
           overdue: overdueJobs,
+          forPayment: forPaymentCount,
+        },
+
+        workflow: {
+          quotations: workflowQuotations,
+          forApproval: workflowForApproval,
+          inProgress: workflowInProgress,
+          forPayment: workflowForPayment,
+          completed: workflowCompleted,
         },
 
         financials: {
@@ -387,6 +600,8 @@ export class DashboardService {
           totalPaid,
 
           outstandingBalance,
+
+          monthlyRevenue,
         },
       },
 
@@ -396,6 +611,7 @@ export class DashboardService {
         quotations: recentQuotations,
 
         payments: recentPayments,
+        activity: recentActivity,
       },
     };
   }
