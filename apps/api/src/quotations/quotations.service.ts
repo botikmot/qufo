@@ -997,7 +997,7 @@ export class QuotationsService {
 
           ...(dto.footerNote !== undefined
             ? {
-                footerNote: dto.footerNote.trim() || null,
+                footerNote: dto.footerNote?.trim() || null,
               }
             : businessIdentity !== undefined
               ? {
