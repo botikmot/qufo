@@ -1,9 +1,4 @@
-import {
-  CheckCircle2,
-  CirclePlay,
-  Clock3,
-  MonitorPlay,
-} from "lucide-react";
+import { CheckCircle2, CirclePlay, Clock3, MonitorPlay } from "lucide-react";
 
 export function DemoSection() {
   return (
@@ -78,11 +73,13 @@ export function DemoSection() {
                 controls
                 playsInline
                 preload="metadata"
-                poster="/images/qufo-dashboard2.png"
+                poster="/images/dashboard_3.png"
                 className="aspect-video w-full bg-black object-contain"
               >
-                <source src="/videos/QUFO_Product_Walkthrough.mp4" type="video/mp4" />
-
+                <source
+                  src="/videos/QUFO_Product_Walkthrough_final.mp4"
+                  type="video/mp4"
+                />
                 Your browser does not support the video element.
               </video>
             </div>
