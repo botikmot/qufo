@@ -21,7 +21,7 @@ export class CreateQuotationItemDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(2000)
+  @MaxLength(5000)
   description?: string;
 
   @IsNumber({

@@ -1,57 +1,30 @@
 "use client";
 
-import {
-  FileText,
-  LoaderCircle,
-} from "lucide-react";
+import { FileText, LoaderCircle } from "lucide-react";
 
-import {
-  QuotationFormCustomer,
-} from "@/components/quotations/quotation-form-customer";
+import { QuotationFormCustomer } from "@/components/quotations/quotation-form-customer";
 
-import {
-  QuotationFormDates,
-} from "@/components/quotations/quotation-form-dates";
+import { QuotationFormDates } from "@/components/quotations/quotation-form-dates";
 
-import {
-  QuotationFormDiscountTax,
-} from "@/components/quotations/quotation-form-discount-tax";
+import { QuotationFormDiscountTax } from "@/components/quotations/quotation-form-discount-tax";
 
-import {
-  QuotationFormItems,
-} from "@/components/quotations/quotation-form-items";
+import { QuotationFormItems } from "@/components/quotations/quotation-form-items";
 
-import {
-  QuotationFormNotes,
-} from "@/components/quotations/quotation-form-notes";
+import { QuotationFormNotes } from "@/components/quotations/quotation-form-notes";
 
-import {
-  QuotationFormSummary,
-} from "@/components/quotations/quotation-form-summary";
+import { QuotationFormSummary } from "@/components/quotations/quotation-form-summary";
 
-import {
-  QufoModal,
-} from "@/components/ui/qufo-modal";
+import { QufoModal } from "@/components/ui/qufo-modal";
 
-import {
-  useQuotationForm,
-} from "@/hooks/use-quotation-form";
+import { useQuotationForm } from "@/hooks/use-quotation-form";
 
-import type {
-  Customer,
-} from "@/types/customer";
+import type { Customer } from "@/types/customer";
 
-import type {
-  Quotation,
-} from "@/types/quotation";
+import type { Quotation } from "@/types/quotation";
 
-import type {
-  QuotationFormPayload,
-} from "@/types/quotation-form";
+import type { QuotationFormPayload } from "@/types/quotation-form";
 
-import type {
-  BusinessProfilesResponse,
-} from "@/types/business-profile";
+import type { BusinessProfilesResponse } from "@/types/business-profile";
 
 import { settingsService } from "@/services/settings.service";
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -72,16 +45,12 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 
-import {
-  getQuotationPdfPreferences,
-} from "@/lib/quotation-pdf-preferences";
+import { getQuotationPdfPreferences } from "@/lib/quotation-pdf-preferences";
 
 type QuotationFormModalProps = {
   customers: Customer[];
 
-  businessProfiles:
-    | BusinessProfilesResponse
-    | null;
+  businessProfiles: BusinessProfilesResponse | null;
 
   quotation?: Quotation | null;
 
@@ -89,9 +58,7 @@ type QuotationFormModalProps = {
 
   onClose: () => void;
 
-  onSubmit: (
-    data: QuotationFormPayload,
-  ) => Promise<void>;
+  onSubmit: (data: QuotationFormPayload) => Promise<void>;
 };
 
 const MAIN_BUSINESS_VALUE = "__MAIN_BUSINESS__";
@@ -104,9 +71,7 @@ export function QuotationFormModal({
   onClose,
   onSubmit,
 }: QuotationFormModalProps) {
-  
-  const editing =
-    Boolean(quotation);
+  const editing = Boolean(quotation);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -116,128 +81,98 @@ export function QuotationFormModal({
   const [importWarnings, setImportWarnings] = useState<string[]>([]);
   const [importedFileName, setImportedFileName] = useState<string | null>(null);
 
-  const [
-    businessSelection,
-    setBusinessSelection,
-  ] = useState<{
+  const [businessSelection, setBusinessSelection] = useState<{
     contextKey: string;
     value: string;
   } | null>(null);
 
-  const pdfOptions =
-    getQuotationPdfPreferences();
+  const pdfOptions = getQuotationPdfPreferences();
 
   /*
-  * A different quotation means
-  * a different selection context.
-  */
-  const businessContextKey =
-    quotation?.id ??
-    "__NEW_QUOTATION__";
+   * A different quotation means
+   * a different selection context.
+   */
+  const businessContextKey = quotation?.id ?? "__NEW_QUOTATION__";
 
   /*
-  * EDIT / REVISION
-  * → preserve saved business.
-  *
-  * CREATE
-  * → use configured default profile.
-  *
-  * No profile default
-  * → Main Business.
-  */
+   * EDIT / REVISION
+   * → preserve saved business.
+   *
+   * CREATE
+   * → use configured default profile.
+   *
+   * No profile default
+   * → Main Business.
+   */
   const defaultBusinessValue =
     quotation?.businessProfileId ??
-    businessProfiles?.profiles.find(
-      (profile) =>
-        profile.isDefault,
-    )?.id ??
+    businessProfiles?.profiles.find((profile) => profile.isDefault)?.id ??
     MAIN_BUSINESS_VALUE;
 
   /*
-  * Manual user selection wins.
-  *
-  * Otherwise we simply derive the
-  * value above — no Effect needed.
-  */
+   * Manual user selection wins.
+   *
+   * Otherwise we simply derive the
+   * value above — no Effect needed.
+   */
   const selectedBusinessValue =
-    businessSelection?.contextKey ===
-    businessContextKey
+    businessSelection?.contextKey === businessContextKey
       ? businessSelection.value
       : defaultBusinessValue;
 
   const selectedBusinessProfile =
-    selectedBusinessValue ===
-    MAIN_BUSINESS_VALUE
+    selectedBusinessValue === MAIN_BUSINESS_VALUE
       ? undefined
       : businessProfiles?.profiles.find(
-          (profile) =>
-            profile.id ===
-            selectedBusinessValue,
+          (profile) => profile.id === selectedBusinessValue,
         );
 
   const selectedBusinessLabel =
-    selectedBusinessValue ===
-    MAIN_BUSINESS_VALUE
+    selectedBusinessValue === MAIN_BUSINESS_VALUE
       ? businessProfiles
         ? `${businessProfiles.mainBusiness.label} — ${businessProfiles.mainBusiness.name}`
         : "Main Business"
       : selectedBusinessProfile
         ? `${selectedBusinessProfile.label} — ${selectedBusinessProfile.name}`
-        : quotation?.businessNameSnapshot ??
-          "Select business or store";
+        : (quotation?.businessNameSnapshot ?? "Select business or store");
 
   const selectedBusinessProfileId =
-    selectedBusinessValue ===
-    MAIN_BUSINESS_VALUE
+    selectedBusinessValue === MAIN_BUSINESS_VALUE
       ? null
       : selectedBusinessValue;
 
-  const handleQuotationSubmit =
-    useCallback(
-      async (
-        data: QuotationFormPayload,
-      ) => {
-        await onSubmit({
-          ...data,
+  const handleQuotationSubmit = useCallback(
+    async (data: QuotationFormPayload) => {
+      await onSubmit({
+        ...data,
 
-          businessProfileId: selectedBusinessProfileId,
+        businessProfileId: selectedBusinessProfileId,
+      });
+    },
+    [onSubmit, selectedBusinessProfileId],
+  );
 
-        });
-      },
-      [
-        onSubmit,
-        selectedBusinessProfileId,
-      ],
-    );
+  const form = useQuotationForm({
+    quotation,
 
-  const form =
-    useQuotationForm({
-      quotation,
+    businessProfileId: selectedBusinessProfileId,
 
-      businessProfileId:
-        selectedBusinessProfileId,
+    onSubmit: handleQuotationSubmit,
+  });
 
-      onSubmit:
-        handleQuotationSubmit,
-    });
+  const [uploadingImageKey, setUploadingImageKey] = useState<string | null>(
+    null,
+  );
 
-  const [
-    uploadingImageKey,
-    setUploadingImageKey,
-  ] = useState<string | null>(null);
-
-  const [
-    organizationCurrency,
-    setOrganizationCurrency,
-  ] = useState("PHP");
+  const [organizationCurrency, setOrganizationCurrency] = useState("PHP");
 
   useEffect(() => {
     /*
-    * Editing quotations already use
-    * their saved currency below.
-    *
-    * No state update needed here.
-    */
+     * Editing quotations already use
+     * their saved currency below.
+     *
+     * No state update needed here.
+     */
     if (quotation?.currency) {
       return;
     }
@@ -246,20 +181,17 @@ export function QuotationFormModal({
 
     async function loadOrganizationCurrency() {
       try {
-        const organization =
-          await settingsService.getBusiness();
+        const organization = await settingsService.getBusiness();
 
         if (cancelled) {
           return;
         }
 
-        setOrganizationCurrency(
-          organization.currency,
-        );
+        setOrganizationCurrency(organization.currency);
       } catch {
         /*
-        * Keep PHP as the safe fallback.
-        */
+         * Keep PHP as the safe fallback.
+         */
       }
     }
 
@@ -270,21 +202,10 @@ export function QuotationFormModal({
     };
   }, [quotation?.currency]);
 
-
   const currency = quotation?.currency ?? organizationCurrency;
 
-
-  async function handleItemImageUpload(
-    key: string,
-    file: File,
-  ) {
-    if (
-      ![
-        "image/jpeg",
-        "image/png",
-        "image/webp",
-      ].includes(file.type)
-    ) {
+  async function handleItemImageUpload(key: string, file: File) {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
       return;
     }
 
@@ -295,25 +216,18 @@ export function QuotationFormModal({
     try {
       setUploadingImageKey(key);
 
-      const uploaded =
-        await uploadsService.uploadQuotationItemImage(
-          file,
-        );
+      const uploaded = await uploadsService.uploadQuotationItemImage(file);
 
       form.updateItem(key, {
         imageUrl: uploaded.url,
         imageKey: uploaded.imageKey,
       });
     } catch (error) {
-      console.error(
-        "Failed to upload quotation item image:",
-        error,
-      );
+      console.error("Failed to upload quotation item image:", error);
     } finally {
       setUploadingImageKey(null);
     }
   }
-
 
   function convertImportedItems(
     draft: ImportedQuotationDraft,
@@ -322,15 +236,9 @@ export function QuotationFormModal({
     return draft.items.map((item) => ({
       key: crypto.randomUUID(),
 
-      name:
-        item.name ??
-        item.description ??
-        "Imported item",
+      name: item.name ?? item.description ?? "Imported item",
 
-      description:
-        item.description ??
-        item.name ??
-        "",
+      description: item.description ?? item.name ?? "",
 
       quantity: String(item.quantity ?? 1),
 
@@ -364,9 +272,7 @@ export function QuotationFormModal({
     draft: ImportedQuotationDraft,
   ): Customer | null {
     const importedName = normalizeMatchValue(draft.customer.name);
-    const importedCompanyName = normalizeMatchValue(
-      draft.customer.companyName,
-    );
+    const importedCompanyName = normalizeMatchValue(draft.customer.companyName);
     const importedEmail = normalizeMatchValue(draft.customer.email);
     const importedPhone = normalizeMatchValue(draft.customer.phone);
 
@@ -386,26 +292,22 @@ export function QuotationFormModal({
       const customerPhone = normalizeMatchValue(customer.phone);
 
       const emailMatches =
-        importedEmail &&
-        customerEmail &&
-        importedEmail === customerEmail;
+        importedEmail && customerEmail && importedEmail === customerEmail;
 
       const phoneMatches =
-        importedPhone &&
-        customerPhone &&
-        importedPhone === customerPhone;
+        importedPhone && customerPhone && importedPhone === customerPhone;
 
       const nameMatches =
-        importedName &&
-        customerName &&
-        importedName === customerName;
+        importedName && customerName && importedName === customerName;
 
       const companyMatches =
         importedCompanyName &&
         customerCompanyName &&
         importedCompanyName === customerCompanyName;
 
-      return Boolean(emailMatches || phoneMatches || nameMatches || companyMatches);
+      return Boolean(
+        emailMatches || phoneMatches || nameMatches || companyMatches,
+      );
     });
 
     if (exactMatches.length === 1) {
@@ -415,10 +317,7 @@ export function QuotationFormModal({
     return null;
   }
 
-
-  async function handleImportFile(
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) {
+  async function handleImportFile(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
 
     // Allow selecting the same file again later.
@@ -448,50 +347,26 @@ export function QuotationFormModal({
       // This keeps Excel, Word, PDF, and image imports compatible.
       const draft = await importQuotationFile(file);
 
-      console.log(
-        "[IMPORT RESULT]",
-        JSON.stringify(draft, null, 2),
-      );
+      console.log("[IMPORT RESULT]", JSON.stringify(draft, null, 2));
 
-      console.log(
-        "[IMPORT RESULT KEYS]",
-        Object.keys(draft),
-      );
+      console.log("[IMPORT RESULT KEYS]", Object.keys(draft));
 
-      console.log(
-        "[IMPORT CUSTOMER]",
-        draft.customer?.name,
-      );
+      console.log("[IMPORT CUSTOMER]", draft.customer?.name);
 
-      console.log(
-        "[IMPORT SUBJECT]",
-        draft.subject,
-      );
+      console.log("[IMPORT SUBJECT]", draft.subject);
 
-      console.log(
-        "[IMPORT ITEMS]",
-        draft.items,
-      );
+      console.log("[IMPORT ITEMS]", draft.items);
 
-      const importedItems = convertImportedItems(
-        draft,
-        currency,
-      );
+      const importedItems = convertImportedItems(draft, currency);
 
       if (!importedItems.length) {
-        throw new Error(
-          "No quotation items were found in the file.",
-        );
+        throw new Error("No quotation items were found in the file.");
       }
 
       form.replaceItems(importedItems);
 
-      if (
-        draft.customer?.name ||
-        draft.customer?.companyName
-      ) {
-        const matchedCustomer =
-          findMatchingCustomer(draft);
+      if (draft.customer?.name || draft.customer?.companyName) {
+        const matchedCustomer = findMatchingCustomer(draft);
 
         if (matchedCustomer) {
           form.setCustomerId(matchedCustomer.id);
@@ -522,20 +397,14 @@ export function QuotationFormModal({
       if (draft.discountType) {
         form.setDiscountType(draft.discountType);
 
-        form.setDiscountValue(
-          String(draft.discountValue ?? 0),
-        );
+        form.setDiscountValue(String(draft.discountValue ?? 0));
       }
 
-      form.setTaxRate(
-        String(draft.taxRate ?? 0),
-      );
+      form.setTaxRate(String(draft.taxRate ?? 0));
 
       setImportedFileName(file.name);
 
-      setImportWarnings(
-        draft.warnings ?? [],
-      );
+      setImportWarnings(draft.warnings ?? []);
 
       setImportSuccess(
         `${importedItems.length} quotation item${
@@ -548,10 +417,7 @@ export function QuotationFormModal({
           ? error.message
           : "Unable to import the quotation file.";
 
-      console.error(
-        "[IMPORT ERROR]",
-        error,
-      );
+      console.error("[IMPORT ERROR]", error);
 
       setImportError(message);
     } finally {
@@ -561,24 +427,15 @@ export function QuotationFormModal({
 
   return (
     <QufoModal
-      title={
-        editing
-          ? "Edit quotation"
-          : "New quotation"
-      }
+      title={editing ? "Edit quotation" : "New quotation"}
       description={
         editing
           ? quotation?.quotationNumber
           : "Prepare a new quotation for a customer."
       }
-      icon={
-        <FileText size={18} />
-      }
+      icon={<FileText size={18} />}
       onClose={onClose}
-      closeDisabled={
-        loading ||
-        Boolean(uploadingImageKey)
-      }
+      closeDisabled={loading || Boolean(uploadingImageKey)}
       size="6xl"
       footer={
         <div
@@ -596,9 +453,7 @@ export function QuotationFormModal({
             type="button"
             onClick={onClose}
             disabled={
-              loading ||
-              !businessProfiles ||
-              Boolean(uploadingImageKey)
+              loading || !businessProfiles || Boolean(uploadingImageKey)
             }
             className="
               w-full
@@ -623,9 +478,7 @@ export function QuotationFormModal({
             type="submit"
             form="quotation-form"
             disabled={
-              loading ||
-              !businessProfiles ||
-              Boolean(uploadingImageKey)
+              loading || !businessProfiles || Boolean(uploadingImageKey)
             }
             className="
               flex
@@ -650,40 +503,28 @@ export function QuotationFormModal({
           >
             {uploadingImageKey ? (
               <>
-                <LoaderCircle
-                  size={16}
-                  className="animate-spin"
-                />
-
+                <LoaderCircle size={16} className="animate-spin" />
                 Uploading image...
               </>
             ) : (
               <>
-                {loading && (
-                  <LoaderCircle
-                    size={16}
-                    className="animate-spin"
-                  />
-                )}
+                {loading && <LoaderCircle size={16} className="animate-spin" />}
 
-                {editing
-                  ? "Save changes"
-                  : "Create quotation"}
+                {editing ? "Save changes" : "Create quotation"}
               </>
             )}
           </button>
         </div>
       }
     >
-
       {!quotation && (
         <div className="rounded-xl border border-dashed border-border bg-muted/30 p-4 mb-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-medium">Import existing quotation</p>
               <p className="text-xs text-muted-foreground">
-                Upload an Excel, Word, PDF, or image quotation to prefill the form.
-                You can review and edit everything before saving.
+                Upload an Excel, Word, PDF, or image quotation to prefill the
+                form. You can review and edit everything before saving.
               </p>
             </div>
 
@@ -742,91 +583,60 @@ export function QuotationFormModal({
 
       <form
         id="quotation-form"
-        onSubmit={
-          form.handleSubmit
-        }
+        onSubmit={form.handleSubmit}
         className="min-w-0 space-y-8"
       >
         <div className="grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-
           <div className="min-w-0">
             <label
               htmlFor="quotation-business"
               className="mb-2 block text-sm font-medium text-slate-300"
             >
               Business / Store
-              <span className="text-red-300">
-                {" *"}
-              </span>
+              <span className="text-red-300">{" *"}</span>
             </label>
 
             <Select
-              value={
-                selectedBusinessValue
-              }
-              disabled={
-                loading ||
-                !businessProfiles
-              }
+              value={selectedBusinessValue}
+              disabled={loading || !businessProfiles}
               onValueChange={(value) => {
                 if (value === null) {
                   return;
                 }
 
                 setBusinessSelection({
-                  contextKey:
-                    businessContextKey,
+                  contextKey: businessContextKey,
 
                   value,
                 });
               }}
             >
-              <SelectTrigger
-                id="quotation-business"
-                className="w-full"
-              >
-                <span className="truncate">
-                  {selectedBusinessLabel}
-                </span>
+              <SelectTrigger id="quotation-business" className="w-full">
+                <span className="truncate">{selectedBusinessLabel}</span>
               </SelectTrigger>
 
               <SelectContent>
                 {businessProfiles && (
                   <>
-                    <SelectItem
-                      value={
-                        MAIN_BUSINESS_VALUE
-                      }
-                    >
-                      {businessProfiles
-                        .mainBusiness.label}
+                    <SelectItem value={MAIN_BUSINESS_VALUE}>
+                      {businessProfiles.mainBusiness.label}
                       {" — "}
-                      {businessProfiles
-                        .mainBusiness.name}
+                      {businessProfiles.mainBusiness.name}
 
-                      {businessProfiles
-                        .mainBusiness
-                        .isDefault
+                      {businessProfiles.mainBusiness.isDefault
                         ? " · Default"
                         : ""}
                     </SelectItem>
 
-                    {businessProfiles.profiles.map(
-                      (profile) => (
-                        <SelectItem
-                          key={profile.id}
-                          value={profile.id}
-                        >
-                          {profile.label}
-                          {" — "}
-                          {profile.name}
+                    {businessProfiles.profiles.map((profile) => (
+                      <SelectItem key={profile.id} value={profile.id}>
+                        {profile.label}
+                        {" — "}
+                        {profile.name}
 
-                          {profile.isDefault
-                            ? " · Default"
-                            : ""}
-                        </SelectItem>
-                      ),
-                    )}
+                        {profile.isDefault ? " · Default" : ""}
+                      </SelectItem>
+                    ))}
                   </>
                 )}
               </SelectContent>
@@ -834,30 +644,19 @@ export function QuotationFormModal({
           </div>
 
           <QuotationFormCustomer
-            customers={
-              customers
-            }
-            value={
-              form.customerId
-            }
-            onChange={
-              form.setCustomerId
-            }
+            customers={customers}
+            value={form.customerId}
+            onChange={form.setCustomerId}
           />
 
           <QuotationFormDates
-            validUntil={
-              form.validUntil
-            }
-            onValidUntilChange={
-              form.setValidUntil
-            }
+            validUntil={form.validUntil}
+            onValidUntilChange={form.setValidUntil}
           />
         </div>
 
         {/* Quotation Subject & Message */}
         <div className="grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2">
-
           {pdfOptions.showSubject && (
             <div className="min-w-0">
               <label
@@ -871,9 +670,7 @@ export function QuotationFormModal({
                 id="quotation-subject"
                 type="text"
                 value={form.subject}
-                onChange={(event) =>
-                  form.setSubject(event.target.value)
-                }
+                onChange={(event) => form.setSubject(event.target.value)}
                 placeholder="e.g. Office Signage Project"
                 disabled={loading}
                 className="
@@ -897,11 +694,9 @@ export function QuotationFormModal({
                 "
               />
             </div>
-
           )}
 
           {pdfOptions.showMessage && (
-
             <div className="min-w-0">
               <label
                 htmlFor="quotation-message"
@@ -945,85 +740,42 @@ export function QuotationFormModal({
         </div>
 
         <QuotationFormItems
-          items={
-            form.items
-          }
-          onAdd={
-            form.addItem
-          }
-          onInsertBefore={
-            form.insertItemBefore
-          }
-          onInsertAfter={
-            form.insertItemAfter
-          }
-          onRemove={
-            form.removeItem
-          }
+          items={form.items}
+          onAdd={form.addItem}
+          onInsertBefore={form.insertItemBefore}
+          onInsertAfter={form.insertItemAfter}
+          onRemove={form.removeItem}
           onReorder={form.reorderItems}
-          onChange={
-            form.updateItem
-          }
-          onImageSelect={
-            handleItemImageUpload
-          }
-          uploadingImageKey={
-            uploadingImageKey
-          }
+          onChange={form.updateItem}
+          onImageSelect={handleItemImageUpload}
+          uploadingImageKey={uploadingImageKey}
           currency={currency}
         />
 
         <QuotationFormDiscountTax
-          discountType={
-            form.discountType
-          }
-          discountValue={
-            form.discountValue
-          }
-          taxRate={
-            form.taxRate
-          }
-          onDiscountTypeChange={
-            form.setDiscountType
-          }
-          onDiscountValueChange={
-            form.setDiscountValue
-          }
-          onTaxRateChange={
-            form.setTaxRate
-          }
+          discountType={form.discountType}
+          discountValue={form.discountValue}
+          taxRate={form.taxRate}
+          onDiscountTypeChange={form.setDiscountType}
+          onDiscountValueChange={form.setDiscountValue}
+          onTaxRateChange={form.setTaxRate}
         />
 
         <QuotationFormSummary
-          subtotal={
-            form.totals.subtotal
-          }
-          discountAmount={
-            form.totals
-              .discountAmount
-          }
-          taxAmount={
-            form.totals.taxAmount
-          }
-          total={
-            form.totals.total
-          }
+          subtotal={form.totals.subtotal}
+          discountAmount={form.totals.discountAmount}
+          taxAmount={form.totals.taxAmount}
+          total={form.totals.total}
           currency={currency}
         />
 
         <QuotationFormNotes
-          notes={
-            form.notes
-          }
-          terms={
-            form.terms
-          }
-          onNotesChange={
-            form.setNotes
-          }
-          onTermsChange={
-            form.setTerms
-          }
+          notes={form.notes}
+          footerNote={form.footerNote}
+          terms={form.terms}
+          onNotesChange={form.setNotes}
+          onTermsChange={form.setTerms}
+          onFooterNoteChange={form.setFooterNotes}
         />
 
         {form.error && (

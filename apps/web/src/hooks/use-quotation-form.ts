@@ -1,27 +1,14 @@
 "use client";
 
-import {
-  type FormEvent,
-  useMemo,
-  useEffect,
-  useState,
-} from "react";
+import { type FormEvent, useMemo, useEffect, useState } from "react";
 
-import {
-  calculateQuotationTotals,
-} from "@/utils/quotation-calculation";
+import { calculateQuotationTotals } from "@/utils/quotation-calculation";
 
-import {
-  createQuotationFormItem,
-} from "@/utils/quotation-form";
+import { createQuotationFormItem } from "@/utils/quotation-form";
 
-import {
-  toDateInputValue,
-} from "@/utils/date";
+import { toDateInputValue } from "@/utils/date";
 
-import type {
-  Quotation,
-} from "@/types/quotation";
+import type { Quotation } from "@/types/quotation";
 
 import type {
   QuotationDiscountType,
@@ -41,25 +28,22 @@ type UseQuotationFormProps = {
 
   businessProfileId?: string | null;
 
-  onSubmit: (
-    data: QuotationFormPayload,
-  ) => Promise<void>;
+  onSubmit: (data: QuotationFormPayload) => Promise<void>;
 };
 
-const QUOTATION_NOTES_STORAGE_PREFIX =
-  "qufo:quotation-notes:";
+const QUOTATION_NOTES_STORAGE_PREFIX = "qufo:quotation-notes:";
 
-function getQuotationNotesStorageKey(
-  businessProfileId?: string | null,
-) {
-  return `${QUOTATION_NOTES_STORAGE_PREFIX}${
-    businessProfileId ?? "main"
-  }`;
+const QUOTATION_FOOTNOTE_STORAGE_PREFIX = "qufo:quotation-footnote:";
+
+function getQuotationNotesStorageKey(businessProfileId?: string | null) {
+  return `${QUOTATION_NOTES_STORAGE_PREFIX}${businessProfileId ?? "main"}`;
 }
 
-function getRememberedQuotationNotes(
-  businessProfileId?: string | null,
-) {
+function getQuotationFootNoteStorageKey(businessProfileId?: string | null) {
+  return `${QUOTATION_FOOTNOTE_STORAGE_PREFIX}${businessProfileId ?? "main"}`;
+}
+
+function getRememberedQuotationNotes(businessProfileId?: string | null) {
   if (typeof window === "undefined") {
     return "";
   }
@@ -67,9 +51,23 @@ function getRememberedQuotationNotes(
   try {
     return (
       window.localStorage.getItem(
-        getQuotationNotesStorageKey(
-          businessProfileId,
-        ),
+        getQuotationNotesStorageKey(businessProfileId),
+      ) ?? ""
+    );
+  } catch {
+    return "";
+  }
+}
+
+function getRememberedQuotationFootNote(businessProfileId?: string | null) {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  try {
+    return (
+      window.localStorage.getItem(
+        getQuotationFootNoteStorageKey(businessProfileId),
       ) ?? ""
     );
   } catch {
@@ -85,17 +83,32 @@ function rememberQuotationNotes(
     return;
   }
 
-  const key =
-    getQuotationNotesStorageKey(
-      businessProfileId,
-    );
+  const key = getQuotationNotesStorageKey(businessProfileId);
 
   try {
     if (notes.trim()) {
-      window.localStorage.setItem(
-        key,
-        notes,
-      );
+      window.localStorage.setItem(key, notes);
+    } else {
+      window.localStorage.removeItem(key);
+    }
+  } catch {
+    // Ignore localStorage failures.
+  }
+}
+
+function rememberQuotationFooterNote(
+  businessProfileId: string | null | undefined,
+  footerNote: string,
+) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const key = getQuotationFootNoteStorageKey(businessProfileId);
+
+  try {
+    if (footerNote.trim()) {
+      window.localStorage.setItem(key, footerNote);
     } else {
       window.localStorage.removeItem(key);
     }
@@ -109,77 +122,33 @@ export function useQuotationForm({
   businessProfileId,
   onSubmit,
 }: UseQuotationFormProps) {
-  const [
-    customerId,
-    setCustomerId,
-  ] = useState(
-    quotation?.customer?.id ??
-      "",
+  const [customerId, setCustomerId] = useState(quotation?.customer?.id ?? "");
+
+  const [issueDate, setIssueDate] = useState(
+    toDateInputValue(quotation?.issueDate ?? new Date()),
   );
 
-  const [
-    issueDate,
-    setIssueDate,
-  ] = useState(
-    toDateInputValue(
-      quotation?.issueDate ??
-        new Date(),
-    ),
+  const [validUntil, setValidUntil] = useState(
+    toDateInputValue(quotation?.validUntil),
   );
 
-  const [
-    validUntil,
-    setValidUntil,
-  ] = useState(
-    toDateInputValue(
-      quotation?.validUntil,
-    ),
+  const [discountType, setDiscountType] = useState<QuotationDiscountType>(
+    quotation?.discountType ?? "NONE",
   );
 
-  const [
-    discountType,
-    setDiscountType,
-  ] =
-    useState<QuotationDiscountType>(
-      quotation?.discountType ??
-        "NONE",
-    );
-
-  const [
-    discountValue,
-    setDiscountValue,
-  ] = useState(
-    String(
-      quotation?.discountValue ??
-        0,
-    ),
+  const [discountValue, setDiscountValue] = useState(
+    String(quotation?.discountValue ?? 0),
   );
 
-  const [
-    taxRate,
-    setTaxRate,
-  ] = useState(
-    String(
-      quotation?.taxRate ?? 0,
-    ),
-  );
+  const [taxRate, setTaxRate] = useState(String(quotation?.taxRate ?? 0));
 
-  const [
-    subject,
-    setSubject,
-  ] = useState("");
+  const [subject, setSubject] = useState("");
 
-  const [
-    quotationMessage,
-    setQuotationMessage,
-  ] = useState("");
+  const [quotationMessage, setQuotationMessage] = useState("");
 
-  const [
-    notes,
-    setNotes,
-  ] = useState(
-    quotation?.notes ?? "",
-  );
+  const [notes, setNotes] = useState(quotation?.notes ?? "");
+
+  const [footerNote, setFooterNotes] = useState(quotation?.footerNote ?? "");
 
   useEffect(() => {
     /* if (quotation) {
@@ -195,23 +164,13 @@ export function useQuotationForm({
         return;
       }
 
-      setNotes(
-        getRememberedQuotationNotes(
-          businessProfileId,
-        ),
-      );
+      setNotes(getRememberedQuotationNotes(businessProfileId));
 
-      setSubject(
-        getRememberedQuotationSubject(
-          businessProfileId,
-        ),
-      );
+      setFooterNotes(getRememberedQuotationFootNote(businessProfileId));
 
-      setQuotationMessage(
-        getRememberedQuotationMessage(
-          businessProfileId,
-        ),
-      );
+      setSubject(getRememberedQuotationSubject(businessProfileId));
+
+      setQuotationMessage(getRememberedQuotationMessage(businessProfileId));
     }
 
     void loadRememberedQuotationContent();
@@ -219,117 +178,59 @@ export function useQuotationForm({
     return () => {
       cancelled = true;
     };
-  }, [
-    quotation,
-    businessProfileId,
-  ]);
+  }, [quotation, businessProfileId]);
 
+  const [terms, setTerms] = useState(quotation?.terms ?? "");
 
-  const [
-    terms,
-    setTerms,
-  ] = useState(
-    quotation?.terms ?? "",
+  const [items, setItems] = useState<QuotationFormItem[]>(
+    quotation?.items?.length
+      ? quotation.items.map((item) => ({
+          key: item.id ?? crypto.randomUUID(),
+
+          name: item.name,
+
+          description: item.description ?? "",
+
+          quantity: String(item.quantity),
+
+          unit: item.unit || "pc",
+
+          unitPrice: String(item.unitPrice),
+          imageUrl: item.imageUrl ?? "",
+
+          imageKey: item.imageKey ?? "",
+
+          warrantyDuration:
+            item.warrantyDuration != null ? String(item.warrantyDuration) : "",
+
+          warrantyUnit: item.warrantyUnit ?? "",
+
+          warrantyTerms: item.warrantyTerms ?? "",
+          currency: item.currency ?? "PHP",
+        }))
+      : [createQuotationFormItem()],
   );
 
-  const [
-    items,
-    setItems,
-  ] =
-    useState<
-      QuotationFormItem[]
-    >(
-      quotation?.items?.length
-        ? quotation.items.map(
-            (item) => ({
-              key:
-                item.id ??
-                crypto.randomUUID(),
+  const [error, setError] = useState<string | null>(null);
 
-              name:
-                item.name,
-
-              description:
-                item.description ??
-                "",
-
-              quantity:
-                String(
-                  item.quantity,
-                ),
-
-              unit:
-                item.unit || "pc",
-
-              unitPrice:
-                String(
-                  item.unitPrice,
-                ),
-              imageUrl:
-                item.imageUrl ?? "",
-
-              imageKey:
-                item.imageKey ?? "",
-
-              warrantyDuration:
-                item.warrantyDuration != null
-                  ? String(item.warrantyDuration)
-                  : "",
-
-              warrantyUnit:
-                item.warrantyUnit ?? "",
-
-              warrantyTerms:
-                item.warrantyTerms ?? "",
-              currency: item.currency ?? 'PHP',
-            }),
-          )
-        : [
-            createQuotationFormItem(),
-          ],
-    );
-
-  const [
-    error,
-    setError,
-  ] =
-    useState<string | null>(
-      null,
-    );
-
-  const totals =
-    useMemo(
-      () =>
-        calculateQuotationTotals(
-          items,
-          discountType,
-          Number(
-            discountValue,
-          ),
-          Number(taxRate),
-        ),
-      [
+  const totals = useMemo(
+    () =>
+      calculateQuotationTotals(
         items,
         discountType,
-        discountValue,
-        taxRate,
-      ],
-    );
+        Number(discountValue),
+        Number(taxRate),
+      ),
+    [items, discountType, discountValue, taxRate],
+  );
 
   function addItem() {
-    setItems((current) => [
-      ...current,
-      createQuotationFormItem(),
-    ]);
+    setItems((current) => [...current, createQuotationFormItem()]);
   }
 
-  function insertItemBefore(
-    targetKey: string,
-  ) {
+  function insertItemBefore(targetKey: string) {
     setItems((current) => {
-      const targetIndex = current.findIndex(
-        (item) => item.key === targetKey,
-      );
+      const targetIndex = current.findIndex((item) => item.key === targetKey);
 
       if (targetIndex === -1) {
         return current;
@@ -345,13 +246,9 @@ export function useQuotationForm({
     });
   }
 
-  function insertItemAfter(
-    targetKey: string,
-  ) {
+  function insertItemAfter(targetKey: string) {
     setItems((current) => {
-      const targetIndex = current.findIndex(
-        (item) => item.key === targetKey,
-      );
+      const targetIndex = current.findIndex((item) => item.key === targetKey);
 
       if (targetIndex === -1) {
         return current;
@@ -367,27 +264,17 @@ export function useQuotationForm({
     });
   }
 
-  function removeItem(
-    key: string,
-  ) {
+  function removeItem(key: string) {
     setItems((current) => {
-      if (
-        current.length <= 1
-      ) {
+      if (current.length <= 1) {
         return current;
       }
 
-      return current.filter(
-        (item) =>
-          item.key !== key,
-      );
+      return current.filter((item) => item.key !== key);
     });
   }
 
-  function updateItem(
-    key: string,
-    patch: Partial<QuotationFormItem>,
-  ) {
+  function updateItem(key: string, patch: Partial<QuotationFormItem>) {
     setItems((current) =>
       current.map((item) =>
         item.key === key
@@ -400,9 +287,7 @@ export function useQuotationForm({
     );
   }
 
-  function reorderItems(
-    reorderedItems: QuotationFormItem[],
-  ) {
+  function reorderItems(reorderedItems: QuotationFormItem[]) {
     setItems(reorderedItems);
   }
 
@@ -410,118 +295,74 @@ export function useQuotationForm({
     setItems(nextItems);
   }
 
-  async function handleSubmit(
-    event: FormEvent<HTMLFormElement>,
-  ) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setError(null);
 
     if (!customerId) {
-      setError(
-        "Please select a customer.",
-      );
+      setError("Please select a customer.");
 
       return;
     }
 
     if (!issueDate) {
-      setError(
-        "Issue date is required.",
-      );
+      setError("Issue date is required.");
 
       return;
     }
 
-    const validItems =
-      items.filter(
-        (item) =>
-          item.name.trim() &&
-          Number(
-            item.quantity,
-          ) > 0 &&
-          Number(
-            item.unitPrice,
-          ) >= 0,
-      );
+    const validItems = items.filter(
+      (item) =>
+        item.name.trim() &&
+        Number(item.quantity) > 0 &&
+        Number(item.unitPrice) >= 0,
+    );
 
     for (const item of validItems) {
-      const hasWarranty =
-        Boolean(
-          item.warrantyDuration ||
-          item.warrantyUnit ||
-          item.warrantyTerms?.trim(),
-        );
+      const hasWarranty = Boolean(
+        item.warrantyDuration ||
+        item.warrantyUnit ||
+        item.warrantyTerms?.trim(),
+      );
 
       if (!hasWarranty) {
         continue;
       }
 
-      const warrantyDuration =
-        Number(
-          item.warrantyDuration,
-        );
+      const warrantyDuration = Number(item.warrantyDuration);
 
-      if (
-        !Number.isInteger(
-          warrantyDuration,
-        ) ||
-        warrantyDuration < 1
-      ) {
-        setError(
-          `Enter a valid warranty duration for "${item.name}".`,
-        );
+      if (!Number.isInteger(warrantyDuration) || warrantyDuration < 1) {
+        setError(`Enter a valid warranty duration for "${item.name}".`);
 
         return;
       }
 
       if (!item.warrantyUnit) {
-        setError(
-          `Select a warranty period for "${item.name}".`,
-        );
+        setError(`Select a warranty period for "${item.name}".`);
 
         return;
       }
     }
 
-    if (
-      validItems.length === 0
-    ) {
-      setError(
-        "Add at least one valid quotation item.",
-      );
+    if (validItems.length === 0) {
+      setError("Add at least one valid quotation item.");
 
       return;
     }
 
-    const discount =
-      Number(
-        discountValue,
-      );
+    const discount = Number(discountValue);
 
-    if (
-      discountType ===
-        "PERCENTAGE" &&
-      (discount < 0 ||
-        discount > 100)
-    ) {
-      setError(
-        "Percentage discount must be between 0 and 100.",
-      );
+    if (discountType === "PERCENTAGE" && (discount < 0 || discount > 100)) {
+      setError("Percentage discount must be between 0 and 100.");
 
       return;
     }
 
-    const tax =
-      Number(taxRate);
+    const tax = Number(taxRate);
 
-    if (
-      tax < 0 ||
-      tax > 100
-    ) {
-      setError(
-        "Tax rate must be between 0 and 100.",
-      );
+    if (tax < 0 || tax > 100) {
+      setError("Tax rate must be between 0 and 100.");
 
       return;
     }
@@ -530,116 +371,69 @@ export function useQuotationForm({
       await onSubmit({
         customerId,
 
-        validUntil:
-          validUntil ||
-          undefined,
+        validUntil: validUntil || undefined,
 
         discountType,
 
-        discountValue:
-          discountType ===
-          "NONE"
-            ? 0
-            : discount,
+        discountValue: discountType === "NONE" ? 0 : discount,
 
         taxRate: tax,
 
-        subject:
-          subject.trim() ||
-          null,
+        subject: subject.trim() || null,
 
-        notes:
-          notes.trim() ||
-          null,
+        notes: notes.trim() || null,
 
-        terms:
-          terms.trim() ||
-          null,
+        footerNote: footerNote.trim() || null,
 
-        items:
-          validItems.map(
-            (item) => {
-              const hasWarranty =
-                Boolean(
-                  item.warrantyDuration ||
-                  item.warrantyUnit ||
-                  item.warrantyTerms?.trim(),
-                );
+        terms: terms.trim() || null,
 
-              return {
-                name:
-                  item.name.trim(),
+        items: validItems.map((item) => {
+          const hasWarranty = Boolean(
+            item.warrantyDuration ||
+            item.warrantyUnit ||
+            item.warrantyTerms?.trim(),
+          );
 
-                description:
-                  item.description
-                    .trim() ||
-                  undefined,
+          return {
+            name: item.name.trim(),
 
-                quantity:
-                  Number(
-                    item.quantity,
-                  ),
+            description: item.description.trim() || undefined,
 
-                unit:
-                  item.unit.trim(),
+            quantity: Number(item.quantity),
 
-                unitPrice:
-                  Number(
-                    item.unitPrice,
-                  ),
+            unit: item.unit.trim(),
 
-                imageUrl:
-                  item.imageUrl ||
-                  undefined,
+            unitPrice: Number(item.unitPrice),
 
-                imageKey:
-                  item.imageKey ||
-                  undefined,
+            imageUrl: item.imageUrl || undefined,
 
-                warrantyDuration:
-                  hasWarranty
-                    ? Number(
-                        item.warrantyDuration,
-                      )
-                    : undefined,
+            imageKey: item.imageKey || undefined,
 
-                warrantyUnit:
-                  hasWarranty
-                    ? item.warrantyUnit ||
-                      undefined
-                    : undefined,
+            warrantyDuration: hasWarranty
+              ? Number(item.warrantyDuration)
+              : undefined,
 
-                warrantyTerms:
-                  hasWarranty
-                    ? item.warrantyTerms
-                        ?.trim() ||
-                      undefined
-                    : undefined,
-              };
-            },
-          ),
+            warrantyUnit: hasWarranty
+              ? item.warrantyUnit || undefined
+              : undefined,
+
+            warrantyTerms: hasWarranty
+              ? item.warrantyTerms?.trim() || undefined
+              : undefined,
+          };
+        }),
       });
 
-      rememberQuotationNotes(
-        businessProfileId,
-        notes,
-      );
+      rememberQuotationNotes(businessProfileId, notes);
 
-      rememberQuotationSubject(
-        businessProfileId,
-        subject,
-      );
+      rememberQuotationFooterNote(businessProfileId, footerNote);
 
-      rememberQuotationMessage(
-        businessProfileId,
-        quotationMessage,
-      );
+      rememberQuotationSubject(businessProfileId, subject);
 
+      rememberQuotationMessage(businessProfileId, quotationMessage);
     } catch (error) {
       setError(
-        error instanceof Error
-          ? error.message
-          : "Unable to save quotation.",
+        error instanceof Error ? error.message : "Unable to save quotation.",
       );
     }
   }
@@ -657,6 +451,7 @@ export function useQuotationForm({
     quotationMessage,
 
     notes,
+    footerNote,
     terms,
     items,
 
@@ -676,6 +471,7 @@ export function useQuotationForm({
     setQuotationMessage,
 
     setNotes,
+    setFooterNotes,
     setTerms,
 
     addItem,

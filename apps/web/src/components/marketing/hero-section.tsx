@@ -1,10 +1,5 @@
 import Link from "next/link";
-import {
-  ArrowRight,
-  Check,
-  CirclePlay,
-  Sparkles,
-} from "lucide-react";
+import { ArrowRight, Check, CirclePlay, Sparkles } from "lucide-react";
 import Image from "next/image";
 
 export function HeroSection() {
@@ -53,7 +48,7 @@ export function HeroSection() {
               className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-3.5 text-sm font-semibold text-white backdrop-blur transition hover:border-white/20 hover:bg-white/[0.07] sm:w-auto"
             >
               <CirclePlay className="size-4" />
-              Watch 3-Minute Demo
+              Watch 5-Minute Demo
             </a>
           </div>
 
@@ -125,7 +120,9 @@ export function HeroSection() {
               Outstanding
             </div>
 
-            <div className="mt-1 text-xl font-semibold text-white">₱20,311.50</div>
+            <div className="mt-1 text-xl font-semibold text-white">
+              ₱20,311.50
+            </div>
 
             <div className="mt-1 text-xs text-emerald-300">
               Payments tracked automatically

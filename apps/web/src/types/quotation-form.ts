@@ -1,7 +1,4 @@
-export type QuotationDiscountType =
-  | "NONE"
-  | "FIXED"
-  | "PERCENTAGE";
+export type QuotationDiscountType = "NONE" | "FIXED" | "PERCENTAGE";
 
 export type QuotationFormItem = {
   key: string;
@@ -17,7 +14,7 @@ export type QuotationFormItem = {
   warrantyDuration: string;
   warrantyUnit: WarrantyUnit | "";
   warrantyTerms: string;
-  
+
   currency: string;
 };
 
@@ -36,6 +33,9 @@ export type QuotationFormPayload = {
   subject?: string | null;
 
   notes?: string | null;
+
+  footerNote?: string | null;
+
   terms?: string | null;
 
   imageUrl?: string;
@@ -43,11 +43,7 @@ export type QuotationFormPayload = {
 
   warrantyDuration?: number;
 
-  warrantyUnit?:
-    | "DAYS"
-    | "WEEKS"
-    | "MONTHS"
-    | "YEARS";
+  warrantyUnit?: "DAYS" | "WEEKS" | "MONTHS" | "YEARS";
 
   warrantyTerms?: string;
 
@@ -60,8 +56,4 @@ export type QuotationFormPayload = {
   }[];
 };
 
-export type WarrantyUnit =
-  | "DAYS"
-  | "WEEKS"
-  | "MONTHS"
-  | "YEARS";
+export type WarrantyUnit = "DAYS" | "WEEKS" | "MONTHS" | "YEARS";

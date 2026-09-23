@@ -256,7 +256,7 @@ export function BusinessSettingsForm({
             FORM HEADER
         ======================================================= */}
 
-        <div className="border-b border-[var(--qufo-border)] px-5 py-5 sm:px-6">
+        <div className="border-b flex justify-between items-center border-[var(--qufo-border)] px-5 py-5 sm:px-6">
           <div className="flex items-center gap-3">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-400/[0.08] text-emerald-300">
               <Building2 size={18} />
@@ -270,6 +270,20 @@ export function BusinessSettingsForm({
               </p>
             </div>
           </div>
+
+          <button
+            type="submit"
+            disabled={formSaving}
+            className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-4 py-2.5 text-sm font-medium text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {formSaving ? (
+              <LoaderCircle size={16} className="animate-spin" />
+            ) : (
+              <Save size={16} />
+            )}
+
+            {formSaving ? "Saving..." : "Save changes"}
+          </button>
         </div>
 
         {/* =======================================================
@@ -547,17 +561,6 @@ export function BusinessSettingsForm({
                 </div>
               </div>
 
-              {/* Email notifications */}
-
-              {settings.emailNotificationsAvailable && (
-                <div className="mt-5 border-t border-[var(--qufo-border)] pt-5">
-                  <CustomerEmailNotificationsSettings
-                    enabled={customerEmailNotificationsEnabled}
-                    disabled={saving}
-                    onChange={setCustomerEmailNotificationsEnabled}
-                  />
-                </div>
-              )}
               {/* ---------------------------------------------------
                   ADDITIONAL BUSINESS PROFILES
               --------------------------------------------------- */}
@@ -577,7 +580,7 @@ export function BusinessSettingsForm({
                 QUOTATION DEFAULTS
             --------------------------------------------------- */}
 
-            <section className="rounded-2xl border border-[var(--qufo-border)] bg-white/[0.012] p-5">
+            {/* <section className="rounded-2xl border border-[var(--qufo-border)] bg-white/[0.012] p-5">
               <div className="mb-5">
                 <div className="flex items-center gap-2.5">
                   <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-400/[0.08] text-emerald-300">
@@ -597,8 +600,7 @@ export function BusinessSettingsForm({
               </div>
 
               <div className="grid gap-5">
-                {/* Terms */}
-
+                
                 <div className="min-w-0">
                   <label
                     htmlFor="quotation-terms"
@@ -615,9 +617,9 @@ export function BusinessSettingsForm({
                     onChange={(event) => setQuotationTerms(event.target.value)}
                     className="qufo-input resize-y"
                     placeholder={`Quotation validity: 30 days.
-50% downpayment upon approval.
-Balance payable upon completion.
-Lead time is subject to material availability.`}
+                                  50% downpayment upon approval.
+                                  Balance payable upon completion.
+                                  Lead time is subject to material availability.`}
                   />
 
                   <div className="mt-2 flex items-center justify-between gap-4">
@@ -632,8 +634,7 @@ Lead time is subject to material availability.`}
                   </div>
                 </div>
 
-                {/* Footer note */}
-
+                
                 <div className="min-w-0">
                   <label
                     htmlFor="quotation-footer-note"
@@ -667,7 +668,7 @@ Lead time is subject to material availability.`}
                   </div>
                 </div>
               </div>
-            </section>
+            </section> */}
 
             {/* ---------------------------------------------------
                 PDF DISPLAY
@@ -887,6 +888,16 @@ Lead time is subject to material availability.`}
                 </p>
               </div>
             </section>
+
+            {settings.emailNotificationsAvailable && (
+              <div className="mt-5 border-[var(--qufo-border)]">
+                <CustomerEmailNotificationsSettings
+                  enabled={customerEmailNotificationsEnabled}
+                  disabled={saving}
+                  onChange={setCustomerEmailNotificationsEnabled}
+                />
+              </div>
+            )}
 
             {/* ---------------------------------------------------
                 SIGNATURE

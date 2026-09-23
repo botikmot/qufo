@@ -14,7 +14,7 @@ export class ConvertQuotationToJobDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(2000)
+  @MaxLength(5000)
   description?: string;
 
   @IsOptional()

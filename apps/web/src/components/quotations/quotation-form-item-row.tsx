@@ -10,36 +10,26 @@ import {
   ArrowDown,
 } from "lucide-react";
 
-import {
-  formatCurrency,
-} from "@/utils/currency";
+import { formatCurrency } from "@/utils/currency";
 
-import {
-  calculateQuotationItemTotal,
-} from "@/utils/quotation-calculation";
+import { calculateQuotationItemTotal } from "@/utils/quotation-calculation";
 
-import type {
-  QuotationFormItem,
-} from "@/types/quotation-form";
-import { useState } from "react";
+import type { QuotationFormItem } from "@/types/quotation-form";
+import { useState, useEffect, useRef } from "react";
 
 type QuotationFormItemRowProps = {
   item: QuotationFormItem;
 
   canRemove: boolean;
 
-  onChange: (
-    patch: Partial<QuotationFormItem>,
-  ) => void;
+  onChange: (patch: Partial<QuotationFormItem>) => void;
 
   onRemove: () => void;
 
   onInsertBefore: () => void;
   onInsertAfter: () => void;
 
-  onImageSelect: (
-    file: File,
-  ) => void | Promise<void>;
+  onImageSelect: (file: File) => void | Promise<void>;
 
   isUploadingImage?: boolean;
 
@@ -57,20 +47,27 @@ export function QuotationFormItemRow({
   isUploadingImage = false,
   currency,
 }: QuotationFormItemRowProps) {
-  const total =
-    calculateQuotationItemTotal(
-      item,
-    );
+  const total = calculateQuotationItemTotal(item);
+
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
 
   const hasWarranty = Boolean(
-    item.warrantyDuration ||
-      item.warrantyUnit ||
-      item.warrantyTerms?.trim(),
+    item.warrantyDuration || item.warrantyUnit || item.warrantyTerms?.trim(),
   );
 
-  function handleWarrantyToggle(
-    enabled: boolean,
-  ) {
+  useEffect(() => {
+    const textarea = descriptionRef.current;
+
+    if (!textarea) return;
+
+    // Reset height before measuring
+    textarea.style.height = "auto";
+
+    // Set height based on content
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }, [item.description]);
+
+  function handleWarrantyToggle(enabled: boolean) {
     if (enabled) {
       onChange({
         warrantyDuration: "",
@@ -88,10 +85,7 @@ export function QuotationFormItemRow({
     });
   }
 
-  const [
-    showInsertMenu,
-    setShowInsertMenu,
-  ] = useState(false);
+  const [showInsertMenu, setShowInsertMenu] = useState(false);
 
   return (
     <div
@@ -108,9 +102,7 @@ export function QuotationFormItemRow({
         <div className="relative">
           <button
             type="button"
-            onClick={() =>
-              setShowInsertMenu((current) => !current)
-            }
+            onClick={() => setShowInsertMenu((current) => !current)}
             className="
               inline-flex
               h-8
@@ -203,7 +195,6 @@ export function QuotationFormItemRow({
         </div>
       </div>
 
-
       <div
         className="
           grid
@@ -226,8 +217,7 @@ export function QuotationFormItemRow({
             value={item.name}
             onChange={(event) =>
               onChange({
-                name:
-                  event.target.value,
+                name: event.target.value,
               })
             }
             className="qufo-input"
@@ -237,9 +227,7 @@ export function QuotationFormItemRow({
 
         {/* Quantity */}
         <div className="min-w-0">
-          <label className="mb-2 block text-xs text-slate-500">
-            Quantity
-          </label>
+          <label className="mb-2 block text-xs text-slate-500">Quantity</label>
 
           <input
             type="number"
@@ -248,8 +236,7 @@ export function QuotationFormItemRow({
             value={item.quantity}
             onChange={(event) =>
               onChange({
-                quantity:
-                  event.target.value,
+                quantity: event.target.value,
               })
             }
             className="qufo-input"
@@ -258,16 +245,13 @@ export function QuotationFormItemRow({
 
         {/* Unit */}
         <div className="min-w-0">
-          <label className="mb-2 block text-xs text-slate-500">
-            Unit
-          </label>
+          <label className="mb-2 block text-xs text-slate-500">Unit</label>
 
           <input
             value={item.unit}
             onChange={(event) =>
               onChange({
-                unit:
-                  event.target.value,
+                unit: event.target.value,
               })
             }
             className="qufo-input"
@@ -288,8 +272,7 @@ export function QuotationFormItemRow({
             value={item.unitPrice}
             onChange={(event) =>
               onChange({
-                unitPrice:
-                  event.target.value,
+                unitPrice: event.target.value,
               })
             }
             className="qufo-input"
@@ -327,20 +310,18 @@ export function QuotationFormItemRow({
 
       {/* Description */}
       <div className="mt-4 min-w-0">
-        <label className="mb-2 block text-xs text-slate-500">
-          Description
-        </label>
+        <label className="mb-2 block text-xs text-slate-500">Description</label>
 
         <textarea
+          ref={descriptionRef}
           rows={2}
-          value={item.description}
+          value={item.description ?? ""}
           onChange={(event) =>
             onChange({
-              description:
-                event.target.value,
+              description: event.target.value,
             })
           }
-          className="qufo-input resize-none"
+          className="qufo-input min-h-[72px] resize-none overflow-hidden"
           placeholder="Optional description..."
         />
       </div>
@@ -384,9 +365,7 @@ export function QuotationFormItemRow({
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-slate-400">
-                Item image
-              </p>
+              <p className="text-sm font-medium text-slate-400">Item image</p>
 
               <p className="mt-1 text-xs leading-5 text-slate-600">
                 Optional product, design, or reference image.
@@ -398,10 +377,7 @@ export function QuotationFormItemRow({
             <div className="mt-4 flex items-center gap-3">
               <div
                 role="img"
-                aria-label={
-                  item.name ||
-                  "Quotation item image"
-                }
+                aria-label={item.name || "Quotation item image"}
                 className="
                   size-20
                   shrink-0
@@ -413,8 +389,7 @@ export function QuotationFormItemRow({
                   bg-no-repeat
                 "
                 style={{
-                  backgroundImage:
-                    `url("${item.imageUrl}")`,
+                  backgroundImage: `url("${item.imageUrl}")`,
                 }}
               />
 
@@ -441,40 +416,28 @@ export function QuotationFormItemRow({
                 >
                   <ImagePlus size={14} />
 
-                  {isUploadingImage
-                    ? "Uploading..."
-                    : "Replace"}
+                  {isUploadingImage ? "Uploading..." : "Replace"}
 
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
-                    disabled={
-                      isUploadingImage
-                    }
+                    disabled={isUploadingImage}
                     className="hidden"
-                    onChange={(
-                      event,
-                    ) => {
-                      const file =
-                        event.target.files?.[0];
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
 
                       if (file) {
-                        void onImageSelect(
-                          file,
-                        );
+                        void onImageSelect(file);
                       }
 
-                      event.target.value =
-                        "";
+                      event.target.value = "";
                     }}
                   />
                 </label>
 
                 <button
                   type="button"
-                  disabled={
-                    isUploadingImage
-                  }
+                  disabled={isUploadingImage}
                   onClick={() =>
                     onChange({
                       imageUrl: "",
@@ -499,7 +462,6 @@ export function QuotationFormItemRow({
                   "
                 >
                   <X size={14} />
-
                   Remove
                 </button>
               </div>
@@ -530,31 +492,21 @@ export function QuotationFormItemRow({
             >
               <ImagePlus size={15} />
 
-              {isUploadingImage
-                ? "Uploading image..."
-                : "Upload image"}
+              {isUploadingImage ? "Uploading image..." : "Upload image"}
 
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
-                disabled={
-                  isUploadingImage
-                }
+                disabled={isUploadingImage}
                 className="hidden"
-                onChange={(
-                  event,
-                ) => {
-                  const file =
-                    event.target.files?.[0];
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
 
                   if (file) {
-                    void onImageSelect(
-                      file,
-                    );
+                    void onImageSelect(file);
                   }
 
-                  event.target.value =
-                    "";
+                  event.target.value = "";
                 }}
               />
             </label>
@@ -594,9 +546,7 @@ export function QuotationFormItemRow({
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-slate-400">
-                Warranty
-              </p>
+              <p className="text-sm font-medium text-slate-400">Warranty</p>
 
               <p className="mt-1 text-xs leading-5 text-slate-600">
                 Add warranty coverage for this item.
@@ -607,17 +557,11 @@ export function QuotationFormItemRow({
               <input
                 type="checkbox"
                 checked={hasWarranty}
-                onChange={(event) =>
-                  handleWarrantyToggle(
-                    event.target.checked,
-                  )
-                }
+                onChange={(event) => handleWarrantyToggle(event.target.checked)}
                 className="size-4 accent-emerald-400"
               />
 
-              <span className="text-xs text-slate-500">
-                Add
-              </span>
+              <span className="text-xs text-slate-500">Add</span>
             </label>
           </div>
 
@@ -633,15 +577,10 @@ export function QuotationFormItemRow({
                     type="number"
                     min="1"
                     step="1"
-                    value={
-                      item.warrantyDuration
-                    }
-                    onChange={(
-                      event,
-                    ) =>
+                    value={item.warrantyDuration}
+                    onChange={(event) =>
                       onChange({
-                        warrantyDuration:
-                          event.target.value,
+                        warrantyDuration: event.target.value,
                       })
                     }
                     className="qufo-input"
@@ -655,35 +594,22 @@ export function QuotationFormItemRow({
                   </label>
 
                   <select
-                    value={
-                      item.warrantyUnit
-                    }
-                    onChange={(
-                      event,
-                    ) =>
+                    value={item.warrantyUnit}
+                    onChange={(event) =>
                       onChange({
-                        warrantyUnit:
-                          event.target
-                            .value as QuotationFormItem["warrantyUnit"],
+                        warrantyUnit: event.target
+                          .value as QuotationFormItem["warrantyUnit"],
                       })
                     }
                     className="qufo-input"
                   >
-                    <option value="DAYS">
-                      Days
-                    </option>
+                    <option value="DAYS">Days</option>
 
-                    <option value="WEEKS">
-                      Weeks
-                    </option>
+                    <option value="WEEKS">Weeks</option>
 
-                    <option value="MONTHS">
-                      Months
-                    </option>
+                    <option value="MONTHS">Months</option>
 
-                    <option value="YEARS">
-                      Years
-                    </option>
+                    <option value="YEARS">Years</option>
                   </select>
                 </div>
               </div>
@@ -695,15 +621,10 @@ export function QuotationFormItemRow({
 
                 <textarea
                   rows={2}
-                  value={
-                    item.warrantyTerms
-                  }
-                  onChange={(
-                    event,
-                  ) =>
+                  value={item.warrantyTerms}
+                  onChange={(event) =>
                     onChange({
-                      warrantyTerms:
-                        event.target.value,
+                      warrantyTerms: event.target.value,
                     })
                   }
                   className="qufo-input resize-none"
@@ -762,10 +683,7 @@ export function QuotationFormItemRow({
         <p className="min-w-0 text-right text-sm text-slate-500">
           Line total:{" "}
           <span className="font-medium text-slate-300">
-            {formatCurrency(
-              total,
-              currency,
-            )}
+            {formatCurrency(total, currency)}
           </span>
         </p>
       </div>
