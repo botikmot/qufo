@@ -186,31 +186,31 @@ export class BusinessProfilesService {
 
         data: {
           ...(dto.label !== undefined && {
-            label: dto.label.trim(),
+            label: dto.label?.trim(),
           }),
 
           ...(dto.name !== undefined && {
-            name: dto.name.trim(),
+            name: dto.name?.trim(),
           }),
 
           ...(dto.email !== undefined && {
-            email: dto.email.trim() || null,
+            email: dto.email?.trim() || null,
           }),
 
           ...(dto.phone !== undefined && {
-            phone: dto.phone.trim() || null,
+            phone: dto.phone?.trim() || null,
           }),
 
           ...(dto.address !== undefined && {
-            address: dto.address.trim() || null,
+            address: dto.address?.trim() || null,
           }),
 
           ...(dto.quotationTerms !== undefined && {
-            quotationTerms: dto.quotationTerms.trim() || null,
+            quotationTerms: dto.quotationTerms?.trim() || null,
           }),
 
           ...(dto.quotationFooterNote !== undefined && {
-            quotationFooterNote: dto.quotationFooterNote.trim() || null,
+            quotationFooterNote: dto.quotationFooterNote?.trim() || null,
           }),
 
           ...(dto.isDefault !== undefined && {
