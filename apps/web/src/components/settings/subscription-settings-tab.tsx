@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { SubscriptionSettingsCard } from '@/components/settings/subscription-settings-card';
+import { SubscriptionSettingsCard } from "@/components/settings/subscription-settings-card";
 
-import { useSubscriptionSettings } from '@/hooks/use-subscription-settings';
+import { useSubscriptionSettings } from "@/hooks/use-subscription-settings";
 
 export function SubscriptionSettingsTab() {
   const subscription = useSubscriptionSettings();
@@ -18,7 +18,7 @@ export function SubscriptionSettingsTab() {
   if (!subscription.billing) {
     return (
       <div className="rounded-2xl border border-red-400/15 bg-red-400/[0.05] p-5 text-sm text-red-300">
-        {subscription.error ?? 'Unable to load subscription.'}
+        {subscription.error ?? "Unable to load subscription."}
       </div>
     );
   }
@@ -33,6 +33,12 @@ export function SubscriptionSettingsTab() {
       appSumoEnabled={subscription.appSumoEnabled}
       redeemingAppSumo={subscription.redeemingAppSumo}
       appSumoSuccess={subscription.appSumoSuccess}
+
+      dealifyEnabled={subscription.dealifyEnabled}
+      redeemingDealify={subscription.redeemingDealify}
+      dealifySuccess={subscription.dealifySuccess}
+      onRedeemDealify={subscription.redeemDealify}
+
       error={subscription.error}
       onRenew={subscription.renew}
       onRefresh={subscription.refresh}

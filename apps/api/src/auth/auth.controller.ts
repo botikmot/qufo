@@ -97,8 +97,8 @@ export class AuthController {
   @UseGuards(ThrottlerGuard)
   @Throttle({
     default: {
-      limit: 3,
-      ttl: 10 * 60 * 1000,
+      limit: process.env.NODE_ENV === 'production' ? 3 : 20,
+      ttl: process.env.NODE_ENV === 'production' ? 10 * 60 * 1000 : 60 * 1000,
     },
   })
   @Post('register')

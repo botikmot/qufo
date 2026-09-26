@@ -253,3 +253,24 @@ export type TeamSeatUsage = {
   usedSeats: number;
   remainingSeats: number | null;
 };
+
+export type RedeemDealifyCodeResponse = {
+  message: string;
+  alreadyRedeemed: boolean;
+  tier: "TIER_2" | "TIER_3";
+  activatedAt?: string;
+  subscription: {
+    status: string;
+    source: string;
+    accessType: string;
+    dealifyTier?: "TIER_2" | "TIER_3" | null;
+    dealifyActivatedAt?: string | null;
+  };
+  entitlements: {
+    label: string;
+    maxMembers: number;
+    maxStorageBytes: number;
+    monthlyCustomerEmailLimit: number;
+    monthlyQuotationCredits: number;
+  };
+};

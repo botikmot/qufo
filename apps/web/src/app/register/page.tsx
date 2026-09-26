@@ -1,23 +1,14 @@
 "use client";
 
-import {
-  FormEvent,
-  Suspense,
-  useState,
-} from "react";
+import { FormEvent, Suspense, useState } from "react";
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 
-import {
-  buildAuthUrl,
-  getSafeAuthRedirect,
-} from "@/lib/auth-redirect";
+import { buildAuthUrl, getSafeAuthRedirect } from "@/lib/auth-redirect";
 
-import {
-  LoadingState,
-} from "@/components/shared/loading-state";
+import { LoadingState } from "@/components/shared/loading-state";
 
 import {
   Building2,
@@ -46,7 +37,8 @@ import {
 
 import { GoogleContinueButton } from "@/components/shared/google-continue-button";
 
-const GOOGLE_AUTH_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED !== "false";
+const GOOGLE_AUTH_ENABLED =
+  process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED !== "false";
 
 type RegisterResponse = {
   message: string;
@@ -89,114 +81,69 @@ export default function RegisterPage() {
   );
 }
 
-
 function RegisterPageContent() {
   const router = useRouter();
 
-  const searchParams =
-    useSearchParams();
+  const searchParams = useSearchParams();
 
-  const nextPath =
-    getSafeAuthRedirect(
-      searchParams.get(
-        "next",
-      ),
-    );
+  const nextPath = getSafeAuthRedirect(searchParams.get("next"));
 
-  const [name, setName] =
-    useState("");
+  const [name, setName] = useState("");
 
-  const [
-    businessName,
-    setBusinessName,
-  ] = useState("");
+  const [businessName, setBusinessName] = useState("");
 
-  const [
-    businessType,
-    setBusinessType,
-  ] = useState("");
+  const [businessType, setBusinessType] = useState("");
 
-  const [email, setEmail] =
-    useState("");
+  const [email, setEmail] = useState("");
 
-  const [password, setPassword] =
-    useState("");
+  const [password, setPassword] = useState("");
 
-  const [
-    confirmPassword,
-    setConfirmPassword,
-  ] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
-  const [loading, setLoading] =
-    useState(false);
+  const [dealifyCode, setDealifyCode] = useState("");
 
-  const [error, setError] =
-    useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const [acceptedTerms, setAcceptedTerms] =
-    useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const [
-    countryCode,
-    setCountryCode,
-  ] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
-  const [
-    currency,
-    setCurrency,
-  ] = useState("");
+  const [countryCode, setCountryCode] = useState("");
 
-  function handleCountryChange(
-    value: string,
-  ) {
+  const [currency, setCurrency] = useState("");
+
+  function handleCountryChange(value: string) {
     setCountryCode(value);
 
-    const country =
-      BUSINESS_COUNTRIES.find(
-        (item) =>
-          item.code === value,
-      );
+    const country = BUSINESS_COUNTRIES.find((item) => item.code === value);
 
     if (country) {
-      setCurrency(
-        country.currency,
-      );
+      setCurrency(country.currency);
     }
   }
 
-  async function handleSubmit(
-    event: FormEvent<HTMLFormElement>,
-  ) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setError(null);
 
-    if (
-      password !==
-      confirmPassword
-    ) {
-      setError(
-        "Passwords do not match.",
-      );
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
 
       return;
     }
 
     if (!countryCode) {
-        setError(
-          "Please select your business country.",
-        );
+      setError("Please select your business country.");
 
-        return;
-      }
+      return;
+    }
 
-      if (!currency) {
-        setError(
-          "Please select your preferred currency.",
-        );
+    if (!currency) {
+      setError("Please select your preferred currency.");
 
-        return;
-      }
+      return;
+    }
 
     if (!acceptedTerms) {
       setError(
@@ -210,45 +157,36 @@ function RegisterPageContent() {
 
     try {
       // 1. Create the account and workspace
-      await apiFetch<RegisterResponse>(
-        "/auth/register",
-        {
-          method: "POST",
-          requireAuth: false,
+      await apiFetch<RegisterResponse>("/auth/register", {
+        method: "POST",
+        requireAuth: false,
 
-          body: JSON.stringify({
-            name,
-            businessName,
-            businessType:
-              businessType.trim() ||
-              undefined,
-            countryCode,
-            currency,
-            email,
-            password,
-            acceptedTerms,
-          }),
-        },
-      );
+        body: JSON.stringify({
+          name,
+          businessName,
+          businessType: businessType.trim() || undefined,
+          countryCode,
+          currency,
+          email,
+          password,
+          acceptedTerms,
+          dealifyCode: dealifyCode.trim() || undefined,
+        }),
+      });
 
       // 2. Automatically sign in
-      const loginResponse =
-        await apiFetch<LoginResponse>(
-          "/auth/login",
-          {
-            method: "POST",
-            requireAuth: false,
+      const loginResponse = await apiFetch<LoginResponse>("/auth/login", {
+        method: "POST",
+        requireAuth: false,
 
-            body: JSON.stringify({
-              email,
-              password,
-            }),
-          },
-        );
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
 
       // 3. Select the newly created organization
-      const organization =
-        loginResponse.organizations[0];
+      const organization = loginResponse.organizations[0];
 
       if (!organization) {
         throw new Error(
@@ -257,15 +195,10 @@ function RegisterPageContent() {
       }
 
       // 4. Save the same session used by the normal login flow
-      saveLoginSession(
-        loginResponse,
-        organization,
-      );
+      saveLoginSession(loginResponse, organization);
 
       // 5. Go directly to the dashboard
-      router.replace(
-        nextPath,
-      );
+      router.replace(nextPath);
     } catch (error) {
       setError(
         error instanceof Error
@@ -282,7 +215,7 @@ function RegisterPageContent() {
       <div className="w-full max-w-xl">
         <div className="flex justify-center w-full">
           <Link href="/">
-            <Image 
+            <Image
               src="/images/qufo_logo_variant2.png"
               alt="QUFO"
               width={60}
@@ -300,10 +233,8 @@ function RegisterPageContent() {
           </h1>
 
           <p className="mt-3 max-w-lg text-sm leading-6 text-slate-400">
-            Start your business workspace
-            for quotations, jobs,
-            customers, payments, and
-            tracking.
+            Start your business workspace for quotations, jobs, customers,
+            payments, and tracking.
           </p>
         </div>
 
@@ -314,27 +245,20 @@ function RegisterPageContent() {
             </div>
 
             <div>
-              <h2 className="font-medium text-slate-100">
-                Create account
-              </h2>
+              <h2 className="font-medium text-slate-100">Create account</h2>
 
               <p className="mt-1 text-xs text-slate-500">
-                Includes your 30-day free trial.
+                Start with a free trial, or activate a Dealify lifetime plan
+                with your code.
               </p>
             </div>
           </div>
 
           {GOOGLE_AUTH_ENABLED && (
-            <GoogleContinueButton
-              onError={setError}
-              nextPath={nextPath}
-            />
+            <GoogleContinueButton onError={setError} nextPath={nextPath} />
           )}
 
-          <form
-            onSubmit={handleSubmit}
-            className="space-y-5"
-          >
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid gap-5 sm:grid-cols-2">
               <div>
                 <label
@@ -348,11 +272,7 @@ function RegisterPageContent() {
                   id="name"
                   required
                   value={name}
-                  onChange={(event) =>
-                    setName(
-                      event.target.value,
-                    )
-                  }
+                  onChange={(event) => setName(event.target.value)}
                   className="qufo-input"
                   placeholder="John Doe"
                 />
@@ -369,15 +289,8 @@ function RegisterPageContent() {
                 <input
                   id="businessName"
                   required
-                  value={
-                    businessName
-                  }
-                  onChange={(event) =>
-                    setBusinessName(
-                      event.target
-                        .value,
-                    )
-                  }
+                  value={businessName}
+                  onChange={(event) => setBusinessName(event.target.value)}
                   className="qufo-input"
                   placeholder="Eagle Printing"
                 />
@@ -390,9 +303,7 @@ function RegisterPageContent() {
                 className="mb-2 block text-sm text-slate-400"
               >
                 Business type
-                <span className="ml-1 text-slate-600">
-                  Optional
-                </span>
+                <span className="ml-1 text-slate-600">Optional</span>
               </label>
 
               <div className="relative">
@@ -403,19 +314,36 @@ function RegisterPageContent() {
 
                 <input
                   id="businessType"
-                  value={
-                    businessType
-                  }
-                  onChange={(event) =>
-                    setBusinessType(
-                      event.target
-                        .value,
-                    )
-                  }
+                  value={businessType}
+                  onChange={(event) => setBusinessType(event.target.value)}
                   className="qufo-input qufo-input-with-icon"
                   placeholder="Printing, signage, fabrication..."
                 />
               </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="dealifyCode"
+                className="mb-2 block text-sm text-slate-400"
+              >
+                Dealify code
+                <span className="ml-1 text-slate-600">Optional</span>
+              </label>
+
+              <input
+                id="dealifyCode"
+                value={dealifyCode}
+                onChange={(event) => setDealifyCode(event.target.value)}
+                className="qufo-input"
+                placeholder="Enter your Dealify code"
+                autoComplete="off"
+              />
+
+              <p className="mt-2 text-xs leading-5 text-slate-600">
+                Purchased QUFO through Dealify? Enter your code here to activate
+                your lifetime plan.
+              </p>
             </div>
 
             <div className="grid gap-5 sm:grid-cols-2">
@@ -438,9 +366,7 @@ function RegisterPageContent() {
                     value={countryCode}
                     onValueChange={(value) => {
                       if (value !== null) {
-                        handleCountryChange(
-                          value,
-                        );
+                        handleCountryChange(value);
                       }
                     }}
                   >
@@ -452,23 +378,17 @@ function RegisterPageContent() {
                     </SelectTrigger>
 
                     <SelectContent>
-                      {BUSINESS_COUNTRIES.map(
-                        (country) => (
-                          <SelectItem
-                            key={country.code}
-                            value={country.code}
-                          >
-                            {country.name}
-                          </SelectItem>
-                        ),
-                      )}
+                      {BUSINESS_COUNTRIES.map((country) => (
+                        <SelectItem key={country.code} value={country.code}>
+                          {country.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
 
                 <p className="mt-2 text-xs leading-5 text-slate-600">
-                  Where your business is
-                  primarily based.
+                  Where your business is primarily based.
                 </p>
               </div>
 
@@ -503,38 +423,26 @@ function RegisterPageContent() {
                     </SelectTrigger>
 
                     <SelectContent>
-                      {SUPPORTED_CURRENCIES.map(
-                        (item) => (
-                          <SelectItem
-                            key={item.code}
-                            value={item.code}
-                          >
-                            {item.code} —{" "}
-                            {item.name}
-                          </SelectItem>
-                        ),
-                      )}
+                      {SUPPORTED_CURRENCIES.map((item) => (
+                        <SelectItem key={item.code} value={item.code}>
+                          {item.code} — {item.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
 
                 <p className="mt-2 text-xs leading-5 text-slate-600">
-                  Used for quotations,
-                  jobs, payments, and
-                  reports.
+                  Used for quotations, jobs, payments, and reports.
                 </p>
               </div>
             </div>
             <div className="rounded-xl border border-amber-400/10 bg-amber-400/[0.03] px-4 py-3">
               <p className="text-xs leading-5 text-amber-200/70">
-                Choose your business
-                currency carefully. You
-                can change it until your
-                first quotation is
-                created.
+                Choose your business currency carefully. You can change it until
+                your first quotation is created.
               </p>
             </div>
-
 
             <div>
               <label
@@ -550,11 +458,7 @@ function RegisterPageContent() {
                 required
                 autoComplete="email"
                 value={email}
-                onChange={(event) =>
-                  setEmail(
-                    event.target.value,
-                  )
-                }
+                onChange={(event) => setEmail(event.target.value)}
                 className="qufo-input"
                 placeholder="you@example.com"
               />
@@ -575,12 +479,7 @@ function RegisterPageContent() {
                   required
                   autoComplete="new-password"
                   value={password}
-                  onChange={(event) =>
-                    setPassword(
-                      event.target
-                        .value,
-                    )
-                  }
+                  onChange={(event) => setPassword(event.target.value)}
                   className="qufo-input"
                   placeholder="••••••••"
                 />
@@ -599,15 +498,8 @@ function RegisterPageContent() {
                   type="password"
                   required
                   autoComplete="new-password"
-                  value={
-                    confirmPassword
-                  }
-                  onChange={(event) =>
-                    setConfirmPassword(
-                      event.target
-                        .value,
-                    )
-                  }
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
                   className="qufo-input"
                   placeholder="••••••••"
                 />
@@ -620,11 +512,7 @@ function RegisterPageContent() {
                   type="checkbox"
                   required
                   checked={acceptedTerms}
-                  onChange={(event) =>
-                    setAcceptedTerms(
-                      event.target.checked,
-                    )
-                  }
+                  onChange={(event) => setAcceptedTerms(event.target.checked)}
                   className="
                     mt-0.5 size-4 shrink-0
                     cursor-pointer
@@ -667,16 +555,9 @@ function RegisterPageContent() {
               disabled={loading}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-400 px-4 py-3 font-medium text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {loading && (
-                <LoaderCircle
-                  size={16}
-                  className="animate-spin"
-                />
-              )}
+              {loading && <LoaderCircle size={16} className="animate-spin" />}
 
-              {loading
-                ? "Creating workspace..."
-                : "Create workspace"}
+              {loading ? "Creating workspace..." : "Create workspace"}
             </button>
           </form>
         </div>
@@ -684,10 +565,7 @@ function RegisterPageContent() {
         <p className="mt-6 text-center text-sm text-slate-500">
           Already have an account?{" "}
           <Link
-            href={buildAuthUrl(
-              "/login",
-              nextPath,
-            )}
+            href={buildAuthUrl("/login", nextPath)}
             className="text-emerald-300 transition hover:text-emerald-200"
           >
             Sign in

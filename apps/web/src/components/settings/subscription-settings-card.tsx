@@ -3,7 +3,7 @@
 import {
   CalendarDays,
   CheckCircle2,
-  Clock3,
+  //Clock3,
   CreditCard,
   Loader2,
   RefreshCw,
@@ -18,6 +18,8 @@ import type {
   SubscriptionBillingSummary,
   SubscriptionPaymentHistoryItem,
 } from "@/types/subscription";
+
+import { DealifyRedemptionCard } from "@/components/settings/dealify-redemption-card";
 
 /*
  * import {
@@ -46,6 +48,14 @@ type SubscriptionSettingsCardProps = {
 
   error: string | null;
 
+  dealifyEnabled: boolean;
+
+  redeemingDealify: boolean;
+
+  dealifySuccess: string | null;
+
+  onRedeemDealify: (code: string) => Promise<boolean>;
+
   onRenew: () => Promise<void>;
 
   onRefresh: () => Promise<SubscriptionBillingSummary | null>;
@@ -65,6 +75,10 @@ export function SubscriptionSettingsCard({
    * appSumoSuccess,
    */
   error,
+  dealifyEnabled,
+  redeemingDealify,
+  dealifySuccess,
+  onRedeemDealify,
   onRenew,
   onRefresh,
   // onRedeemAppSumo,
@@ -91,9 +105,9 @@ export function SubscriptionSettingsCard({
 
   const active = status === "ACTIVE";
 
-  const daysRemaining = trialing
+  /* const daysRemaining = trialing
     ? billing.subscription.trialDaysRemaining
-    : billing.subscription.daysRemaining;
+    : billing.subscription.daysRemaining; */
 
   const phpBilling = billing.pricing.currency === "PHP";
 
@@ -206,13 +220,23 @@ export function SubscriptionSettingsCard({
                     Current plan
                   </p>
 
-                  <h3 className="mt-1.5 truncate text-xl font-semibold tracking-tight text-white sm:text-2xl">
-                    {isAppSumoLifetime
-                      ? "QUFO Standard — AppSumo"
-                      : isDealifyLifetime
-                        ? "QUFO Standard — Dealify"
-                        : "QUFO Standard"}
-                  </h3>
+                  <div className="flex">
+                    <h3 className="mt-1.5 truncate text-xl font-semibold tracking-tight text-white sm:text-2xl">
+                      {isAppSumoLifetime
+                        ? "QUFO Standard — AppSumo"
+                        : isDealifyLifetime
+                          ? "QUFO Standard — Dealify"
+                          : "QUFO Standard"}
+                    </h3>
+
+                    {subscription.dealifyTier && (
+                      <p className="mt-1 ml-3 text-sm text-emerald-300">
+                        {subscription.dealifyTier === "TIER_2"
+                          ? "Tier 2"
+                          : "Tier 3"}
+                      </p>
+                    )}
+                  </div>
 
                   <div className="mt-2">
                     <span
@@ -247,6 +271,15 @@ export function SubscriptionSettingsCard({
                 </div>
               </div>
             </section>
+
+            {dealifyEnabled && !isDealifyLifetime && (
+              <DealifyRedemptionCard
+                redeeming={redeemingDealify}
+                success={dealifySuccess}
+                error={null}
+                onRedeem={onRedeemDealify}
+              />
+            )}
 
             {/* Dealify usage */}
 

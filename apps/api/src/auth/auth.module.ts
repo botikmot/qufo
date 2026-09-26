@@ -12,12 +12,14 @@ import { PlatformAdminGuard } from './guards/platform-admin.guard';
 import { GoogleAuthService } from './google-auth.service';
 import { EmailModule } from '../email/email.module';
 import { EmailAutomationModule } from '../email-automation/email-automation.module';
+import { DealifyModule } from '../dealify/dealify.module';
 
 @Module({
   imports: [
     ConfigModule,
     EmailModule,
     EmailAutomationModule,
+    DealifyModule,
 
     ThrottlerModule.forRoot([
       {

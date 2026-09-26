@@ -165,6 +165,13 @@ enum DealifyTier {
   TIER_3
 }
 
+enum DealifyCodeStatus {
+  AVAILABLE
+  REDEEMED
+  REVOKED
+  REFUNDED
+}
+
 enum AppSumoCodeStatus {
   AVAILABLE
   REDEEMED
@@ -1084,4 +1091,27 @@ model EmailDelivery {
   @@index([status, scheduledAt])
   @@index([automationId])
   @@index([recipient])
+}
+
+model DealifyCode {
+  id String @id @default(cuid())
+
+  // Never store the actual Dealify code.
+  codeHash String @unique
+  codeHint String
+
+  tier   DealifyTier
+  status DealifyCodeStatus @default(AVAILABLE)
+
+  organizationId String?
+  redeemedAt     DateTime?
+  revokedAt      DateTime?
+  refundedAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([tier])
+  @@index([organizationId])
 }

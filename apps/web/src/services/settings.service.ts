@@ -1,6 +1,4 @@
-import {
-  apiFetch,
-} from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 
 import type {
   BusinessSettings,
@@ -17,117 +15,75 @@ import type {
   UploadQuotationSignatureResponse,
 } from "@/types/settings";
 
-import type { 
-  SubscriptionSettings, 
-  SubscriptionBillingSummary, 
-  SubscriptionCheckoutResponse, 
+import type {
+  SubscriptionSettings,
+  SubscriptionBillingSummary,
+  SubscriptionCheckoutResponse,
   SubscriptionPaymentHistoryResponse,
   CapturePayPalSubscriptionResponse,
   RedeemAppSumoCodeResponse,
+  RedeemDealifyCodeResponse,
 } from "@/types/subscription";
 
 export const settingsService = {
   getBusiness() {
-    return apiFetch<BusinessSettings>(
-      "/organizations/current",
-    );
+    return apiFetch<BusinessSettings>("/organizations/current");
   },
 
-  updateBusiness(
-    data: UpdateBusinessSettingsData,
-  ) {
-    return apiFetch<BusinessSettings>(
-      "/organizations/current",
-      {
-        method: "PATCH",
+  updateBusiness(data: UpdateBusinessSettingsData) {
+    return apiFetch<BusinessSettings>("/organizations/current", {
+      method: "PATCH",
 
-        body: JSON.stringify(
-          data,
-        ),
-      },
-    );
+      body: JSON.stringify(data),
+    });
   },
 
   getProfile() {
-    return apiFetch<ProfileSettings>(
-      "/settings/profile",
-    );
+    return apiFetch<ProfileSettings>("/settings/profile");
   },
 
-  updateProfile(
-    data: UpdateProfileSettingsData,
-  ) {
-    return apiFetch<UpdateProfileSettingsResponse>(
-      "/settings/profile",
-      {
-        method: "PATCH",
+  updateProfile(data: UpdateProfileSettingsData) {
+    return apiFetch<UpdateProfileSettingsResponse>("/settings/profile", {
+      method: "PATCH",
 
-        body: JSON.stringify(
-          data,
-        ),
-      },
-    );
+      body: JSON.stringify(data),
+    });
   },
 
   getSubscription() {
-    return apiFetch<SubscriptionSettings>(
-      "/settings/subscription",
-    );
+    return apiFetch<SubscriptionSettings>("/settings/subscription");
   },
 
-  changePassword(
-    data: ChangePasswordData,
-  ) {
-    return apiFetch<ChangePasswordResponse>(
-      "/settings/password",
-      {
-        method: "PATCH",
-        body: JSON.stringify(data),
-      },
-    );
+  changePassword(data: ChangePasswordData) {
+    return apiFetch<ChangePasswordResponse>("/settings/password", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
   },
 
-  uploadProfilePhoto(
-    file: File,
-  ) {
-    const formData =
-      new FormData();
+  uploadProfilePhoto(file: File) {
+    const formData = new FormData();
 
-    formData.append(
-      "file",
-      file,
-    );
+    formData.append("file", file);
 
-    return apiFetch<UploadProfilePhotoResponse>(
-      "/settings/profile/avatar",
-      {
-        method: "POST",
+    return apiFetch<UploadProfilePhotoResponse>("/settings/profile/avatar", {
+      method: "POST",
 
-        body: formData,
-      },
-    );
+      body: formData,
+    });
   },
 
   removeProfilePhoto() {
-    return apiFetch<RemoveProfilePhotoResponse>(
-      "/settings/profile/avatar",
-      {
-        method: "DELETE",
-      },
-    );
+    return apiFetch<RemoveProfilePhotoResponse>("/settings/profile/avatar", {
+      method: "DELETE",
+    });
   },
 
   async getSubscriptionBilling() {
-    return apiFetch<SubscriptionBillingSummary>(
-      "/subscriptions/billing",
-    );
+    return apiFetch<SubscriptionBillingSummary>("/subscriptions/billing");
   },
 
-  async createSubscriptionCheckout(
-    provider:
-      | "PAYMONGO"
-      | "PAYPAL",
-  ) {
+  async createSubscriptionCheckout(provider: "PAYMONGO" | "PAYPAL") {
     return apiFetch<SubscriptionCheckoutResponse>(
       "/subscriptions/billing/checkout",
       {
@@ -146,9 +102,7 @@ export const settingsService = {
     );
   },
 
-  async capturePayPalSubscription(
-    orderId: string,
-  ) {
+  async capturePayPalSubscription(orderId: string) {
     return apiFetch<CapturePayPalSubscriptionResponse>(
       "/subscriptions/billing/paypal/capture",
       {
@@ -182,16 +136,10 @@ export const settingsService = {
     });
   },
 
-  async uploadQuotationSignature(
-    file: File,
-  ) {
-    const formData =
-      new FormData();
+  async uploadQuotationSignature(file: File) {
+    const formData = new FormData();
 
-    formData.append(
-      "file",
-      file,
-    );
+    formData.append("file", file);
 
     return apiFetch<UploadQuotationSignatureResponse>(
       "/settings/quotation-signature",
@@ -202,17 +150,13 @@ export const settingsService = {
     );
   },
 
-  async updateQuotationSignature(
-    data: UpdateQuotationSignatureSettingsData,
-  ) {
+  async updateQuotationSignature(data: UpdateQuotationSignatureSettingsData) {
     return apiFetch<UploadQuotationSignatureResponse>(
       "/settings/quotation-signature",
       {
         method: "PATCH",
 
-        body: JSON.stringify(
-          data,
-        ),
+        body: JSON.stringify(data),
       },
     );
   },
@@ -220,28 +164,27 @@ export const settingsService = {
   async removeQuotationSignature() {
     return apiFetch<{
       removed: boolean;
-    }>(
-      "/settings/quotation-signature",
-      {
-        method: "DELETE",
-      },
-    );
+    }>("/settings/quotation-signature", {
+      method: "DELETE",
+    });
   },
 
-  async redeemAppSumoCode(
-    code: string,
-  ) {
-    return apiFetch<RedeemAppSumoCodeResponse>(
-      "/appsumo/redeem",
-      {
-        method: "POST",
+  async redeemAppSumoCode(code: string) {
+    return apiFetch<RedeemAppSumoCodeResponse>("/appsumo/redeem", {
+      method: "POST",
 
-        body: JSON.stringify({
-          code:
-            code.trim(),
-        }),
-      },
-    );
+      body: JSON.stringify({
+        code: code.trim(),
+      }),
+    });
   },
 
+  async redeemDealifyCode(code: string) {
+    return apiFetch<RedeemDealifyCodeResponse>("/dealify/redeem", {
+      method: "POST",
+      body: JSON.stringify({
+        code: code.trim(),
+      }),
+    });
+  },
 };

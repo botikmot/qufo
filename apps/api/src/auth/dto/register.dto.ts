@@ -86,6 +86,12 @@ export class RegisterDto {
   @IsIn(SUPPORTED_CURRENCIES)
   currency?: string;
 
+  @IsOptional()
+  @IsString()
+  @MinLength(8)
+  @MaxLength(100)
+  dealifyCode?: string;
+
   @IsBoolean()
   acceptedTerms!: boolean;
 }

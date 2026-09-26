@@ -1,18 +1,10 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import { useCallback, useEffect, useState } from "react";
 
-import {
-  useSearchParams,
-} from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
-import {
-  settingsService,
-} from "@/services/settings.service";
+import { settingsService } from "@/services/settings.service";
 
 import type {
   SubscriptionBillingSummary,
@@ -22,345 +14,234 @@ import type {
 const SUBSCRIPTION_ENABLED =
   process.env.NEXT_PUBLIC_SUBSCRIPTION_ENABLED !== "false";
 
-const APPSUMO_ENABLED = SUBSCRIPTION_ENABLED && process.env.NEXT_PUBLIC_APPSUMO_ENABLED === "true";
+const APPSUMO_ENABLED =
+  SUBSCRIPTION_ENABLED && process.env.NEXT_PUBLIC_APPSUMO_ENABLED === "true";
 
-function getErrorMessage(
-  error: unknown,
-  fallback: string,
-) {
-  return error instanceof Error
-    ? error.message
-    : fallback;
+const DEALIFY_ENABLED =
+  SUBSCRIPTION_ENABLED && process.env.NEXT_PUBLIC_DEALIFY_ENABLED !== "false";
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
 }
 
-function delay(
-  milliseconds: number,
-) {
-  return new Promise<void>(
-    (resolve) => {
-      window.setTimeout(
-        resolve,
-        milliseconds,
-      );
-    },
-  );
+function delay(milliseconds: number) {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, milliseconds);
+  });
 }
 
 export function useSubscriptionSettings() {
-  const searchParams =
-    useSearchParams();
+  const searchParams = useSearchParams();
 
-  const paymentResult =
-    searchParams.get(
-      "payment",
-    );
+  const paymentResult = searchParams.get("payment");
 
-  const paypalOrderId =
-    searchParams.get(
-      "token",
-    );
+  const paypalOrderId = searchParams.get("token");
 
-  const [
-    billing,
-    setBilling,
-  ] =
-    useState<SubscriptionBillingSummary | null>(
-      null,
-    );
+  const [billing, setBilling] = useState<SubscriptionBillingSummary | null>(
+    null,
+  );
 
-  const [
-    payments,
-    setPayments,
-  ] =
-    useState<
-      SubscriptionPaymentHistoryItem[]
-    >([]);
+  const [payments, setPayments] = useState<SubscriptionPaymentHistoryItem[]>(
+    [],
+  );
 
   /*
    * If subscriptions are disabled,
    * there is nothing to load.
    */
-  const [
-    loading,
-    setLoading,
-  ] = useState(
-    SUBSCRIPTION_ENABLED,
-  );
+  const [loading, setLoading] = useState(SUBSCRIPTION_ENABLED);
 
-  const [
-    renewing,
-    setRenewing,
-  ] =
-    useState(false);
+  const [renewing, setRenewing] = useState(false);
 
-  const [
-    paymentCheckDone,
-    setPaymentCheckDone,
-  ] =
-    useState(false);
+  const [paymentCheckDone, setPaymentCheckDone] = useState(false);
 
-  const [
-    error,
-    setError,
-  ] =
-    useState<string | null>(
-      null,
-    );
+  const [error, setError] = useState<string | null>(null);
 
-  const [
-    paypalCaptureDone,
-    setPaypalCaptureDone,
-  ] =
-    useState(false);
+  const [paypalCaptureDone, setPaypalCaptureDone] = useState(false);
 
-  const [
-    redeemingAppSumo,
-    setRedeemingAppSumo,
-  ] = useState(false);
+  const [redeemingAppSumo, setRedeemingAppSumo] = useState(false);
 
-  const [
-    appSumoSuccess,
-    setAppSumoSuccess,
-  ] =
-    useState<string | null>(
-      null,
-    );
+  const [appSumoSuccess, setAppSumoSuccess] = useState<string | null>(null);
+
+  const [redeemingDealify, setRedeemingDealify] = useState(false);
+
+  const [dealifySuccess, setDealifySuccess] = useState<string | null>(null);
 
   /*
    * Silent refresh.
    */
-  const refresh =
-    useCallback(
-      async () => {
-        if (
-          !SUBSCRIPTION_ENABLED
-        ) {
-          return null;
-        }
+  const refresh = useCallback(async () => {
+    if (!SUBSCRIPTION_ENABLED) {
+      return null;
+    }
 
-        try {
-          const [
-            billingResponse,
-            paymentsResponse,
-          ] =
-            await Promise.all([
-              settingsService.getSubscriptionBilling(),
+    try {
+      const [billingResponse, paymentsResponse] = await Promise.all([
+        settingsService.getSubscriptionBilling(),
 
-              settingsService.getSubscriptionPayments(),
-            ]);
+        settingsService.getSubscriptionPayments(),
+      ]);
 
-          setBilling(
-            billingResponse,
-          );
+      setBilling(billingResponse);
 
-          setPayments(
-            paymentsResponse.payments,
-          );
+      setPayments(paymentsResponse.payments);
 
-          setError(
-            null,
-          );
+      setError(null);
 
-          return billingResponse;
-        } catch (error) {
-          setError(
-            getErrorMessage(
-              error,
-              "Unable to load subscription.",
-            ),
-          );
+      return billingResponse;
+    } catch (error) {
+      setError(getErrorMessage(error, "Unable to load subscription."));
 
-          return null;
-        }
-      },
-      [],
-    );
+      return null;
+    }
+  }, []);
 
-  const redeemAppSumo =
-    useCallback(
-      async (
-        code: string,
-      ) => {
-        if (
-          !APPSUMO_ENABLED ||
-          !code.trim()
-        ) {
-          return false;
-        }
+  const redeemAppSumo = useCallback(
+    async (code: string) => {
+      if (!APPSUMO_ENABLED || !code.trim()) {
+        return false;
+      }
 
-        setRedeemingAppSumo(
-          true,
-        );
+      setRedeemingAppSumo(true);
 
-        setError(
-          null,
-        );
+      setError(null);
 
-        setAppSumoSuccess(
-          null,
-        );
+      setAppSumoSuccess(null);
 
-        try {
-          const response =
-            await settingsService
-              .redeemAppSumoCode(
-                code,
-              );
+      try {
+        const response = await settingsService.redeemAppSumoCode(code);
 
-          setAppSumoSuccess(
-            response.message,
-          );
+        setAppSumoSuccess(response.message);
 
-          /*
-          * Reload the complete billing
-          * details after activation.
-          */
-          await refresh();
+        /*
+         * Reload the complete billing
+         * details after activation.
+         */
+        await refresh();
 
-          return true;
-        } catch (error) {
-          setError(
-            getErrorMessage(
-              error,
-              "Unable to redeem AppSumo code.",
-            ),
-          );
+        return true;
+      } catch (error) {
+        setError(getErrorMessage(error, "Unable to redeem AppSumo code."));
 
-          return false;
-        } finally {
-          setRedeemingAppSumo(
-            false,
-          );
-        }
-      },
-      [
-        refresh,
-      ],
-    );
+        return false;
+      } finally {
+        setRedeemingAppSumo(false);
+      }
+    },
+    [refresh],
+  );
+
+  const redeemDealify = useCallback(
+    async (code: string) => {
+      if (!DEALIFY_ENABLED || !code.trim()) {
+        return false;
+      }
+
+      setRedeemingDealify(true);
+
+      setError(null);
+
+      setDealifySuccess(null);
+
+      try {
+        const response = await settingsService.redeemDealifyCode(code);
+
+        setDealifySuccess(response.message);
+
+        /*
+         * Reload the complete billing
+         * details after activation.
+         */
+        await refresh();
+
+        return true;
+      } catch (error) {
+        setError(getErrorMessage(error, "Unable to redeem Dealify code."));
+
+        return false;
+      } finally {
+        setRedeemingDealify(false);
+      }
+    },
+    [refresh],
+  );
 
   /*
    * User-triggered renewal.
    */
-  const renew =
-    useCallback(
-      async () => {
-        if (
-          !SUBSCRIPTION_ENABLED ||
-          !billing ||
-          !billing.canRenew ||
-          billing.subscription
-            .accessType ===
-            "LIFETIME"
-        ) {
-          return;
-        }
+  const renew = useCallback(async () => {
+    if (
+      !SUBSCRIPTION_ENABLED ||
+      !billing ||
+      !billing.canRenew ||
+      billing.subscription.accessType === "LIFETIME"
+    ) {
+      return;
+    }
 
-        try {
-          setRenewing(
-            true,
-          );
+    try {
+      setRenewing(true);
 
-          setError(
-            null,
-          );
+      setError(null);
 
-          const provider =
-            billing.pricing
-              .currency ===
-            "PHP"
-              ? "PAYMONGO"
-              : "PAYPAL";
+      const provider =
+        billing.pricing.currency === "PHP" ? "PAYMONGO" : "PAYPAL";
 
-          const response =
-            await settingsService.createSubscriptionCheckout(
-              provider,
-            );
+      const response =
+        await settingsService.createSubscriptionCheckout(provider);
 
-          const checkoutUrl =
-            response.payment
-              .checkoutUrl;
+      const checkoutUrl = response.payment.checkoutUrl;
 
-          if (!checkoutUrl) {
-            throw new Error(
-              "Checkout URL was not returned.",
-            );
-          }
+      if (!checkoutUrl) {
+        throw new Error("Checkout URL was not returned.");
+      }
 
-          window.location.assign(
-            checkoutUrl,
-          );
-        } catch (error) {
-          setError(
-            getErrorMessage(
-              error,
-              "Unable to start subscription checkout.",
-            ),
-          );
+      window.location.assign(checkoutUrl);
+    } catch (error) {
+      setError(
+        getErrorMessage(error, "Unable to start subscription checkout."),
+      );
 
-          setRenewing(
-            false,
-          );
-        }
-      },
-      [billing],
-    );
+      setRenewing(false);
+    }
+  }, [billing]);
 
   /*
    * Initial subscription fetch.
    */
   useEffect(() => {
-    if (
-      !SUBSCRIPTION_ENABLED
-    ) {
+    if (!SUBSCRIPTION_ENABLED) {
       return;
     }
 
-    let cancelled =
-      false;
+    let cancelled = false;
 
     async function fetchSubscription() {
       try {
-        const [
-          billingResponse,
-          paymentsResponse,
-        ] =
-          await Promise.all([
-            settingsService.getSubscriptionBilling(),
+        const [billingResponse, paymentsResponse] = await Promise.all([
+          settingsService.getSubscriptionBilling(),
 
-            settingsService.getSubscriptionPayments(),
-          ]);
+          settingsService.getSubscriptionPayments(),
+        ]);
 
         if (cancelled) {
           return;
         }
 
-        setBilling(
-          billingResponse,
-        );
+        setBilling(billingResponse);
 
-        setPayments(
-          paymentsResponse.payments,
-        );
+        setPayments(paymentsResponse.payments);
 
-        setError(
-          null,
-        );
+        setError(null);
       } catch (error) {
         if (cancelled) {
           return;
         }
 
-        setError(
-          getErrorMessage(
-            error,
-            "Unable to load subscription.",
-          ),
-        );
+        setError(getErrorMessage(error, "Unable to load subscription."));
       } finally {
         if (!cancelled) {
-          setLoading(
-            false,
-          );
+          setLoading(false);
         }
       }
     }
@@ -376,66 +257,41 @@ export function useSubscriptionSettings() {
    * PayMongo return confirmation.
    */
   useEffect(() => {
-    if (
-      !SUBSCRIPTION_ENABLED ||
-      paymentResult !==
-        "success"
-    ) {
+    if (!SUBSCRIPTION_ENABLED || paymentResult !== "success") {
       return;
     }
 
-    let cancelled =
-      false;
+    let cancelled = false;
 
     async function confirmPayment() {
-      const maxAttempts =
-        6;
+      const maxAttempts = 6;
 
-      for (
-        let attempt = 0;
-        attempt <
-        maxAttempts;
-        attempt += 1
-      ) {
-        await delay(
-          1500,
-        );
+      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        await delay(1500);
 
         if (cancelled) {
           return;
         }
 
-        const response =
-          await settingsService.getSubscriptionBilling();
+        const response = await settingsService.getSubscriptionBilling();
 
         if (cancelled) {
           return;
         }
 
-        setBilling(
-          response,
-        );
+        setBilling(response);
 
-        setError(
-          null,
-        );
+        setError(null);
 
-        if (
-          response.subscription.effectiveStatus ===
-          "ACTIVE"
-        ) {
-          setPaymentCheckDone(
-            true,
-          );
+        if (response.subscription.effectiveStatus === "ACTIVE") {
+          setPaymentCheckDone(true);
 
           return;
         }
       }
 
       if (!cancelled) {
-        setPaymentCheckDone(
-          true,
-        );
+        setPaymentCheckDone(true);
       }
     }
 
@@ -452,55 +308,39 @@ export function useSubscriptionSettings() {
   useEffect(() => {
     if (
       !SUBSCRIPTION_ENABLED ||
-      paymentResult !==
-        "paypal-return" ||
+      paymentResult !== "paypal-return" ||
       !paypalOrderId
     ) {
       return;
     }
 
-    let cancelled =
-      false;
+    let cancelled = false;
 
     async function capturePayPal() {
       try {
-        await settingsService.capturePayPalSubscription(
-          paypalOrderId!,
-        );
+        await settingsService.capturePayPalSubscription(paypalOrderId!);
 
         if (cancelled) {
           return;
         }
 
-        const [
-          billingResponse,
-          paymentsResponse,
-        ] =
-          await Promise.all([
-            settingsService.getSubscriptionBilling(),
+        const [billingResponse, paymentsResponse] = await Promise.all([
+          settingsService.getSubscriptionBilling(),
 
-            settingsService.getSubscriptionPayments(),
-          ]);
+          settingsService.getSubscriptionPayments(),
+        ]);
 
         if (cancelled) {
           return;
         }
 
-        setBilling(
-          billingResponse,
-        );
+        setBilling(billingResponse);
 
-        setPayments(
-          paymentsResponse.payments,
-        );
+        setPayments(paymentsResponse.payments);
 
-        setError(
-          null,
-        );
+        setError(null);
 
-        setPaypalCaptureDone(
-          true,
-        );
+        setPaypalCaptureDone(true);
 
         window.history.replaceState(
           null,
@@ -512,55 +352,40 @@ export function useSubscriptionSettings() {
           return;
         }
 
-        setError(
-          getErrorMessage(
-            error,
-            "Unable to complete PayPal payment.",
-          ),
-        );
+        setError(getErrorMessage(error, "Unable to complete PayPal payment."));
 
-        setPaypalCaptureDone(
-          true,
-        );
+        setPaypalCaptureDone(true);
       }
     }
 
     void capturePayPal();
 
     return () => {
-      cancelled =
-        true;
+      cancelled = true;
     };
-  }, [
-    paymentResult,
-    paypalOrderId,
-  ]);
+  }, [paymentResult, paypalOrderId]);
 
   const confirmingPayMongo =
-    SUBSCRIPTION_ENABLED &&
-    paymentResult ===
-      "success" &&
-    !paymentCheckDone;
+    SUBSCRIPTION_ENABLED && paymentResult === "success" && !paymentCheckDone;
 
   const confirmingPayPal =
     SUBSCRIPTION_ENABLED &&
-    paymentResult ===
-      "paypal-return" &&
+    paymentResult === "paypal-return" &&
     !paypalCaptureDone;
 
-  const confirmingPayment =
-    confirmingPayMongo ||
-    confirmingPayPal;
+  const confirmingPayment = confirmingPayMongo || confirmingPayPal;
 
   return {
-    enabled:
-      SUBSCRIPTION_ENABLED,
+    enabled: SUBSCRIPTION_ENABLED,
 
-    appSumoEnabled:
-      APPSUMO_ENABLED,
+    appSumoEnabled: APPSUMO_ENABLED,
 
     redeemingAppSumo,
     appSumoSuccess,
+    dealifyEnabled: DEALIFY_ENABLED,
+
+    redeemingDealify,
+    dealifySuccess,
 
     billing,
 
@@ -577,6 +402,8 @@ export function useSubscriptionSettings() {
     error,
 
     redeemAppSumo,
+
+    redeemDealify,
 
     refresh,
 

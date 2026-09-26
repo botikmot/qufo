@@ -25,6 +25,7 @@ import { ConfigService } from '@nestjs/config';
 import { EmailService } from '../email/email.service';
 import { EmailAutomationService } from '../email-automation/email-automation.service';
 import { Logger } from '@nestjs/common';
+import { DealifyService } from '../dealify/dealify.service';
 
 @Injectable()
 export class AuthService {
@@ -35,6 +36,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
     private readonly emailAutomationService: EmailAutomationService,
+    private readonly dealifyService: DealifyService,
   ) {}
 
   private readonly logger = new Logger(AuthService.name);
@@ -388,6 +390,8 @@ export class AuthService {
      */
     const businessName = dto.businessName?.trim();
 
+    const dealifyCode = dto.dealifyCode?.trim() || null;
+
     const countryCode = dto.countryCode?.trim().toUpperCase();
 
     const currency = dto.currency?.trim().toUpperCase();
@@ -469,6 +473,26 @@ export class AuthService {
         },
       });
 
+      if (dealifyCode) {
+        await this.dealifyService.activateForRegistration(
+          tx,
+          organization.id,
+          dealifyCode,
+        );
+      }
+
+      const finalSubscription = await tx.subscription.findUnique({
+        where: {
+          organizationId: organization.id,
+        },
+      });
+
+      if (!finalSubscription) {
+        throw new BadRequestException(
+          'Subscription could not be loaded after registration.',
+        );
+      }
+
       await tx.legalConsent.createMany({
         data: [
           {
@@ -486,7 +510,10 @@ export class AuthService {
 
       return {
         user,
-        organization,
+        organization: {
+          ...organization,
+          subscription: finalSubscription,
+        },
       };
     });
 

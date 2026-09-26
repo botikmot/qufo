@@ -24,6 +24,13 @@ apps/api/uploads/
 
 apps/api/private/appsumo-codes/
 
+# Local Dealify test scripts
+apps/api/src/scripts/create-test-dealify-code.ts
+apps/api/src/scripts/test-dealify-deactivation.ts
+
+# Local generated Dealify code files
+apps/api/generated/dealify/
+
 # Logs
 *.log
 npm-debug.log*
