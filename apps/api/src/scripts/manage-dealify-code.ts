@@ -1,31 +1,9 @@
 import 'dotenv/config';
 
-import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '../generated/prisma/client';
+import { NestFactory } from '@nestjs/core';
 
-import { createHash } from 'node:crypto';
-
-const connectionString = process.env.DATABASE_URL;
-
-if (!connectionString) {
-  throw new Error('DATABASE_URL is not configured.');
-}
-
-const adapter = new PrismaPg({
-  connectionString,
-});
-
-const prisma = new PrismaClient({
-  adapter,
-});
-
-function normalizeCode(code: string) {
-  return code.trim().toUpperCase();
-}
-
-function hashCode(code: string) {
-  return createHash('sha256').update(code, 'utf8').digest('hex');
-}
+import { AppModule } from '../app.module';
+import { DealifyService } from '../dealify/dealify.service';
 
 async function main() {
   const [, , action, rawCode] = process.argv;
@@ -40,47 +18,63 @@ async function main() {
     throw new Error('Dealify code is required.');
   }
 
-  const normalizedCode = normalizeCode(rawCode);
-
-  const codeHash = hashCode(normalizedCode);
-
-  const code = await prisma.dealifyCode.findUnique({
-    where: {
-      codeHash,
-    },
-
-    select: {
-      id: true,
-      codeHint: true,
-      tier: true,
-      status: true,
-      organizationId: true,
-    },
-  });
-
-  if (!code) {
-    throw new Error('Dealify code not found.');
-  }
-
   const targetStatus = action === 'revoke' ? 'REVOKED' : 'REFUNDED';
 
-  console.log('\nDealify code');
-  console.log(`Code hint: ${code.codeHint}`);
-  console.log(`Tier: ${code.tier}`);
-  console.log(`Current status: ${code.status}`);
-  console.log(`Target status: ${targetStatus}`);
-  console.log(`Organization: ${code.organizationId ?? 'none'}`);
+  const app = await NestFactory.createApplicationContext(AppModule, {
+    logger: false,
+  });
 
-  console.log(
-    '\nNOTE: This script currently reads the code and should be wired to the DealifyService before production use.',
-  );
+  try {
+    const dealifyService = app.get(DealifyService);
+
+    console.log('\n========================================');
+    console.log('QUFO Dealify Code Manager');
+    console.log('========================================');
+    console.log(`Action: ${action.toUpperCase()}`);
+    console.log(`Target status: ${targetStatus}`);
+
+    const result = await dealifyService.deactivateCode(rawCode, targetStatus);
+
+    console.log('\nOperation completed successfully.');
+    console.log(`Code hint: ${result.codeHint}`);
+    console.log(`Tier: ${result.tier}`);
+    console.log(`Code status: ${result.codeStatus}`);
+    console.log(`Organization: ${result.organizationId ?? 'none'}`);
+    console.log(`Already processed: ${result.alreadyProcessed ? 'yes' : 'no'}`);
+
+    if (result.subscription) {
+      console.log('\nSubscription:');
+      console.log(`Status: ${result.subscription.status}`);
+      console.log(`Source: ${result.subscription.source}`);
+      console.log(`Access type: ${result.subscription.accessType}`);
+      console.log(`Dealify tier: ${result.subscription.dealifyTier ?? 'none'}`);
+      console.log(
+        `Dealify activated: ${
+          result.subscription.dealifyActivatedAt
+            ? result.subscription.dealifyActivatedAt.toISOString()
+            : 'none'
+        }`,
+      );
+
+      if ('cancelledAt' in result.subscription) {
+        console.log(
+          `Cancelled at: ${
+            result.subscription.cancelledAt
+              ? result.subscription.cancelledAt.toISOString()
+              : 'none'
+          }`,
+        );
+      }
+    } else {
+      console.log('\nSubscription: none');
+    }
+  } finally {
+    await app.close();
+  }
 }
 
-main()
-  .catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+main().catch((error) => {
+  console.error('\nOperation failed.');
+  console.error(error);
+  process.exitCode = 1;
+});
