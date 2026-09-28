@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: resolve(__dirname, "../.."),
   },
+
   images: {
     remotePatterns: [
       {
@@ -19,6 +20,24 @@ const nextConfig: NextConfig = {
       },
     ],
     dangerouslyAllowLocalIP: true,
+  },
+
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          {
+            key: "X-Frame-Options",
+            value: "SAMEORIGIN",
+          },
+          {
+            key: "Content-Security-Policy",
+            value: "frame-ancestors 'self';",
+          },
+        ],
+      },
+    ];
   },
 };
 
