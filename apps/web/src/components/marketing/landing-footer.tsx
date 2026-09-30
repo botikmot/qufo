@@ -12,7 +12,7 @@ export function LandingFooter() {
           <div>
             <Link href="/" className="inline-flex items-center gap-3">
               <div className="flex size-10 items-center justify-center font-black text-emerald-300">
-                <Image 
+                <Image
                   src="/images/qufo_logo_variant2.png"
                   alt="QUFO"
                   width={30}
@@ -122,20 +122,15 @@ export function LandingFooter() {
                 Email Support
               </a>
             </div>
-
           </div>
         </div>
 
         <div className="mt-10 border-t border-white/[0.05] pt-6">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1 text-xs text-slate-700">
-              <p>
-                © {new Date().getFullYear()} QUFO. All rights reserved.
-              </p>
+              <p>© {new Date().getFullYear()} QUFO. All rights reserved.</p>
 
-              <p>
-                Quick Flow for your business.
-              </p>
+              <p>Quick Flow for your business.</p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -187,7 +182,27 @@ export function LandingFooter() {
                 />
               </a>
 
-              <a href="https://tools.cafe/p/tool-1788772215377" target="_blank" rel="noopener"><img src="https://tools.cafe/b/dark.svg" alt="Listed on tools.cafe" width="100" height="50" /></a>
+              <a
+                href="https://tools.cafe/p/tool-1788772215377"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="https://tools.cafe/b/dark.svg"
+                  alt="Listed on tools.cafe"
+                  width="100"
+                  height="50"
+                />
+              </a>
+
+              <a href="https://launchbison.com" target="_blank" rel="noopener">
+                <img
+                  src="https://launchbison.com/badge-dark.png"
+                  alt="Featured on Launchbison"
+                  width="100"
+                  height="62"
+                />
+              </a>
             </div>
           </div>
         </div>
