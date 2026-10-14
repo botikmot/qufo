@@ -1,7 +1,10 @@
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
+
 import {
   AlignmentType,
+  BorderStyle,
   Document,
+  ImageRun,
   Packer,
   Paragraph,
   Table,
@@ -10,18 +13,13 @@ import {
   TextRun,
   VerticalAlign,
   WidthType,
+  type TableVerticalAlign,
 } from "docx";
+
+import { formatWarranty } from "@/utils/warranty";
 
 import type { QuotationDetail } from "@/types/quotation";
 import { getQuotationPdfPreferences } from "@/lib/quotation-pdf-preferences";
-
-function excelText(value: unknown): string {
-  if (value === null || value === undefined) {
-    return "";
-  }
-
-  return String(value);
-}
 
 function excelNumber(value: unknown): number {
   const parsed = Number(value);
@@ -161,166 +159,694 @@ function getQuotationContent(quotation: QuotationDetail) {
  * EXCEL EXPORT
  * ======================================================= */
 
-export function exportQuotationToExcel(quotation: QuotationDetail) {
-  const workbook = XLSX.utils.book_new();
+async function fetchExcelImage(url: string | null | undefined): Promise<{
+  base64: string;
+  extension: "png" | "jpeg";
+} | null> {
+  if (!url) return null;
 
-  const businessName =
-    quotation.businessNameSnapshot || quotation.organization?.name || "";
+  try {
+    const response = await fetch(url);
 
-  const businessEmail =
-    quotation.businessEmailSnapshot || quotation.organization?.email || "";
+    if (!response.ok) return null;
 
-  const businessPhone =
-    quotation.businessPhoneSnapshot || quotation.organization?.phone || "";
+    const blob = await response.blob();
 
-  const businessAddress =
-    quotation.businessAddressSnapshot || quotation.organization?.address || "";
+    let extension: "png" | "jpeg";
 
+    if (blob.type === "image/png") {
+      extension = "png";
+    } else if (blob.type === "image/jpeg" || blob.type === "image/jpg") {
+      extension = "jpeg";
+    } else {
+      return null;
+    }
+
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = () => resolve(String(reader.result));
+
+      reader.onerror = () => reject(new Error("Unable to read image"));
+
+      reader.readAsDataURL(blob);
+    });
+
+    return {
+      base64: dataUrl.split(",")[1],
+      extension,
+    };
+  } catch (error) {
+    console.warn("Excel image could not be loaded:", url, error);
+    return null;
+  }
+}
+
+function excelMoneyFormat(currency: string) {
+  const safeCurrency = currency.replace(/"/g, '""');
+
+  return `"${safeCurrency}" #,##0.00;[Red]-"${safeCurrency}" #,##0.00`;
+}
+
+export async function exportQuotationToExcel(quotation: QuotationDetail) {
+  const workbook = new ExcelJS.Workbook();
+
+  workbook.creator = "QUFO";
+  workbook.subject = `Quotation ${quotation.quotationNumber}`;
+  workbook.title = `Quotation ${quotation.quotationNumber}`;
+  workbook.created = new Date();
+
+  const worksheet = workbook.addWorksheet("Quotation", {
+    views: [{ showGridLines: false }],
+    pageSetup: {
+      paperSize: 9,
+      orientation: "portrait",
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 0,
+      margins: {
+        left: 0.25,
+        right: 0.25,
+        top: 0.4,
+        bottom: 0.4,
+        header: 0.2,
+        footer: 0.2,
+      },
+    },
+  });
+
+  const GREEN = "059669";
+  const DARK = "111827";
+  const GRAY = "6B7280";
+  const BORDER = "E5E7EB";
+  const LIGHT = "F8FAFC";
+  const WHITE = "FFFFFF";
+
+  const business = getBusinessInfo(quotation);
+  const content = getQuotationContent(quotation);
   const customer = quotation.customer;
+  const currency = quotation.currency;
+  const items = quotation.items ?? [];
 
-  const rows: (string | number | null)[][] = [
-    ["QUOTATION"],
-    [""],
+  worksheet.columns = [
+    { width: 6 }, // A: #
+    { width: 10 }, // B: Image
+    { width: 34 }, // C: Description
+    { width: 10 }, // D: Quantity
+    { width: 10 }, // E: Unit
+    { width: 16 }, // F: Rate
+    { width: 17 }, // G: Amount
+  ];
 
-    ["Business Name", businessName],
-    ["Business Email", businessEmail],
-    ["Business Phone", businessPhone],
-    ["Business Address", businessAddress],
-    [""],
+  worksheet.properties.defaultRowHeight = 20;
 
-    ["Quotation Number", quotation.quotationNumber],
-    ["Revision", quotation.revisionNumber ?? 1],
+  const moneyFormat = excelMoneyFormat(currency);
+
+  function styleText(
+    cell: ExcelJS.Cell,
+    options: {
+      bold?: boolean;
+      color?: string;
+      size?: number;
+    } = {},
+  ) {
+    cell.font = {
+      name: "Arial",
+      size: options.size ?? 10,
+      bold: options.bold ?? false,
+      color: { argb: options.color ?? DARK },
+    };
+
+    cell.alignment = {
+      vertical: "middle",
+      wrapText: true,
+    };
+  }
+
+  function bottomBorder(rowNumber: number) {
+    for (let col = 1; col <= 7; col++) {
+      worksheet.getCell(rowNumber, col).border = {
+        bottom: {
+          style: "thin",
+          color: { argb: BORDER },
+        },
+      };
+    }
+  }
+
+  // --------------------------------------------------
+  // BUSINESS HEADER
+  // --------------------------------------------------
+
+  worksheet.mergeCells("A1:B4");
+  worksheet.mergeCells("C1:E1");
+  worksheet.mergeCells("C2:E2");
+  worksheet.mergeCells("C3:E3");
+  worksheet.mergeCells("C4:E4");
+  worksheet.mergeCells("F1:G1");
+  worksheet.mergeCells("F2:G2");
+  worksheet.mergeCells("F3:G3");
+  worksheet.mergeCells("F4:G4");
+
+  worksheet.getRow(1).height = 30;
+  worksheet.getRow(2).height = 23;
+  worksheet.getRow(3).height = 19;
+  worksheet.getRow(4).height = 19;
+
+  worksheet.getCell("C1").value = business.name;
+  styleText(worksheet.getCell("C1"), {
+    bold: true,
+    size: 16,
+  });
+
+  worksheet.getCell("C2").value = business.address;
+  styleText(worksheet.getCell("C2"), {
+    color: GRAY,
+    size: 9,
+  });
+
+  worksheet.getCell("C3").value = business.email;
+  styleText(worksheet.getCell("C3"), {
+    color: GRAY,
+    size: 9,
+  });
+
+  worksheet.getCell("C4").value = business.phone;
+  styleText(worksheet.getCell("C4"), {
+    color: GRAY,
+    size: 9,
+  });
+
+  worksheet.getCell("F1").value = "QUOTATION";
+  styleText(worksheet.getCell("F1"), {
+    bold: true,
+    size: 20,
+  });
+  worksheet.getCell("F1").alignment = {
+    horizontal: "right",
+    vertical: "middle",
+  };
+
+  worksheet.getCell("F2").value = quotation.quotationNumber;
+  styleText(worksheet.getCell("F2"), {
+    bold: true,
+    color: GREEN,
+    size: 10,
+  });
+  worksheet.getCell("F2").alignment = {
+    horizontal: "right",
+    vertical: "middle",
+  };
+
+  worksheet.getCell("F3").value = `Revision ${quotation.revisionNumber ?? 1}`;
+  styleText(worksheet.getCell("F3"), {
+    color: GRAY,
+    size: 9,
+  });
+  worksheet.getCell("F3").alignment = {
+    horizontal: "right",
+    vertical: "middle",
+  };
+
+  worksheet.getCell("F4").value =
+    `Date: ${excelDate(quotation.issueDate)}` +
+    (quotation.validUntil
+      ? `\nValid until: ${excelDate(quotation.validUntil)}`
+      : "");
+
+  styleText(worksheet.getCell("F4"), {
+    color: GRAY,
+    size: 9,
+  });
+  worksheet.getCell("F4").alignment = {
+    horizontal: "right",
+    vertical: "middle",
+    wrapText: true,
+  };
+
+  const logo = await fetchExcelImage(business.logoUrl);
+
+  if (logo) {
+    const imageId = workbook.addImage(logo);
+
+    worksheet.addImage(imageId, {
+      tl: { col: 0.25, row: 0.2 },
+      ext: { width: 54, height: 54 },
+      editAs: "oneCell",
+    });
+  }
+
+  for (let row = 1; row <= 4; row++) {
+    worksheet.getRow(row).eachCell((cell) => {
+      cell.alignment = {
+        ...cell.alignment,
+        vertical: "middle",
+      };
+    });
+  }
+
+  // Green divider
+  worksheet.mergeCells("A6:G6");
+  worksheet.getRow(6).height = 3;
+  worksheet.getCell("A6").fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: GREEN },
+  };
+
+  // --------------------------------------------------
+  // CUSTOMER AND SUBJECT
+  // --------------------------------------------------
+
+  worksheet.mergeCells("A8:D8");
+  worksheet.getCell("A8").value = "CUSTOMER";
+  styleText(worksheet.getCell("A8"), {
+    bold: true,
+    color: GREEN,
+    size: 9,
+  });
+
+  worksheet.mergeCells("A9:D9");
+  worksheet.getCell("A9").value = customer.companyName || customer.name;
+  styleText(worksheet.getCell("A9"), {
+    bold: true,
+    size: 12,
+  });
+
+  const customerDetails = [
+    customer.companyName ? customer.name : "",
+    customer.address ?? "",
+    customer.email ?? "",
+    customer.phone ?? "",
+  ].filter(Boolean);
+
+  customerDetails.forEach((detail, index) => {
+    const row = 10 + index;
+
+    worksheet.mergeCells(`A${row}:D${row}`);
+    worksheet.getCell(`A${row}`).value = detail;
+
+    styleText(worksheet.getCell(`A${row}`), {
+      color: GRAY,
+      size: 9,
+    });
+
+    worksheet.getRow(row).height = 18;
+  });
+
+  worksheet.mergeCells("E8:G8");
+  worksheet.getCell("E8").value = "QUOTATION DETAILS";
+  styleText(worksheet.getCell("E8"), {
+    bold: true,
+    color: GREEN,
+    size: 9,
+  });
+
+  const details = [
+    ["Quotation No.", quotation.quotationNumber],
     ["Issue Date", excelDate(quotation.issueDate)],
     ["Valid Until", excelDate(quotation.validUntil)],
     ["Status", quotation.status],
-    ["Currency", quotation.currency],
-    [""],
-
-    ["CUSTOMER DETAILS"],
-    ["Customer Name", customer.name],
-    ["Customer Company", customer.companyName ?? ""],
-    ["Customer Email", customer.email ?? ""],
-    ["Customer Phone", customer.phone ?? ""],
-    ["Customer Address", customer.address ?? ""],
-    [""],
-
-    ["Subject", quotation.subject ?? ""],
-    ["Message", quotation.quotationMessage ?? ""],
-    [""],
-
-    ["ITEMS"],
-    ["No.", "Item", "Description", "Quantity", "Unit", "Unit Price", "Amount"],
   ];
 
-  const items = quotation.items ?? [];
+  details.forEach(([label, value], index) => {
+    const row = 9 + index;
 
-  items.forEach((item, index) => {
-    rows.push([
-      index + 1,
+    worksheet.getCell(`E${row}`).value = label;
+    worksheet.mergeCells(`F${row}:G${row}`);
+    worksheet.getCell(`F${row}`).value = value;
+
+    styleText(worksheet.getCell(`E${row}`), {
+      color: GRAY,
+      size: 9,
+    });
+
+    styleText(worksheet.getCell(`F${row}`), {
+      bold: true,
+      size: 9,
+    });
+  });
+
+  let row = Math.max(15, 10 + customerDetails.length);
+
+  if (content.subject?.trim()) {
+    worksheet.mergeCells(`A${row}:G${row}`);
+    worksheet.getCell(`A${row}`).value = "SUBJECT";
+    styleText(worksheet.getCell(`A${row}`), {
+      bold: true,
+      color: GREEN,
+      size: 9,
+    });
+
+    row++;
+
+    worksheet.mergeCells(`A${row}:G${row}`);
+    worksheet.getCell(`A${row}`).value = content.subject.trim();
+    styleText(worksheet.getCell(`A${row}`), {
+      bold: true,
+      size: 11,
+    });
+
+    row += 2;
+  }
+
+  if (content.message?.trim()) {
+    worksheet.mergeCells(`A${row}:G${row}`);
+    worksheet.getCell(`A${row}`).value = content.message.trim();
+    styleText(worksheet.getCell(`A${row}`), {
+      color: GRAY,
+      size: 9,
+    });
+
+    worksheet.getRow(row).height = 30;
+    row += 2;
+  }
+
+  // --------------------------------------------------
+  // ITEMS TABLE
+  // --------------------------------------------------
+
+  worksheet.mergeCells(`A${row}:G${row}`);
+  worksheet.getCell(`A${row}`).value = "ITEMS";
+  styleText(worksheet.getCell(`A${row}`), {
+    bold: true,
+    color: GREEN,
+    size: 10,
+  });
+  worksheet.getRow(row).height = 25;
+
+  row++;
+
+  const headerRow = row;
+
+  worksheet.getRow(headerRow).values = [
+    "#",
+    "Image",
+    "Description",
+    "Qty",
+    "Unit",
+    "Rate",
+    "Amount",
+  ];
+
+  worksheet.getRow(headerRow).height = 26;
+
+  worksheet.getRow(headerRow).eachCell((cell) => {
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: LIGHT },
+    };
+
+    cell.font = {
+      name: "Arial",
+      size: 9,
+      bold: true,
+      color: { argb: "64748B" },
+    };
+
+    cell.alignment = {
+      vertical: "middle",
+      horizontal: "left",
+      wrapText: true,
+    };
+
+    cell.border = {
+      top: { style: "thin", color: { argb: BORDER } },
+      bottom: { style: "thin", color: { argb: BORDER } },
+    };
+  });
+
+  row++;
+
+  for (let index = 0; index < items.length; index++) {
+    const item = items[index];
+
+    const warrantyText =
+      item.warrantyDuration && item.warrantyUnit
+        ? `Warranty: ${item.warrantyDuration} ${item.warrantyUnit.toLowerCase()}`
+        : "";
+
+    const description = [
       item.name,
-      item.description ?? "",
+      item.description?.trim() ?? "",
+      warrantyText,
+      item.warrantyTerms?.trim() ?? "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const itemRow = row;
+
+    worksheet.getRow(itemRow).values = [
+      index + 1,
+      "",
+      description,
       excelNumber(item.quantity),
       item.unit,
       excelMoney(item.unitPrice),
       excelMoney(item.total),
-    ]);
-  });
+    ];
 
-  rows.push(
-    [""],
-    ["TOTALS"],
+    worksheet.getRow(itemRow).height = 48;
+
+    worksheet.getRow(itemRow).eachCell((cell, colNumber) => {
+      styleText(cell, {
+        size: 9,
+        bold: colNumber === 3,
+      });
+
+      cell.border = {
+        bottom: {
+          style: "thin",
+          color: { argb: BORDER },
+        },
+      };
+    });
+
+    worksheet.getCell(`C${itemRow}`).alignment = {
+      vertical: "middle",
+      wrapText: true,
+    };
+
+    worksheet.getCell(`D${itemRow}`).alignment = {
+      horizontal: "right",
+      vertical: "middle",
+    };
+
+    worksheet.getCell(`E${itemRow}`).alignment = {
+      horizontal: "center",
+      vertical: "middle",
+    };
+
+    worksheet.getCell(`F${itemRow}`).alignment = {
+      horizontal: "right",
+      vertical: "middle",
+    };
+
+    worksheet.getCell(`G${itemRow}`).alignment = {
+      horizontal: "right",
+      vertical: "middle",
+    };
+
+    worksheet.getCell(`F${itemRow}`).numFmt = moneyFormat;
+    worksheet.getCell(`G${itemRow}`).numFmt = moneyFormat;
+
+    const image = await fetchExcelImage(item.imageUrl);
+
+    if (image) {
+      const imageId = workbook.addImage(image);
+
+      worksheet.addImage(imageId, {
+        tl: { col: 1.2, row: itemRow - 0.85 },
+        ext: { width: 34, height: 34 },
+        editAs: "oneCell",
+      });
+    }
+
+    row++;
+  }
+
+  // --------------------------------------------------
+  // TOTALS
+  // --------------------------------------------------
+
+  row += 1;
+
+  const totals = [
     ["Subtotal", excelMoney(quotation.subtotal)],
     ["Discount", excelMoney(quotation.discountAmount)],
     ["Tax", excelMoney(quotation.taxAmount)],
     ["TOTAL", excelMoney(quotation.total)],
-    [""],
-
-    ["NOTES"],
-    [quotation.notes ?? ""],
-    [""],
-
-    ["TERMS & CONDITIONS"],
-    [quotation.terms ?? ""],
-    [""],
-
-    ["FOOTER NOTE"],
-    [quotation.footerNote ?? ""],
-  );
-
-  const worksheet = XLSX.utils.aoa_to_sheet(rows);
-
-  worksheet["!cols"] = [
-    { wch: 18 },
-    { wch: 28 },
-    { wch: 42 },
-    { wch: 12 },
-    { wch: 12 },
-    { wch: 16 },
-    { wch: 16 },
   ];
 
-  // Merge title
-  worksheet["!merges"] = [
-    {
-      s: { r: 0, c: 0 },
-      e: { r: 0, c: 6 },
-    },
-  ];
+  for (const [label, value] of totals) {
+    worksheet.mergeCells(`E${row}:F${row}`);
 
-  // Find items header row dynamically
-  const itemsHeaderRow = rows.findIndex(
-    (row) => row[0] === "No." && row[1] === "Item" && row[5] === "Unit Price",
-  );
+    worksheet.getCell(`E${row}`).value = label;
+    worksheet.getCell(`G${row}`).value = value;
 
-  if (itemsHeaderRow >= 0) {
-    const itemStartRow = itemsHeaderRow + 1;
-    const itemEndRow = itemStartRow + items.length - 1;
+    styleText(worksheet.getCell(`E${row}`), {
+      bold: label === "TOTAL",
+      size: label === "TOTAL" ? 11 : 9,
+      color: label === "TOTAL" ? DARK : GRAY,
+    });
 
-    // Number formats for Quantity, Unit Price and Amount
-    for (let rowIndex = itemStartRow; rowIndex <= itemEndRow; rowIndex++) {
-      const quantityCell =
-        worksheet[
-          XLSX.utils.encode_cell({
-            r: rowIndex,
-            c: 3,
-          })
-        ];
+    styleText(worksheet.getCell(`G${row}`), {
+      bold: label === "TOTAL",
+      size: label === "TOTAL" ? 14 : 9,
+      color: label === "TOTAL" ? GREEN : DARK,
+    });
 
-      const unitPriceCell =
-        worksheet[
-          XLSX.utils.encode_cell({
-            r: rowIndex,
-            c: 5,
-          })
-        ];
+    worksheet.getCell(`G${row}`).numFmt = moneyFormat;
 
-      const amountCell =
-        worksheet[
-          XLSX.utils.encode_cell({
-            r: rowIndex,
-            c: 6,
-          })
-        ];
+    worksheet.getCell(`E${row}`).alignment = {
+      horizontal: "right",
+      vertical: "middle",
+    };
 
-      if (quantityCell) {
-        quantityCell.z = "#,##0.##";
-      }
+    worksheet.getCell(`G${row}`).alignment = {
+      horizontal: "right",
+      vertical: "middle",
+    };
 
-      if (unitPriceCell) {
-        unitPriceCell.z = "#,##0.00";
-      }
+    if (label === "TOTAL") {
+      worksheet.getCell(`E${row}`).border = {
+        top: { style: "medium", color: { argb: GREEN } },
+      };
 
-      if (amountCell) {
-        amountCell.z = "#,##0.00";
-      }
+      worksheet.getCell(`G${row}`).border = {
+        top: { style: "medium", color: { argb: GREEN } },
+      };
+    }
+
+    worksheet.getRow(row).height = label === "TOTAL" ? 30 : 22;
+    row++;
+  }
+
+  // --------------------------------------------------
+  // NOTES AND TERMS
+  // --------------------------------------------------
+
+  function addTextSection(title: string, text: string | null | undefined) {
+    if (!text?.trim()) return;
+
+    row += 1;
+
+    worksheet.mergeCells(`A${row}:G${row}`);
+    worksheet.getCell(`A${row}`).value = title;
+    styleText(worksheet.getCell(`A${row}`), {
+      bold: true,
+      color: GREEN,
+      size: 9,
+    });
+
+    row++;
+
+    worksheet.mergeCells(`A${row}:G${row}`);
+    worksheet.getCell(`A${row}`).value = text.trim();
+    styleText(worksheet.getCell(`A${row}`), {
+      color: GRAY,
+      size: 9,
+    });
+
+    worksheet.getRow(row).height = 32;
+    row++;
+  }
+
+  addTextSection("NOTES", quotation.notes);
+  addTextSection("TERMS & CONDITIONS", content.terms);
+  addTextSection("FOOTER NOTE", content.footerNote);
+
+  // --------------------------------------------------
+  // SIGNATURES
+  // --------------------------------------------------
+
+  row += 2;
+
+  worksheet.mergeCells(`A${row}:C${row}`);
+  worksheet.mergeCells(`E${row}:G${row}`);
+
+  worksheet.getCell(`A${row}`).value = "PREPARED / AUTHORIZED BY";
+  worksheet.getCell(`E${row}`).value = "ACCEPTED / CONFORME";
+
+  for (const address of [`A${row}`, `E${row}`]) {
+    styleText(worksheet.getCell(address), {
+      color: GRAY,
+      size: 8,
+    });
+  }
+
+  row += 3;
+
+  worksheet.mergeCells(`A${row}:C${row}`);
+  worksheet.mergeCells(`E${row}:G${row}`);
+
+  worksheet.getCell(`A${row}`).value = business.name
+    ? quotation.createdBy.name
+    : "";
+
+  worksheet.getCell(`E${row}`).value = "Signature over Printed Name";
+
+  for (const address of [`A${row}`, `E${row}`]) {
+    styleText(worksheet.getCell(address), {
+      bold: true,
+      size: 9,
+    });
+
+    worksheet.getCell(address).border = {
+      top: { style: "thin", color: { argb: "9CA3AF" } },
+    };
+  }
+
+  row++;
+
+  worksheet.mergeCells(`A${row}:C${row}`);
+
+  worksheet.getCell(`A${row}`).value =
+    quotation.organization.quotationSignatoryTitle ?? "Owner / Manager";
+
+  styleText(worksheet.getCell(`A${row}`), {
+    color: GRAY,
+    size: 8,
+  });
+
+  // Optional authorized signature image
+  if (
+    quotation.organization.showQuotationSignature &&
+    quotation.organization.quotationSignatureUrl
+  ) {
+    const signature = await fetchExcelImage(
+      quotation.organization.quotationSignatureUrl,
+    );
+
+    if (signature) {
+      const imageId = workbook.addImage(signature);
+
+      worksheet.addImage(imageId, {
+        tl: { col: 0.25, row: row - 2.6 },
+        ext: { width: 105, height: 35 },
+        editAs: "oneCell",
+      });
     }
   }
 
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Quotation");
+  // --------------------------------------------------
+  // PRINT SETTINGS AND DOWNLOAD
+  // --------------------------------------------------
 
-  const fileName = `${quotation.quotationNumber}-quotation.xlsx`;
+  worksheet.pageSetup.printArea = `A1:G${row}`;
+  worksheet.pageSetup.horizontalCentered = true;
 
-  XLSX.writeFile(workbook, fileName);
+  worksheet.headerFooter.oddFooter = "&CQUFO - Quotation";
+
+  const buffer = await workbook.xlsx.writeBuffer();
+
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+
+  downloadBlob(blob, `${quotation.quotationNumber}-quotation.xlsx`);
 }
 
 /* =========================================================
@@ -408,525 +934,875 @@ function formatMoney(value: string | number, currency: string) {
   }
 }
 
+type WordImage = {
+  data: Uint8Array;
+  type: "png" | "jpg";
+};
+
+async function fetchWordImage(
+  url: string | null | undefined,
+): Promise<WordImage | null> {
+  if (!url) return null;
+
+  try {
+    const response = await fetch(url);
+
+    if (!response.ok) return null;
+
+    const blob = await response.blob();
+    const mime = blob.type.toLowerCase().split(";")[0];
+
+    let type: "png" | "jpg";
+
+    if (mime === "image/png") {
+      type = "png";
+    } else if (mime === "image/jpeg" || mime === "image/jpg") {
+      type = "jpg";
+    } else {
+      return null;
+    }
+
+    const buffer = await blob.arrayBuffer();
+
+    return {
+      data: new Uint8Array(buffer),
+      type,
+    };
+  } catch (error) {
+    console.warn("Unable to load Word export image:", url, error);
+    return null;
+  }
+}
+
+function wordImageParagraph(
+  image: WordImage | null,
+  width: number,
+  height: number,
+  alignment = AlignmentType.LEFT,
+): Paragraph {
+  return new Paragraph({
+    alignment,
+    spacing: { before: 0, after: 0 },
+    children: image
+      ? [
+          new ImageRun({
+            data: image.data,
+            type: image.type,
+            transformation: { width, height },
+          }),
+        ]
+      : [],
+  });
+}
+
+function wordStyledCell(
+  children: Paragraph[],
+  options: {
+    width?: number;
+    fill?: string;
+    verticalAlign?: TableVerticalAlign;
+  } = {},
+): TableCell {
+  return new TableCell({
+    width: options.width
+      ? {
+          size: options.width,
+          type: WidthType.PERCENTAGE,
+        }
+      : undefined,
+
+    shading: options.fill ? { fill: options.fill } : undefined,
+
+    verticalAlign: options.verticalAlign ?? VerticalAlign.CENTER,
+
+    margins: {
+      top: 90,
+      bottom: 90,
+      left: 100,
+      right: 100,
+    },
+
+    children,
+  });
+}
+
+function wordStyledHeaderCell(label: string, width: number): TableCell {
+  return wordStyledCell(
+    [
+      new Paragraph({
+        spacing: { before: 0, after: 0 },
+        children: [
+          new TextRun({
+            text: label,
+            bold: true,
+            size: 16,
+            color: "64748B",
+            font: "Arial",
+          }),
+        ],
+      }),
+    ],
+    {
+      width,
+      fill: "F8FAFC",
+    },
+  );
+}
+
+function wordBodyCell(
+  value: string,
+  options: {
+    width: number;
+    bold?: boolean;
+    color?: string;
+    size?: number;
+    alignment?: (typeof AlignmentType)[keyof typeof AlignmentType];
+    fill?: string;
+  },
+): TableCell {
+  return wordStyledCell(
+    [
+      new Paragraph({
+        alignment: options.alignment,
+        spacing: { before: 0, after: 0 },
+        children: [
+          new TextRun({
+            text: value,
+            font: "Arial",
+            size: options.size ?? 17,
+            bold: options.bold ?? false,
+            color: options.color ?? "374151",
+          }),
+        ],
+      }),
+    ],
+    {
+      width: options.width,
+      fill: options.fill,
+    },
+  );
+}
+
+const wordTableBorders = {
+  top: {
+    style: BorderStyle.SINGLE,
+    size: 4,
+    color: "E5E7EB",
+  },
+  bottom: {
+    style: BorderStyle.SINGLE,
+    size: 4,
+    color: "E5E7EB",
+  },
+  left: {
+    style: BorderStyle.SINGLE,
+    size: 4,
+    color: "E5E7EB",
+  },
+  right: {
+    style: BorderStyle.SINGLE,
+    size: 4,
+    color: "E5E7EB",
+  },
+  insideHorizontal: {
+    style: BorderStyle.SINGLE,
+    size: 4,
+    color: "E5E7EB",
+  },
+  insideVertical: {
+    style: BorderStyle.SINGLE,
+    size: 4,
+    color: "E5E7EB",
+  },
+};
+
 export async function exportQuotationToWord(quotation: QuotationDetail) {
   const business = getBusinessInfo(quotation);
-
   const content = getQuotationContent(quotation);
-
   const pdfPreferences = getQuotationPdfPreferences();
-
-  console.log("pdfPreferences::", pdfPreferences);
 
   const showQuotationDetails = pdfPreferences.showQuotationDetails !== false;
 
-  console.log("showQuotationDetails::", showQuotationDetails);
-
   const currency = quotation.currency;
-
   const children: (Paragraph | Table)[] = [];
 
-  /*
-   * Business header
-   */
-  children.push(
-    wordParagraph(
-      [
-        wordText(business.name, {
+  const logo = await fetchWordImage(business.logoUrl);
+
+  const signature = quotation.organization.showQuotationSignature
+    ? await fetchWordImage(quotation.organization.quotationSignatureUrl)
+    : null;
+
+  const green = "059669";
+  const dark = "111827";
+  const gray = "6B7280";
+
+  const spacer = (after = 120) =>
+    new Paragraph({
+      spacing: { before: 0, after },
+      children: [],
+    });
+
+  const heading = (text: string) =>
+    new Paragraph({
+      spacing: { before: 260, after: 100 },
+      children: [
+        new TextRun({
+          text,
+          font: "Arial",
           bold: true,
-          size: 30,
+          size: 19,
+          color: green,
+          characterSpacing: 12,
         }),
       ],
-      {
-        spacingAfter: 80,
-      },
-    ),
-  );
+    });
 
-  if (business.address) {
-    children.push(
-      wordParagraph([
-        wordText(business.address, {
-          size: 18,
-          color: "666666",
+  const bodyText = (
+    text: string,
+    options: {
+      bold?: boolean;
+      color?: string;
+      size?: number;
+      alignment?: (typeof AlignmentType)[keyof typeof AlignmentType];
+    } = {},
+  ) =>
+    new Paragraph({
+      alignment: options.alignment,
+      spacing: { before: 0, after: 65 },
+      children: [
+        new TextRun({
+          text,
+          font: "Arial",
+          size: options.size ?? 17,
+          bold: options.bold ?? false,
+          color: options.color ?? "4B5563",
         }),
-      ]),
-    );
+      ],
+    });
+
+  // --------------------------------------------------
+  // HEADER: LOGO + BUSINESS + QUOTATION DETAILS
+  // --------------------------------------------------
+
+  const businessParagraphs: Paragraph[] = [
+    bodyText(business.name, {
+      bold: true,
+      color: dark,
+      size: 28,
+    }),
+  ];
+
+  for (const detail of [business.address, business.email, business.phone]) {
+    if (detail) {
+      businessParagraphs.push(
+        bodyText(detail, {
+          color: gray,
+          size: 16,
+        }),
+      );
+    }
   }
 
-  if (business.email || business.phone) {
-    children.push(
-      wordParagraph([
-        wordText([business.email, business.phone].filter(Boolean).join(" • "), {
-          size: 18,
-          color: "666666",
-        }),
-      ]),
-    );
-  }
-
-  const quotationDetailsChildren: Array<Paragraph | Table> = [];
+  const quotationHeaderParagraphs: Paragraph[] = [];
 
   if (showQuotationDetails) {
-    quotationDetailsChildren.push(
+    quotationHeaderParagraphs.push(
       new Paragraph({
+        alignment: AlignmentType.RIGHT,
+        spacing: { after: 100 },
         children: [
           new TextRun({
             text: "QUOTATION",
+            font: "Arial",
             bold: true,
-            size: 28,
-          }),
-        ],
-        spacing: {
-          after: 100,
-        },
-      }),
-    );
-
-    quotationDetailsChildren.push(
-      new Table({
-        width: {
-          size: 100,
-          type: WidthType.PERCENTAGE,
-        },
-        rows: [
-          new TableRow({
-            children: [
-              new TableCell({
-                children: [
-                  new Paragraph({
-                    children: [
-                      new TextRun({
-                        text: "Quotation Number",
-                        bold: true,
-                      }),
-                    ],
-                  }),
-                ],
-              }),
-              new TableCell({
-                children: [
-                  new Paragraph({
-                    children: [
-                      new TextRun({
-                        text: quotation.quotationNumber,
-                      }),
-                    ],
-                  }),
-                ],
-              }),
-            ],
-          }),
-
-          new TableRow({
-            children: [
-              new TableCell({
-                children: [
-                  new Paragraph({
-                    children: [
-                      new TextRun({
-                        text: "Date",
-                        bold: true,
-                      }),
-                    ],
-                  }),
-                ],
-              }),
-              new TableCell({
-                children: [
-                  new Paragraph({
-                    children: [
-                      new TextRun({
-                        text: formatExportDate(quotation.issueDate),
-                      }),
-                    ],
-                  }),
-                ],
-              }),
-            ],
-          }),
-
-          new TableRow({
-            children: [
-              new TableCell({
-                children: [
-                  new Paragraph({
-                    children: [
-                      new TextRun({
-                        text: "Valid Until",
-                        bold: true,
-                      }),
-                    ],
-                  }),
-                ],
-              }),
-              new TableCell({
-                children: [
-                  new Paragraph({
-                    children: [
-                      new TextRun({
-                        text: formatExportDate(quotation.validUntil),
-                      }),
-                    ],
-                  }),
-                ],
-              }),
-            ],
+            size: 36,
+            color: dark,
           }),
         ],
       }),
-    );
-  }
-
-  children.push(...quotationDetailsChildren);
-  /*
-   * Customer section
-   */
-  children.push(
-    new Paragraph({
-      spacing: {
-        before: 300,
-        after: 100,
-      },
-      children: [
-        wordText("CUSTOMER", {
-          bold: true,
-          size: 22,
-        }),
-      ],
-    }),
-  );
-
-  children.push(
-    wordParagraph([
-      wordText(quotation.customer.name, {
-        bold: true,
-        size: 20,
-      }),
-    ]),
-  );
-
-  if (quotation.customer.companyName) {
-    children.push(
-      wordParagraph([
-        wordText(quotation.customer.companyName, {
-          size: 18,
-        }),
-      ]),
-    );
-  }
-
-  if (quotation.customer.address) {
-    children.push(
-      wordParagraph([
-        wordText(quotation.customer.address, {
-          size: 18,
-          color: "666666",
-        }),
-      ]),
-    );
-  }
-
-  if (quotation.customer.email || quotation.customer.phone) {
-    children.push(
-      wordParagraph([
-        wordText(
-          [quotation.customer.email, quotation.customer.phone]
-            .filter(Boolean)
-            .join(" • "),
-          {
-            size: 18,
-            color: "666666",
-          },
-        ),
-      ]),
-    );
-  }
-
-  /*
-   * Subject and message
-   */
-  if (content.subject) {
-    children.push(
       new Paragraph({
-        spacing: {
-          before: 250,
-          after: 80,
-        },
+        alignment: AlignmentType.RIGHT,
+        spacing: { after: 80 },
         children: [
-          wordText("Subject: ", {
+          new TextRun({
+            text: quotation.quotationNumber,
+            font: "Arial",
             bold: true,
-            size: 20,
-          }),
-          wordText(content.subject, {
-            size: 20,
+            size: 19,
+            color: green,
           }),
         ],
       }),
     );
-  }
 
-  if (content.message) {
-    children.push(
-      wordParagraph([
-        wordText(content.message, {
-          size: 18,
-        }),
-      ]),
-    );
-  }
-
-  /*
-   * Items table
-   */
-  children.push(
-    new Paragraph({
-      spacing: {
-        before: 300,
-        after: 100,
-      },
-      children: [
-        wordText("ITEMS", {
-          bold: true,
-          size: 22,
-        }),
-      ],
-    }),
-  );
-
-  const itemRows = [
-    new TableRow({
-      children: [
-        headerCell("Item"),
-        headerCell("Description"),
-        headerCell("Qty"),
-        headerCell("Unit"),
-        headerCell("Unit Price"),
-        headerCell("Amount"),
-      ],
-    }),
-
-    ...quotation.items.map(
-      (item) =>
-        new TableRow({
+    if ((quotation.revisionNumber ?? 1) > 1) {
+      quotationHeaderParagraphs.push(
+        new Paragraph({
+          alignment: AlignmentType.RIGHT,
+          spacing: { after: 80 },
           children: [
-            tableCell([
-              wordParagraph([
-                wordText(item.name, {
-                  size: 16,
-                }),
-              ]),
-            ]),
-
-            tableCell([
-              wordParagraph([
-                wordText(item.description ?? "", {
-                  size: 16,
-                }),
-              ]),
-            ]),
-
-            tableCell([
-              wordParagraph([
-                wordText(item.quantity, {
-                  size: 16,
-                }),
-              ]),
-            ]),
-
-            tableCell([
-              wordParagraph([
-                wordText(item.unit, {
-                  size: 16,
-                }),
-              ]),
-            ]),
-
-            tableCell([
-              wordParagraph([
-                wordText(formatMoney(item.unitPrice, currency), {
-                  size: 16,
-                }),
-              ]),
-            ]),
-
-            tableCell([
-              wordParagraph([
-                wordText(formatMoney(item.total, currency), {
-                  size: 16,
-                }),
-              ]),
-            ]),
+            new TextRun({
+              text: `Revision ${quotation.revisionNumber}`,
+              font: "Arial",
+              size: 16,
+              color: gray,
+            }),
           ],
         }),
-    ),
+      );
+    }
+
+    quotationHeaderParagraphs.push(
+      bodyText(`Date: ${formatExportDate(quotation.issueDate)}`, {
+        alignment: AlignmentType.RIGHT,
+        color: gray,
+        size: 16,
+      }),
+    );
+
+    if (quotation.validUntil) {
+      quotationHeaderParagraphs.push(
+        bodyText(`Valid until: ${formatExportDate(quotation.validUntil)}`, {
+          alignment: AlignmentType.RIGHT,
+          color: gray,
+          size: 16,
+        }),
+      );
+    }
+  }
+
+  const headerTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    columnWidths: [1224, 5103, 3879],
+    borders: {
+      top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+      bottom: {
+        style: BorderStyle.SINGLE,
+        size: 8,
+        color: "E5E7EB",
+      },
+      left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+      right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+      insideHorizontal: {
+        style: BorderStyle.NONE,
+        size: 0,
+        color: "FFFFFF",
+      },
+      insideVertical: {
+        style: BorderStyle.NONE,
+        size: 0,
+        color: "FFFFFF",
+      },
+    },
+    rows: [
+      new TableRow({
+        children: [
+          wordStyledCell(logo ? [wordImageParagraph(logo, 62, 62)] : [], {
+            width: 12,
+          }),
+          wordStyledCell(businessParagraphs, { width: 50 }),
+          wordStyledCell(quotationHeaderParagraphs, { width: 38 }),
+        ],
+      }),
+    ],
+  });
+
+  children.push(headerTable, spacer(260));
+
+  // --------------------------------------------------
+  // CUSTOMER
+  // --------------------------------------------------
+
+  //children.push(heading("CUSTOMER"));
+
+  children.push(
+    bodyText(quotation.customer.companyName || quotation.customer.name, {
+      bold: true,
+      color: dark,
+      size: 21,
+    }),
+  );
+
+  if (quotation.customer.companyName && quotation.customer.name) {
+    children.push(
+      bodyText(quotation.customer.name, {
+        color: gray,
+        size: 16,
+      }),
+    );
+  }
+
+  for (const detail of [
+    quotation.customer.address,
+    quotation.customer.email,
+    quotation.customer.phone,
+  ]) {
+    if (detail) {
+      children.push(bodyText(detail, { color: gray, size: 16 }));
+    }
+  }
+
+  // --------------------------------------------------
+  // SUBJECT AND MESSAGE
+  // --------------------------------------------------
+
+  if (content.subject?.trim()) {
+    children.push(heading("SUBJECT"));
+    children.push(
+      bodyText(content.subject.trim(), {
+        bold: true,
+        color: dark,
+        size: 20,
+      }),
+    );
+  }
+
+  if (content.message?.trim()) {
+    children.push(spacer(50));
+    children.push(bodyText(content.message.trim()));
+  }
+
+  // --------------------------------------------------
+  // ITEMS TABLE WITH EMBEDDED IMAGES
+  // --------------------------------------------------
+
+  children.push(heading("ITEMS"));
+
+  const itemRows: TableRow[] = [
+    new TableRow({
+      tableHeader: true,
+      children: [
+        wordStyledHeaderCell("#", 6),
+        wordStyledHeaderCell("Image", 12),
+        wordStyledHeaderCell("Description", 36),
+        wordStyledHeaderCell("Qty", 9),
+        wordStyledHeaderCell("Unit", 9),
+        wordStyledHeaderCell("Rate", 14),
+        wordStyledHeaderCell("Amount", 14),
+      ],
+    }),
   ];
+
+  for (let index = 0; index < quotation.items.length; index++) {
+    const item = quotation.items[index];
+
+    const image = await fetchWordImage(item.imageUrl);
+
+    const warranty = formatWarranty(item.warrantyDuration, item.warrantyUnit);
+
+    const descriptionParagraphs: Paragraph[] = [
+      bodyText(item.name, {
+        bold: true,
+        color: dark,
+        size: 17,
+      }),
+    ];
+
+    if (item.description?.trim()) {
+      descriptionParagraphs.push(
+        bodyText(item.description.trim(), {
+          color: gray,
+          size: 15,
+        }),
+      );
+    }
+
+    if (warranty) {
+      descriptionParagraphs.push(
+        bodyText(`Warranty: ${warranty}`, {
+          color: "334155",
+          size: 15,
+        }),
+      );
+    }
+
+    if (warranty && item.warrantyTerms?.trim()) {
+      descriptionParagraphs.push(
+        bodyText(item.warrantyTerms.trim(), {
+          color: gray,
+          size: 14,
+        }),
+      );
+    }
+
+    itemRows.push(
+      new TableRow({
+        cantSplit: true,
+        children: [
+          wordBodyCell(String(index + 1), {
+            width: 6,
+            alignment: AlignmentType.CENTER,
+          }),
+
+          wordStyledCell(
+            image
+              ? [wordImageParagraph(image, 48, 48)]
+              : [bodyText("—", { color: gray })],
+            { width: 12 },
+          ),
+
+          wordStyledCell(descriptionParagraphs, {
+            width: 36,
+          }),
+
+          wordBodyCell(String(item.quantity), {
+            width: 9,
+            alignment: AlignmentType.RIGHT,
+          }),
+
+          wordBodyCell(item.unit || "-", {
+            width: 9,
+            alignment: AlignmentType.CENTER,
+          }),
+
+          wordBodyCell(formatMoney(item.unitPrice, currency), {
+            width: 14,
+            alignment: AlignmentType.RIGHT,
+          }),
+
+          wordBodyCell(formatMoney(item.total, currency), {
+            width: 14,
+            alignment: AlignmentType.RIGHT,
+          }),
+        ],
+      }),
+    );
+  }
 
   children.push(
     new Table({
-      width: {
-        size: 100,
-        type: WidthType.PERCENTAGE,
-      },
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      columnWidths: [6, 12, 36, 9, 9, 14, 14],
+      borders: wordTableBorders,
       rows: itemRows,
     }),
   );
 
-  /*
-   * Totals
-   */
-  children.push(
-    new Paragraph({
-      spacing: {
-        before: 300,
-        after: 100,
-      },
-      children: [
-        wordText("TOTALS", {
-          bold: true,
-          size: 22,
-        }),
-      ],
-    }),
-  );
+  // --------------------------------------------------
+  // TOTALS
+  // --------------------------------------------------
+
+  children.push(spacer(100));
+
+  const totalsRows: TableRow[] = [];
+
+  const totalEntries = [
+    {
+      label: "Subtotal",
+      value: formatMoney(quotation.subtotal, currency),
+      total: false,
+    },
+    {
+      label: "Discount",
+      value: formatMoney(quotation.discountAmount, currency),
+      total: false,
+    },
+    {
+      label: "Tax",
+      value: formatMoney(quotation.taxAmount, currency),
+      total: false,
+    },
+    {
+      label: "TOTAL",
+      value: formatMoney(quotation.total, currency),
+      total: true,
+    },
+  ];
+
+  for (const entry of totalEntries) {
+    if (
+      !entry.total &&
+      amount(
+        entry.label === "Discount"
+          ? quotation.discountAmount
+          : entry.label === "Tax"
+            ? quotation.taxAmount
+            : quotation.subtotal,
+      ) === 0 &&
+      entry.label !== "Subtotal"
+    ) {
+      continue;
+    }
+
+    totalsRows.push(
+      new TableRow({
+        children: [
+          wordStyledCell(
+            [
+              new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                spacing: { before: 0, after: 0 },
+                children: [
+                  new TextRun({
+                    text: entry.label,
+                    font: "Arial",
+                    bold: entry.total,
+                    size: entry.total ? 20 : 17,
+                    color: entry.total ? dark : gray,
+                  }),
+                ],
+              }),
+            ],
+            { width: 65 },
+          ),
+
+          wordStyledCell(
+            [
+              new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                spacing: { before: 0, after: 0 },
+                children: [
+                  new TextRun({
+                    text: entry.value,
+                    font: "Arial",
+                    bold: entry.total,
+                    size: entry.total ? 26 : 17,
+                    color: entry.total ? green : dark,
+                  }),
+                ],
+              }),
+            ],
+            { width: 35 },
+          ),
+        ],
+      }),
+    );
+  }
 
   children.push(
     new Table({
-      width: {
-        size: 100,
-        type: WidthType.PERCENTAGE,
+      width: { size: 55, type: WidthType.PERCENTAGE },
+      columnWidths: [65, 35],
+      alignment: AlignmentType.RIGHT,
+      borders: {
+        top: {
+          style: BorderStyle.NONE,
+          size: 0,
+          color: "FFFFFF",
+        },
+        bottom: {
+          style: BorderStyle.NONE,
+          size: 0,
+          color: "FFFFFF",
+        },
+        left: {
+          style: BorderStyle.NONE,
+          size: 0,
+          color: "FFFFFF",
+        },
+        right: {
+          style: BorderStyle.NONE,
+          size: 0,
+          color: "FFFFFF",
+        },
+        insideHorizontal: {
+          style: BorderStyle.NONE,
+          size: 0,
+          color: "FFFFFF",
+        },
+        insideVertical: {
+          style: BorderStyle.NONE,
+          size: 0,
+          color: "FFFFFF",
+        },
       },
-      rows: [
-        new TableRow({
-          children: [
-            tableCell([
-              wordParagraph([
-                wordText("Subtotal", {
-                  bold: true,
-                  size: 18,
-                }),
-              ]),
-            ]),
-            tableCell([
-              wordParagraph([
-                wordText(formatMoney(quotation.subtotal, currency), {
-                  size: 18,
-                }),
-              ]),
-            ]),
-          ],
-        }),
-
-        new TableRow({
-          children: [
-            tableCell([
-              wordParagraph([
-                wordText("Discount", {
-                  size: 18,
-                }),
-              ]),
-            ]),
-            tableCell([
-              wordParagraph([
-                wordText(formatMoney(quotation.discountAmount, currency), {
-                  size: 18,
-                }),
-              ]),
-            ]),
-          ],
-        }),
-
-        new TableRow({
-          children: [
-            tableCell([
-              wordParagraph([
-                wordText("Tax", {
-                  size: 18,
-                }),
-              ]),
-            ]),
-            tableCell([
-              wordParagraph([
-                wordText(formatMoney(quotation.taxAmount, currency), {
-                  size: 18,
-                }),
-              ]),
-            ]),
-          ],
-        }),
-
-        new TableRow({
-          children: [
-            tableCell([
-              wordParagraph([
-                wordText("GRAND TOTAL", {
-                  bold: true,
-                  size: 20,
-                }),
-              ]),
-            ]),
-            tableCell([
-              wordParagraph([
-                wordText(formatMoney(quotation.total, currency), {
-                  bold: true,
-                  size: 20,
-                }),
-              ]),
-            ]),
-          ],
-        }),
-      ],
+      rows: totalsRows,
     }),
   );
 
-  /*
-   * Terms and footer
-   */
-  if (content.terms) {
+  // --------------------------------------------------
+  // NOTES, TERMS, FOOTER
+  // --------------------------------------------------
+
+  const addSection = (title: string, value: string | null | undefined) => {
+    if (!value?.trim()) return;
+
+    children.push(heading(title));
+    children.push(bodyText(value.trim()));
+  };
+
+  addSection("NOTES", quotation.notes);
+
+  // Terms & Conditions — separate section below totals
+  if (content.terms?.trim()) {
     children.push(
       new Paragraph({
         spacing: {
           before: 300,
           after: 100,
         },
+        border: {
+          top: {
+            style: BorderStyle.SINGLE,
+            size: 4,
+            color: "E5E7EB",
+            space: 8,
+          },
+        },
         children: [
-          wordText("TERMS & CONDITIONS", {
+          new TextRun({
+            text: "TERMS & CONDITIONS",
+            font: "Arial",
             bold: true,
-            size: 22,
+            size: 19,
+            color: "111827",
+            characterSpacing: 12,
           }),
         ],
       }),
     );
 
-    children.push(
-      wordParagraph([
-        wordText(content.terms, {
-          size: 18,
-        }),
-      ]),
-    );
-  }
-
-  if (content.footerNote) {
     children.push(
       new Paragraph({
         spacing: {
-          before: 250,
+          before: 0,
           after: 100,
+          line: 260,
         },
         children: [
-          wordText(content.footerNote, {
-            size: 18,
-            color: "666666",
+          new TextRun({
+            text: content.terms.trim().replace(/\s{2,}/g, "\n"),
+            font: "Arial",
+            size: 16,
+            color: "4B5563",
           }),
         ],
       }),
     );
   }
 
+  if (content.footerNote?.trim()) {
+    children.push(
+      new Paragraph({
+        spacing: {
+          before: 320, // dugang space sa ibabaw
+          after: 100,
+        },
+        children: [
+          new TextRun({
+            text: content.footerNote.trim(),
+            font: "Arial",
+            size: 16,
+            color: "6B7280",
+          }),
+        ],
+      }),
+    );
+  }
+
+  // --------------------------------------------------
+  // SIGNATURES / CONFORME
+  // --------------------------------------------------
+
+  children.push(spacer(250));
+
+  const signatoryName =
+    quotation.organization.quotationSignatoryName?.trim() ||
+    quotation.createdBy.name;
+
+  const signatoryTitle =
+    quotation.organization.quotationSignatoryTitle?.trim() || null;
+
+  const leftSignatureChildren: Paragraph[] = [
+    bodyText("PREPARED / AUTHORIZED BY", {
+      color: gray,
+      size: 14,
+    }),
+    spacer(400),
+    ...(signature ? [wordImageParagraph(signature, 100, 36)] : [spacer(150)]),
+    bodyText(signatoryName, {
+      bold: true,
+      color: dark,
+      size: 17,
+    }),
+  ];
+
+  if (signatoryTitle) {
+    leftSignatureChildren.push(
+      bodyText(signatoryTitle, {
+        color: gray,
+        size: 14,
+      }),
+    );
+  }
+
+  const rightSignatureChildren: Paragraph[] = [];
+
+  if (pdfPreferences.showAcceptedConforme !== false) {
+    rightSignatureChildren.push(
+      bodyText("ACCEPTED / CONFORME", {
+        color: gray,
+        size: 14,
+      }),
+      spacer(550),
+      bodyText("Signature over Printed Name", {
+        bold: true,
+        color: dark,
+        size: 17,
+      }),
+    );
+  }
+
+  children.push(
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      columnWidths: [50, 50],
+      borders: {
+        top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+        bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+        left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+        right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+        insideHorizontal: {
+          style: BorderStyle.NONE,
+          size: 0,
+          color: "FFFFFF",
+        },
+        insideVertical: {
+          style: BorderStyle.NONE,
+          size: 0,
+          color: "FFFFFF",
+        },
+      },
+      rows: [
+        new TableRow({
+          cantSplit: true,
+          children: [
+            wordStyledCell(leftSignatureChildren, {
+              width: 50,
+            }),
+            wordStyledCell(rightSignatureChildren, {
+              width: 50,
+            }),
+          ],
+        }),
+      ],
+    }),
+  );
+
+  // --------------------------------------------------
+  // DOCUMENT SETTINGS
+  // --------------------------------------------------
+
   const document = new Document({
+    creator: "QUFO",
+    title: `Quotation ${quotation.quotationNumber}`,
+    description: `Quotation prepared by ${business.name}`,
     sections: [
       {
-        properties: {},
+        properties: {
+          page: {
+            size: {
+              width: 11906,
+              height: 16838,
+            },
+            margin: {
+              top: 720,
+              bottom: 720,
+              left: 850,
+              right: 850,
+            },
+          },
+        },
         children,
       },
     ],
