@@ -17,9 +17,9 @@ import type {
 } from "@/types/quotation-form";
 
 import {
-  getRememberedQuotationSubject,
+  //getRememberedQuotationSubject,
   getRememberedQuotationMessage,
-  rememberQuotationSubject,
+  //rememberQuotationSubject,
   rememberQuotationMessage,
 } from "@/lib/quotation-local-storage";
 
@@ -168,7 +168,7 @@ export function useQuotationForm({
 
       setFooterNotes(getRememberedQuotationFootNote(businessProfileId));
 
-      setSubject(getRememberedQuotationSubject(businessProfileId));
+      //setSubject(getRememberedQuotationSubject(businessProfileId));
 
       setQuotationMessage(getRememberedQuotationMessage(businessProfileId));
     }
@@ -428,7 +428,7 @@ export function useQuotationForm({
 
       rememberQuotationFooterNote(businessProfileId, footerNote);
 
-      rememberQuotationSubject(businessProfileId, subject);
+      //rememberQuotationSubject(businessProfileId, subject);
 
       rememberQuotationMessage(businessProfileId, quotationMessage);
     } catch (error) {
